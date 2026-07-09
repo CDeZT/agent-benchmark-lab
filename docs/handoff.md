@@ -94,6 +94,10 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Extended opencode parser to extract token counts and cost.
 - **10/10 dimensions now have real evidence**.
 - 62 unit tests pass. Full audit passes.
+- Added complex engineering tasks: SWE-bench style, fullstack, C systems, optics, embedded, data pipeline.
+- Added `advanced` suite for complex tasks.
+- Added new process check types: code_quality, performance_check, documentation_check.
+- 75 unit tests pass. Full audit passes.
 
 ## In Progress
 

@@ -61,6 +61,25 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 13)
+
+- Added complex engineering tasks inspired by SWE-bench and real-world challenges:
+  - `python-swebench-style`: cross-module bug fix in data pipeline (multi-file debugging)
+  - `c-systems-programming`: memory pool allocator implementation (systems programming)
+  - `python-fullstack`: Book Library API + frontend multi-bug fix (full-stack)
+  - `optics-imaging-pipeline`: camera sensor calibration (requires numpy)
+  - `embedded-protocol-parser`: UART protocol parser with CRC (embedded systems)
+  - `python-data-pipeline`: data cleaning/transformation (requires pandas)
+- Added `advanced` suite for complex engineering tasks.
+- Added new process check types for more granular scoring:
+  - `code_quality`: check function length, nesting depth, docstrings, comments
+  - `performance_check`: verify code runs within time limits
+  - `documentation_check`: verify code has proper documentation
+- Foundation suite now has 8 tasks (standard library only).
+- Advanced suite has 3 tasks (SWE-bench style, fullstack, C systems).
+- 75 unit tests pass. Full audit passes.
+- Tasks require 10+ tool calls to complete (real engineering challenges).
+
 ## 2026-07-09 (iteration 12)
 
 - Implemented `cost_efficiency` scoring (the last dimension without evidence).
