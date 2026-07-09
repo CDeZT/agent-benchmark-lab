@@ -38,7 +38,7 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | Total and dimension scores | Implemented | `ScoreResult` has total and dimension scores. 8/10 dimensions have real evidence. | Implement cost_efficiency with real token/cost parsing. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Partial | 8/10 dimensions have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair. 56 unit tests prove every non-zero score comes from real execution. | Add cost_efficiency scoring. |
+| Evidence-backed scoring | Implemented | **10/10 dimensions have real evidence**: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair, test_discipline, cost_efficiency. 62 unit tests prove every non-zero score comes from real execution. | Done. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Implemented | `test_command` and `hidden_test_command`; all seed tasks have hidden tests. | Keep adding hidden tests to new tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
@@ -76,7 +76,7 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 
 ## Current Score Meaning
 
-With the dummy adapter and 8/10 dimensions having real evidence:
+With the dummy adapter and **10/10 dimensions having real evidence**:
 
 - `python-bugfix` scores `48.0`: task_completion(100) + safety_boundary(100) + execution_quality(100).
 - `frontend-visual` scores `40.0`: task_completion(100) + safety_boundary(100) + visual_verification(100).
@@ -84,16 +84,15 @@ With the dummy adapter and 8/10 dimensions having real evidence:
 - `python-refactor` scores `48.0`: task_completion(100) + safety_boundary(100) + execution_quality(100).
 - The full `foundation` suite averages across all 8 tasks.
 
-Scores are now meaningfully differentiated by task type because most dimensions have real evidence.
+All 10 dimensions now have real evidence. No dimension is faked. Scores are meaningfully differentiated by task type.
 
 ## Next Best Iterations
 
-1. Add `cost_efficiency` scoring by parsing token/cost from harness output.
-2. Add browser screenshot/pixel visual checks.
-3. Add Docker isolation.
-4. Expand task difficulty and add more domain tasks.
-5. Run larger real harness matrix (opencode vs claude-code × multiple models).
-6. Import external benchmark tasks (SWE-bench style).
+1. Add browser screenshot/pixel visual checks.
+2. Add Docker isolation.
+3. Expand task difficulty and add more domain tasks.
+4. Run larger real harness matrix (opencode vs claude-code × multiple models).
+5. Import external benchmark tasks (SWE-bench style).
 
 ## How To Check This From CLI
 

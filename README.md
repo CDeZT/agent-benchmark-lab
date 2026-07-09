@@ -15,13 +15,23 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-**8/10 评分维度有真实证据**，56 个单元测试全绿，审计全绿。
+**10/10 评分维度有真实证据**，62 个单元测试全绿，审计全绿。
 
 已实现：
-- 10 维度加权评分体系（task_completion, intent_understanding, planning, execution_quality, self_repair, test_discipline, tool_use, visual_verification, safety_boundary, cost_efficiency）
+- 10 维度加权评分体系，全部有真实证据：
+  - task_completion(30%) — 公开/隐藏测试执行结果
+  - intent_understanding(10%) — agent 是否修改了正确的文件
+  - planning(8%) — plan.md 文件存在且内容合格
+  - execution_quality(12%) — agent 是否真的修改了源码
+  - self_repair(10%) — stdout/stderr 中的自我修复模式
+  - test_discipline(10%) — 测试文件质量和数量
+  - tool_use(6%) — 工具调用多样性和数量
+  - visual_verification(4%) — HTML 静态检查
+  - safety_boundary(6%) — SHA-256 完整性检查
+  - cost_efficiency(4%) — token/cost 数据或工具调用效率
 - 9 个基准任务（bugfix/feature/refactor/test-writing/visual/embedded/optics）
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
-- 真实 harness 输出解析（模型名、工具调用）
+- 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 矩阵运行（adapter × model × budget_profile）
 - 公开测试 + 隐藏测试 + SHA-256 完整性检查
 - 静态 HTML 视觉检查

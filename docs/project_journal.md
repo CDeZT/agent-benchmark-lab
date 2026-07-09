@@ -61,6 +61,19 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 12)
+
+- Implemented `cost_efficiency` scoring (the last dimension without evidence).
+- Extended opencode parser to extract token counts (`Tokens: X in / Y out`) and cost (`Cost: $X.XX`).
+- Added `_score_cost_efficiency()` function with three scoring methods:
+  1. Real cost data (cost_usd): $0 = 100, $0.10 = 50, $0.20+ = 0
+  2. Real token data (input_tokens + output_tokens): 0 = 100, 10k = 50, 20k+ = 0
+  3. Tool call efficiency proxy (when no token/cost data): fewer calls = higher score
+- Added 6 new tests for cost_efficiency and parser token extraction.
+- **10/10 dimensions now have real evidence** (was 8/10).
+- 62 unit tests pass. Full audit passes (validate + unit_tests + compileall + smoke_suite).
+- Verified no fake scoring: cost_efficiency = 0 without evidence, > 0 with real evidence.
+
 ## 2026-07-09 (iteration 11)
 
 - Added `instruction_match` process check for `intent_understanding` scoring (checks if agent modified correct files).

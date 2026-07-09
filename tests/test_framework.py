@@ -607,6 +607,75 @@ class FrameworkTests(unittest.TestCase):
             score = score_run(task, baseline, workspace, recorder)
             self.assertEqual(score.dimensions["tool_use"], 0.0)
 
+    # ── cost_efficiency tests ──
+
+    def test_cost_efficiency_from_token_count(self) -> None:
+        """Prove cost_efficiency scores from real token data."""
+        from agent_benchmark.scorers.basic import _score_cost_efficiency
+        from agent_benchmark.parsers.harness_output import HarnessEvidence
+
+        evidence = HarnessEvidence(input_tokens=1000, output_tokens=500)
+        score, ev = _score_cost_efficiency(evidence)
+        self.assertEqual(ev["method"], "token_count")
+        self.assertEqual(ev["total_tokens"], 1500)
+        self.assertGreater(score, 0.0)
+        self.assertLess(score, 100.0)
+
+    def test_cost_efficiency_from_cost_usd(self) -> None:
+        """Prove cost_efficiency scores from real cost data."""
+        from agent_benchmark.scorers.basic import _score_cost_efficiency
+        from agent_benchmark.parsers.harness_output import HarnessEvidence
+
+        evidence = HarnessEvidence(cost_usd=0.05)
+        score, ev = _score_cost_efficiency(evidence)
+        self.assertEqual(ev["method"], "cost_usd")
+        self.assertEqual(ev["cost_usd"], 0.05)
+        self.assertGreater(score, 0.0)
+
+    def test_cost_efficiency_from_tool_call_efficiency(self) -> None:
+        """Prove cost_efficiency uses tool call proxy when no token/cost data."""
+        from agent_benchmark.scorers.basic import _score_cost_efficiency
+        from agent_benchmark.parsers.harness_output import HarnessEvidence
+
+        # Few tool calls = efficient
+        evidence_few = HarnessEvidence(tool_calls=[{"type": "read"}, {"type": "edit"}])
+        score_few, ev_few = _score_cost_efficiency(evidence_few)
+        self.assertEqual(ev_few["method"], "tool_call_efficiency")
+        self.assertEqual(score_few, 100.0)
+
+        # Many tool calls = less efficient
+        evidence_many = HarnessEvidence(tool_calls=[{"type": "read"}] * 15)
+        score_many, ev_many = _score_cost_efficiency(evidence_many)
+        self.assertEqual(ev_many["method"], "tool_call_efficiency")
+        self.assertLess(score_many, score_few)
+
+    def test_cost_efficiency_zero_without_evidence(self) -> None:
+        """Prove cost_efficiency=0 when no harness evidence."""
+        from agent_benchmark.scorers.basic import _score_cost_efficiency
+        from agent_benchmark.parsers.harness_output import HarnessEvidence
+
+        evidence = HarnessEvidence()
+        score, ev = _score_cost_efficiency(evidence)
+        self.assertEqual(score, 0.0)
+        self.assertEqual(ev["method"], "no_evidence")
+
+    def test_opencode_parser_extracts_tokens(self) -> None:
+        """Prove parser extracts token counts from opencode stderr."""
+        from agent_benchmark.parsers import parse_harness_output
+
+        stderr = "> build · LongCat-2.0\nTokens: 1,234 in / 567 out\n"
+        evidence = parse_harness_output("opencode", "", stderr)
+        self.assertEqual(evidence.input_tokens, 1234)
+        self.assertEqual(evidence.output_tokens, 567)
+
+    def test_opencode_parser_extracts_cost(self) -> None:
+        """Prove parser extracts cost from opencode stderr."""
+        from agent_benchmark.parsers import parse_harness_output
+
+        stderr = "> build · LongCat-2.0\nCost: $0.0123\n"
+        evidence = parse_harness_output("opencode", "", stderr)
+        self.assertEqual(evidence.cost_usd, 0.0123)
+
     # ── test_file_quality process check tests ──
 
     def test_file_quality_passes_when_test_file_has_content(self) -> None:

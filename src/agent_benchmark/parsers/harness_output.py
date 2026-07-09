@@ -44,6 +44,12 @@ def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
         ← Edit file.py                 # edit tool
         ✱ Grep "pattern" in . · N      # search tool
         $ command                      # shell command
+
+    Token/cost may appear in summary lines like:
+        Tokens: 1,234 in / 567 out
+        Cost: $0.0123
+        Input tokens: 1234
+        Output tokens: 567
     """
     evidence = HarnessEvidence()
     clean = _strip_ansi(stderr)
@@ -80,7 +86,55 @@ def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
             if cmd:
                 evidence.tool_calls.append({"type": "bash", "command": cmd})
 
+        # Token/cost parsing
+        _extract_token_cost(stripped, evidence)
+
     return evidence
+
+
+def _extract_token_cost(line: str, evidence: HarnessEvidence) -> None:
+    """Extract token counts and cost from a line of text.
+
+    Handles various formats:
+        Tokens: 1,234 in / 567 out
+        Input tokens: 1234
+        Output tokens: 567
+        Cost: $0.0123
+        Total cost: $0.05
+    """
+    # Format: "Tokens: 1,234 in / 567 out"
+    tokens_match = re.search(r"tokens[:\s]*(\d[\d,]*)\s*in\s*/\s*(\d[\d,]*)\s*out", line, re.I)
+    if tokens_match and evidence.input_tokens is None and evidence.output_tokens is None:
+        try:
+            evidence.input_tokens = int(tokens_match.group(1).replace(",", ""))
+            evidence.output_tokens = int(tokens_match.group(2).replace(",", ""))
+        except ValueError:
+            pass
+        return
+
+    # Input tokens (standalone)
+    input_match = re.search(r"(?:input)[:\s]*(\d[\d,]*)", line, re.I)
+    if input_match and evidence.input_tokens is None:
+        try:
+            evidence.input_tokens = int(input_match.group(1).replace(",", ""))
+        except ValueError:
+            pass
+
+    # Output tokens (standalone)
+    output_match = re.search(r"(?:output)[:\s]*(\d[\d,]*)", line, re.I)
+    if output_match and evidence.output_tokens is None:
+        try:
+            evidence.output_tokens = int(output_match.group(1).replace(",", ""))
+        except ValueError:
+            pass
+
+    # Cost in USD
+    cost_match = re.search(r"cost[:\s]*\$?(\d+\.?\d*)", line, re.I)
+    if cost_match and evidence.cost_usd is None:
+        try:
+            evidence.cost_usd = float(cost_match.group(1))
+        except ValueError:
+            pass
 
 
 def _parse_claude_code(stdout: str, stderr: str) -> HarnessEvidence:

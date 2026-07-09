@@ -34,6 +34,62 @@ _SELF_REPAIR_INDICATORS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
+def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, dict[str, Any]]:
+    """Score the cost_efficiency dimension from harness evidence.
+
+    If token/cost data is available, score based on actual cost (lower = better).
+    Otherwise, use tool call efficiency as a proxy (fewer calls = more efficient).
+
+    Returns (score, evidence) where score is 0-100.
+    """
+    # Priority 1: Real token/cost data
+    if harness_evidence.cost_usd is not None:
+        # Score based on cost: $0 = 100, $0.10 = 50, $0.20+ = 0
+        cost = harness_evidence.cost_usd
+        score = max(0.0, min(100.0, 100.0 - (cost * 500.0)))
+        return round(score, 2), {
+            "method": "cost_usd",
+            "cost_usd": cost,
+            "score": round(score, 2),
+        }
+
+    if harness_evidence.input_tokens is not None or harness_evidence.output_tokens is not None:
+        # Score based on token count: 0 tokens = 100, 10k tokens = 50, 20k+ = 0
+        total_tokens = (harness_evidence.input_tokens or 0) + (harness_evidence.output_tokens or 0)
+        score = max(0.0, min(100.0, 100.0 - (total_tokens / 200.0)))
+        return round(score, 2), {
+            "method": "token_count",
+            "input_tokens": harness_evidence.input_tokens,
+            "output_tokens": harness_evidence.output_tokens,
+            "total_tokens": total_tokens,
+            "score": round(score, 2),
+        }
+
+    # Priority 2: Tool call efficiency proxy
+    if harness_evidence.tool_calls:
+        call_count = len(harness_evidence.tool_calls)
+        # Score: fewer calls = more efficient
+        # 1-2 calls: 100, 3-5: 80, 6-10: 60, 11-20: 40, 20+: 20
+        if call_count <= 2:
+            score = 100.0
+        elif call_count <= 5:
+            score = 80.0
+        elif call_count <= 10:
+            score = 60.0
+        elif call_count <= 20:
+            score = 40.0
+        else:
+            score = 20.0
+        return round(score, 2), {
+            "method": "tool_call_efficiency",
+            "tool_count": call_count,
+            "score": round(score, 2),
+        }
+
+    # No evidence available
+    return 0.0, {"method": "no_evidence", "score": 0.0}
+
+
 def _score_self_repair(workspace: Path) -> tuple[float, dict[str, Any]]:
     """Score the self_repair dimension by scanning stdout/stderr logs.
 
@@ -168,6 +224,14 @@ def score_run(
     dimensions["self_repair"] = self_repair_score
     evidence["self_repair"] = self_repair_evidence
     recorder.event("self_repair.scored", self_repair_evidence)
+
+    # cost_efficiency: scored from harness evidence (token/cost data) or
+    # tool call efficiency proxy when token data is unavailable.
+    if harness_evidence:
+        cost_score, cost_evidence = _score_cost_efficiency(harness_evidence)
+        dimensions["cost_efficiency"] = cost_score
+        evidence["cost_efficiency"] = cost_evidence
+        recorder.event("cost_efficiency.scored", cost_evidence)
 
     # Framework placeholders are deliberately explicit. They are not fake high
     # scores; they mark dimensions that need richer evidence in later phases.
