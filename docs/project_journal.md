@@ -61,6 +61,17 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 11)
+
+- Added `instruction_match` process check for `intent_understanding` scoring (checks if agent modified correct files).
+- Added `self_repair` scoring from stdout/stderr log analysis (retry/fix/correct/debug patterns).
+- Created `python-refactor` task: refactor data_processor.py while preserving all behavior (14 tests).
+- Added `instruction_match` process checks to all 9 tasks for intent_understanding evidence.
+- Fixed audit logic: `hidden_test_passed=None` (not configured) no longer treated as failure.
+- 8/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair.
+- 56 unit tests pass. Full audit passes (validate + unit_tests + compileall + smoke_suite).
+- Foundation suite now has 9 tasks (8 in smoke, 1 meta-task in test-writing suite).
+
 ## 2026-07-09 (iteration 10)
 
 - Added `test_file_quality` process check type: verifies test files have real test functions and assertions.

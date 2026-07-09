@@ -52,8 +52,8 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Unimplemented dimensions remain 0", "11 scoring integrity tests prove every non-zero score comes from real execution", "tool_use scored from parsed harness output (tool variety + count)", "execution_quality scored from file_changed process check (SHA-256 diff from baseline)", "test_discipline scored from test_file_quality process check (test function count + assertions)", "6/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality"],
-      "remaining": ["Add evidence-backed scoring for self-repair, intent understanding, cost efficiency"]
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Unimplemented dimensions remain 0", "11 scoring integrity tests prove every non-zero score comes from real execution", "tool_use scored from parsed harness output (tool variety + count)", "execution_quality scored from file_changed process check (SHA-256 diff from baseline)", "test_discipline scored from test_file_quality process check (test function count + assertions)", "intent_understanding scored from instruction_match process check (agent modified correct files)", "self_repair scored from stdout/stderr log analysis (retry/fix/correct patterns)", "8/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair"],
+      "remaining": ["Add evidence-backed scoring for cost efficiency"]
     },
     {
       "id": "process_planning_scoring",

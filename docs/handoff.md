@@ -83,6 +83,13 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `file_changed` checks to python-bugfix and python-feature tasks.
 - 6/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality.
 - 43 unit tests pass. Full audit passes.
+- Added `instruction_match` process check for `intent_understanding` scoring (checks if agent modified correct files).
+- Added `self_repair` scoring from stdout/stderr log analysis (retry/fix/correct/debug patterns).
+- Created `python-refactor` task: refactor data_processor.py while preserving behavior.
+- Added `instruction_match` process checks to all 9 tasks.
+- Fixed audit logic: `hidden_test_passed=None` no longer treated as failure.
+- 8/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair.
+- 56 unit tests pass. Full audit passes.
 
 ## In Progress
 
