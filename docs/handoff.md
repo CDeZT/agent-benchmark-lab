@@ -64,6 +64,10 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `.gitignore` rules for C compilation artifacts (`*.o`, `*.so`, `*.dylib`) and coverage products.
 - Added `setdefault` comment in `basic.py` clarifying that placeholders don't overwrite process_check evidence.
 - Verified real opencode and claude-code on `python-bugfix` and `c-bugfix` after all fixes.
+- Added `parsers/harness_output.py` to extract model name and tool calls from real harness output.
+- Integrated parser into runner: `detected_model` and `tool_call_count` now in summary/run results.
+- Verified opencode parser extracts `LongCat-2.0` model name and tool calls from stderr.
+- Added 3 parser unit tests. Total tests now 33, all pass.
 
 ## In Progress
 

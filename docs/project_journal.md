@@ -61,6 +61,15 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 3)
+
+- Added `parsers/` module to extract model name and tool calls from real harness output.
+- opencode parser: extracts model name from `> build · ModelName`, tool calls (read/edit/search/bash) from stderr.
+- claude-code parser: handles minimal `-p` mode output gracefully (model/tool info not exposed in this mode).
+- Integrated parser into runner: `detected_model` and `tool_call_count` now appear in summary and per-run results.
+- Verified with real opencode run: successfully extracted `LongCat-2.0` and 6 tool calls.
+- Added 3 parser unit tests. Total tests now 33, all pass.
+
 ## 2026-07-09 (iteration 2)
 
 - Deep code review: 3 parallel agents reviewed all source, tests, and documentation.

@@ -14,6 +14,7 @@ import uuid
 
 from agent_benchmark.adapters import adapter_by_name
 from agent_benchmark.adapters.base import AdapterResult
+from agent_benchmark.parsers import parse_harness_output
 from agent_benchmark.recorders import JsonlRecorder
 from agent_benchmark.reports.html import write_html_report
 from agent_benchmark.reports.markdown import write_markdown_report
@@ -35,6 +36,8 @@ class RunResult:
     changed_files: list[str]
     run_dir: str
     duration_seconds: float
+    detected_model: str | None = None
+    tool_call_count: int = 0
 
 
 def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
@@ -79,6 +82,13 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
         (run_dir / "diff.patch").write_text(diff_text, encoding="utf-8")
         recorder.event("workspace.changed", {"changed_files": changed_files})
 
+        harness_evidence = parse_harness_output(config.adapter, adapter_result.stdout, adapter_result.stderr)
+        if harness_evidence.tool_calls:
+            recorder.event("harness.tools_parsed", {
+                "tool_count": len(harness_evidence.tool_calls),
+                "tools": [t["type"] for t in harness_evidence.tool_calls],
+            })
+
         score = score_run(task, baseline, workspace, recorder)
         duration_seconds = time.monotonic() - run_start
         result = RunResult(
@@ -93,6 +103,8 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
             changed_files=changed_files,
             run_dir=str(run_dir),
             duration_seconds=duration_seconds,
+            detected_model=harness_evidence.model,
+            tool_call_count=len(harness_evidence.tool_calls),
         )
         results.append(result)
         (run_dir / "result.json").write_text(_result_json(result), encoding="utf-8")
@@ -206,6 +218,8 @@ def _summarize(
     durations = [result.duration_seconds for result in results]
     adapter_durations = [result.adapter_result.duration_seconds for result in results]
     test_durations = [_test_duration(result.score.evidence.get("test")) for result in results]
+    detected_models = [r.detected_model for r in results if r.detected_model]
+    total_tool_calls = sum(r.tool_call_count for r in results)
     return {
         "experiment_id": experiment_id,
         "task_id": task.task_id,
@@ -227,6 +241,8 @@ def _summarize(
         "mean_cost_usd": None,
         "mean_input_tokens": None,
         "mean_output_tokens": None,
+        "detected_model": detected_models[0] if detected_models else None,
+        "total_tool_calls": total_tool_calls,
         "runs": [
             {
                 "run_id": result.run_id,
@@ -241,6 +257,8 @@ def _summarize(
                 "cost_usd": None,
                 "input_tokens": None,
                 "output_tokens": None,
+                "detected_model": result.detected_model,
+                "tool_call_count": result.tool_call_count,
                 "run_dir": result.run_dir,
             }
             for result in results

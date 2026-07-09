@@ -122,8 +122,8 @@
       "id": "real_harness_adapters",
       "title": "Real Claude Code and opencode adapters",
       "status": "partial",
-      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, and model env", "Both opencode and Claude Code passed real python-bugfix smoke tests"],
-      "remaining": ["Run larger benchmark matrices", "Parse model/tool/cost evidence from real harness outputs", "Handle provider-specific permissions and interaction behavior"]
+      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, and model env", "Both opencode and Claude Code passed real python-bugfix smoke tests", "Parser extracts model name (LongCat-2.0) and tool calls from opencode stderr", "detected_model and tool_call_count now in summary output"],
+      "remaining": ["Run larger benchmark matrices", "Parse cost/token data from provider outputs", "Handle provider-specific permissions and interaction behavior"]
     },
     {
       "id": "real_harness_smoke",

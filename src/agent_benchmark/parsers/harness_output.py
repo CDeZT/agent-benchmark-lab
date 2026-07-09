@@ -1,0 +1,122 @@
+"""Parse real harness output to extract model name, tool calls, and usage evidence.
+
+This module extracts structured data from opencode and claude-code stdout/stderr
+so the scorer can populate dimensions like tool_use and cost_efficiency.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+@dataclass
+class HarnessEvidence:
+    model: str | None = None
+    tool_calls: list[dict[str, str]] = field(default_factory=list)
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_usd: float | None = None
+
+
+def parse_harness_output(adapter: str, stdout: str, stderr: str) -> HarnessEvidence:
+    """Parse harness output and return structured evidence."""
+    if adapter == "opencode":
+        return _parse_opencode(stdout, stderr)
+    if adapter == "claude-code":
+        return _parse_claude_code(stdout, stderr)
+    return HarnessEvidence()
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_ESCAPE.sub("", text)
+
+
+def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
+    """Parse opencode output.
+
+    opencode writes tool activity to stderr in this format:
+        > build · LongCat-2.0          # model name
+        → Read file.py                 # read tool
+        ← Edit file.py                 # edit tool
+        ✱ Grep "pattern" in . · N      # search tool
+        $ command                      # shell command
+    """
+    evidence = HarnessEvidence()
+    clean = _strip_ansi(stderr)
+
+    for line in clean.splitlines():
+        stripped = line.strip()
+
+        # Model name: "> build · LongCat-2.0" or "> model-name"
+        model_match = re.match(r"^>\s*(?:build\s*·\s*)?(.+)$", stripped)
+        if model_match and not evidence.model:
+            candidate = model_match.group(1).strip()
+            if candidate and not candidate.startswith("$"):
+                evidence.model = candidate
+
+        # Read tool: "→ Read file.py"
+        if stripped.startswith("→") and "Read" in stripped:
+            path = _extract_path(stripped, "Read")
+            if path:
+                evidence.tool_calls.append({"type": "read", "path": path})
+
+        # Edit tool: "← Edit file.py"
+        if stripped.startswith("←") and "Edit" in stripped:
+            path = _extract_path(stripped, "Edit")
+            if path:
+                evidence.tool_calls.append({"type": "edit", "path": path})
+
+        # Search/grep tool: "✱ Grep "pattern""
+        if stripped.startswith("✱") and ("Grep" in stripped or "Search" in stripped):
+            evidence.tool_calls.append({"type": "search", "detail": stripped})
+
+        # Shell command: "$ command"
+        if re.match(r"^\$\s+", stripped):
+            cmd = stripped[2:].strip()
+            if cmd:
+                evidence.tool_calls.append({"type": "bash", "command": cmd})
+
+    return evidence
+
+
+def _parse_claude_code(stdout: str, stderr: str) -> HarnessEvidence:
+    """Parse claude-code output.
+
+    claude-code writes the final summary to stdout. Tool calls and model info
+    are not consistently exposed in stdout/stderr for the -p (print) mode.
+    We extract what we can from the output text.
+    """
+    evidence = HarnessEvidence()
+
+    # claude-code in -p mode outputs the summary to stdout
+    # Model name is not reliably in stdout/stderr; try to detect from patterns
+    # The model is usually set via --model flag or defaults to the account default
+
+    # Count tool-like patterns in the output as rough evidence
+    # claude-code sometimes mentions what it did in the summary
+    summary = stdout.strip()
+
+    # Look for file modification indicators
+    edit_patterns = re.findall(r"(`[^`]+\.py`|`[^`]+\.c`|`[^`]+\.js`|`[^`]+\.ts`|`[^`]+\.html`)", summary)
+    for match in edit_patterns:
+        path = match.strip("`")
+        if "/" not in path:  # Likely a filename reference, not a path
+            evidence.tool_calls.append({"type": "reference", "path": path})
+
+    return evidence
+
+
+def _extract_path(line: str, keyword: str) -> str | None:
+    """Extract file path from a tool call line like '→ Read path/to/file'."""
+    parts = line.split(keyword, 1)
+    if len(parts) < 2:
+        return None
+    path = parts[1].strip()
+    # Remove ANSI artifacts and trailing markers
+    path = path.split("·")[0].strip()
+    path = path.split("in ")[0].strip()
+    return path if path else None

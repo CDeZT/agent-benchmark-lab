@@ -530,6 +530,46 @@ class FrameworkTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             adapter_by_name("nonexistent-adapter")
 
+    # ── Parser tests ──
+
+    def test_opencode_parser_extracts_model_and_tools(self) -> None:
+        """Prove parser extracts model name and tool calls from opencode stderr."""
+        from agent_benchmark.parsers import parse_harness_output
+
+        stderr = (
+            "\x1b[0m\n"
+            "> build · LongCat-2.0\n"
+            "\x1b[0m\n"
+            "\x1b[0m$ \x1b[0mls workspace\n"
+            "\x1b[0m\n"
+            "\x1b[0m→ \x1b[0mRead stats.py\n"
+            "\x1b[0m← \x1b[0mEdit stats.py\n"
+            "\x1b[0m✱ \x1b[0mGrep \"average\" in . · 3 matches\n"
+        )
+        evidence = parse_harness_output("opencode", "", stderr)
+        self.assertEqual(evidence.model, "LongCat-2.0")
+        self.assertEqual(len(evidence.tool_calls), 4)
+        self.assertEqual(evidence.tool_calls[0]["type"], "bash")
+        self.assertEqual(evidence.tool_calls[1]["type"], "read")
+        self.assertEqual(evidence.tool_calls[2]["type"], "edit")
+        self.assertEqual(evidence.tool_calls[3]["type"], "search")
+
+    def test_claude_code_parser_handles_empty_output(self) -> None:
+        """Prove parser handles claude-code's minimal output gracefully."""
+        from agent_benchmark.parsers import parse_harness_output
+
+        evidence = parse_harness_output("claude-code", "Fixed the bug.", "")
+        self.assertIsNone(evidence.model)
+        self.assertIsInstance(evidence.tool_calls, list)
+
+    def test_unknown_adapter_parser_returns_empty(self) -> None:
+        """Prove parser returns empty evidence for unknown adapters."""
+        from agent_benchmark.parsers import parse_harness_output
+
+        evidence = parse_harness_output("unknown-adapter", "output", "error")
+        self.assertIsNone(evidence.model)
+        self.assertEqual(evidence.tool_calls, [])
+
 
 def _restore_env(name: str, value: str | None) -> None:
     if value is None:
