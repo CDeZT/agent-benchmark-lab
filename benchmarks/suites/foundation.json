@@ -11,7 +11,8 @@
     "process-planning",
     "python-feature",
     "python-refactor",
-    "ci-debugging"
+    "ci-debugging",
+    "code-review"
   ],
   "capability_focus": [
     "bugfix",
