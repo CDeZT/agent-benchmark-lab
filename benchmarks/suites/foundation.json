@@ -9,11 +9,13 @@
     "embedded-c",
     "optics-python",
     "process-planning",
-    "python-feature"
+    "python-feature",
+    "python-refactor"
   ],
   "capability_focus": [
     "bugfix",
     "feature_implementation",
+    "refactoring",
     "test_discipline",
     "frontend_visual",
     "embedded_engineering",

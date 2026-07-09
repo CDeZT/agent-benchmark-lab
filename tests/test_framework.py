@@ -46,7 +46,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["repetitions"], 2)
             self.assertEqual(summary["model"], "unspecified")
             self.assertEqual(summary["budget_profile"], "open_ended")
-            self.assertEqual(summary["mean_score"], 48.0)
+            self.assertEqual(summary["mean_score"], 58.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
             for run in summary["runs"]:
@@ -86,7 +86,7 @@ class FrameworkTests(unittest.TestCase):
                         runs_dir=Path(tmp),
                     ),
                 )
-                self.assertEqual(summary["mean_score"], 48.0)
+                self.assertEqual(summary["mean_score"], 58.0)
                 self.assertEqual(summary["model"], "local-test-model")
                 self.assertEqual(summary["budget_profile"], "oneshot")
                 self.assertIn("generic-command", available_adapters())
@@ -206,7 +206,7 @@ class FrameworkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             summary = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
-            self.assertEqual(summary["mean_score"], 40.0)
+            self.assertEqual(summary["mean_score"], 50.0)
             run_dir = Path(summary["runs"][0]["run_dir"])
             result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["visual_verification"], 100.0)
@@ -220,7 +220,7 @@ class FrameworkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             summary = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
-            self.assertEqual(summary["mean_score"], 44.0)
+            self.assertEqual(summary["mean_score"], 54.0)
             result = json.loads((Path(summary["runs"][0]["run_dir"]) / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["planning"], 100.0)
             self.assertTrue(all(check["passed"] for check in result["score"]["evidence"]["process"]["checks"]))
@@ -784,6 +784,269 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(result.dimensions["execution_quality"], 0.0)
             self.assertFalse(result.checks[0]["passed"])
             self.assertIn("No baseline", result.checks[0]["error"])
+
+    # ── instruction_match process check tests ──
+
+    def test_instruction_match_passes_when_expected_file_changed(self) -> None:
+        """Prove instruction_match passes when at least one expected file differs from baseline."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            (baseline / "stats.py").write_text("def average(v): return 0\n", encoding="utf-8")
+            (workspace / "stats.py").write_text("def average(v): return sum(v)/len(v)\n", encoding="utf-8")
+            checks = [
+                {
+                    "type": "instruction_match",
+                    "dimension": "intent_understanding",
+                    "expected_changed_files": ["stats.py"],
+                }
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["intent_understanding"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["files"][0]["status"], "modified")
+
+    def test_instruction_match_fails_when_expected_file_unchanged(self) -> None:
+        """Prove instruction_match fails when none of the expected files were changed."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            (baseline / "stats.py").write_text("same content\n", encoding="utf-8")
+            (workspace / "stats.py").write_text("same content\n", encoding="utf-8")
+            checks = [
+                {
+                    "type": "instruction_match",
+                    "dimension": "intent_understanding",
+                    "expected_changed_files": ["stats.py"],
+                }
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["intent_understanding"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["files"][0]["status"], "unchanged")
+
+    def test_instruction_match_passes_when_file_created(self) -> None:
+        """Prove instruction_match passes when expected file exists in workspace but not baseline."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            (workspace / "new_module.py").write_text("x = 1\n", encoding="utf-8")
+            checks = [
+                {
+                    "type": "instruction_match",
+                    "dimension": "intent_understanding",
+                    "expected_changed_files": ["new_module.py"],
+                }
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["intent_understanding"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["files"][0]["status"], "created")
+
+    def test_instruction_match_passes_when_any_of_multiple_files_changed(self) -> None:
+        """Prove instruction_match passes if even one of several expected files changed."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            # a.py unchanged, b.py changed
+            (baseline / "a.py").write_text("same\n", encoding="utf-8")
+            (workspace / "a.py").write_text("same\n", encoding="utf-8")
+            (baseline / "b.py").write_text("old\n", encoding="utf-8")
+            (workspace / "b.py").write_text("new\n", encoding="utf-8")
+            checks = [
+                {
+                    "type": "instruction_match",
+                    "dimension": "intent_understanding",
+                    "expected_changed_files": ["a.py", "b.py"],
+                }
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["intent_understanding"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+
+    def test_instruction_match_handles_missing_file_in_workspace(self) -> None:
+        """Prove instruction_match handles expected file that doesn't exist in workspace."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            (baseline / "stats.py").write_text("old\n", encoding="utf-8")
+            # workspace/stats.py does not exist
+            checks = [
+                {
+                    "type": "instruction_match",
+                    "dimension": "intent_understanding",
+                    "expected_changed_files": ["stats.py"],
+                }
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["intent_understanding"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["files"][0]["status"], "missing")
+
+    def test_instruction_match_fails_without_baseline(self) -> None:
+        """Prove instruction_match fails when no baseline is provided."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            workspace.mkdir()
+            (workspace / "code.py").write_text("content\n", encoding="utf-8")
+            checks = [
+                {
+                    "type": "instruction_match",
+                    "dimension": "intent_understanding",
+                    "expected_changed_files": ["code.py"],
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["intent_understanding"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("No baseline", result.checks[0]["error"])
+
+    # ── self_repair scoring tests ──
+
+    def test_self_repair_zero_when_no_logs(self) -> None:
+        """Prove self_repair=0 when stdout.log/stderr.log don't exist."""
+        from agent_benchmark.scorers.basic import _score_self_repair
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            workspace = run_dir / "workspace"
+            workspace.mkdir(parents=True)
+            # No stdout.log or stderr.log created
+            score, evidence = _score_self_repair(workspace)
+            self.assertEqual(score, 0.0)
+            self.assertIn("No log files", evidence.get("error", ""))
+
+    def test_self_repair_zero_for_dummy_adapter_output(self) -> None:
+        """Prove self_repair=0 for the dummy adapter's minimal stdout."""
+        from agent_benchmark.scorers.basic import _score_self_repair
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            workspace = run_dir / "workspace"
+            workspace.mkdir(parents=True)
+            (run_dir / "stdout.log").write_text("Copied 3 solution file(s).\n", encoding="utf-8")
+            (run_dir / "stderr.log").write_text("", encoding="utf-8")
+            score, evidence = _score_self_repair(workspace)
+            self.assertEqual(score, 0.0)
+            self.assertEqual(evidence["indicator_count"], 0)
+
+    def test_self_repair_score_with_one_indicator(self) -> None:
+        """Prove self_repair>0 when one indicator pattern is found."""
+        from agent_benchmark.scorers.basic import _score_self_repair
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            workspace = run_dir / "workspace"
+            workspace.mkdir(parents=True)
+            (run_dir / "stdout.log").write_text(
+                "Running tests...\nFAILED test_average\nLet me try fixing the code.\n",
+                encoding="utf-8",
+            )
+            score, evidence = _score_self_repair(workspace)
+            # "try" from "try fixing" does NOT match \bre-?try\b or \btry again\b
+            # "fixing" matches the \bfixing\b pattern -> 1 indicator
+            self.assertGreater(score, 0.0)
+            self.assertEqual(evidence["indicator_count"], 1)
+            self.assertIn("fixing", evidence["matched_indicators"])
+
+    def test_self_repair_full_score_with_three_indicators(self) -> None:
+        """Prove self_repair=100 when 3+ indicator patterns are found."""
+        from agent_benchmark.scorers.basic import _score_self_repair
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            workspace = run_dir / "workspace"
+            workspace.mkdir(parents=True)
+            (run_dir / "stdout.log").write_text(
+                "Running tests...\nFAILED\nOops, fixing the code.\n"
+                "Correcting stats.py...\nRe-running tests...\nPASSED\n",
+                encoding="utf-8",
+            )
+            score, evidence = _score_self_repair(workspace)
+            self.assertEqual(score, 100.0)
+            self.assertGreaterEqual(evidence["indicator_count"], 3)
+            # Verify some expected indicators
+            self.assertIn("oops", evidence["matched_indicators"])
+            self.assertIn("fixing", evidence["matched_indicators"])
+            self.assertIn("correcting", evidence["matched_indicators"])
+
+    def test_self_repair_detects_retry_in_stderr(self) -> None:
+        """Prove self_repair indicators are detected in stderr too."""
+        from agent_benchmark.scorers.basic import _score_self_repair
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            workspace = run_dir / "workspace"
+            workspace.mkdir(parents=True)
+            (run_dir / "stdout.log").write_text("Normal output.\n", encoding="utf-8")
+            (run_dir / "stderr.log").write_text(
+                "Error: test failed\nRetrying with fix...\n",
+                encoding="utf-8",
+            )
+            score, evidence = _score_self_repair(workspace)
+            self.assertGreater(score, 0.0)
+            self.assertIn("retry", evidence["matched_indicators"])
+
+    def test_self_repair_score_is_in_total_weighted_sum(self) -> None:
+        """Prove self_repair contributes to the total score proportionally."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            # Create run directory structure with self-repair logs
+            run_dir = Path(tmp) / "run"
+            ws_in_run = run_dir / "workspace"
+            shutil.copytree(workspace, ws_in_run)
+            (run_dir / "stdout.log").write_text(
+                "Running tests...\nFAILED\nOops, fixing the bug.\n"
+                "Correcting stats.py...\nRe-running tests...\nPASSED\n",
+                encoding="utf-8",
+            )
+            (run_dir / "stderr.log").write_text("", encoding="utf-8")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, ws_in_run, recorder)
+            # self_repair should be > 0 now
+            self.assertGreater(score.dimensions["self_repair"], 0.0)
+            self.assertIn("self_repair", score.evidence)
+            self.assertIn("matched_indicators", score.evidence["self_repair"])
+
+    def test_self_repair_zero_in_full_score_when_no_logs(self) -> None:
+        """Prove self_repair=0 in full score_run when logs don't exist."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            # No run directory logs — direct score_run call
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["self_repair"], 0.0)
+            self.assertIn("No log files", score.evidence["self_repair"].get("error", ""))
 
 
 def _restore_env(name: str, value: str | None) -> None:

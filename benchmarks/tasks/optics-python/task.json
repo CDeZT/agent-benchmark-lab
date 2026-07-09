@@ -7,5 +7,12 @@
   "workspace": "workspace",
   "test_command": ["python3", "test_optics.py"],
   "hidden_test_command": ["python3", "test_hidden_optics.py"],
-  "protected_paths": ["test_optics.py"]
+  "protected_paths": ["test_optics.py"],
+  "process_checks": [
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["lens_design.py"]
+    }
+  ]
 }

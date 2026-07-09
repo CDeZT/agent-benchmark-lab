@@ -8,6 +8,13 @@
   "test_command": ["python3", "test_page.py"],
   "hidden_test_command": ["python3", "test_hidden_page.py"],
   "protected_paths": ["test_page.py"],
+  "process_checks": [
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["index.html"]
+    }
+  ],
   "visual_checks": [
     {
       "type": "html_selector_text",

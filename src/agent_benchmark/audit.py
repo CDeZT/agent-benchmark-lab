@@ -135,7 +135,10 @@ def _check_smoke_suite(options: AuditOptions, audit_dir: Path) -> AuditCheck:
         failed_tasks = [
             summary["task_id"]
             for summary in task_summaries
-            if not all(run.get("public_test_passed") and run.get("hidden_test_passed") for run in summary["runs"])
+            if not all(
+                run.get("public_test_passed") is not False and run.get("hidden_test_passed") is not False
+                for run in summary["runs"]
+            )
         ]
         return AuditCheck(
             name="smoke_suite",

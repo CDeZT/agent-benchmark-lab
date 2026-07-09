@@ -15,6 +15,11 @@
             "min_test_functions": 5,
             "min_assertions": 5,
             "must_import": "stats"
+        },
+        {
+            "type": "instruction_match",
+            "dimension": "intent_understanding",
+            "expected_changed_files": ["test_stats.py"]
         }
     ]
 }

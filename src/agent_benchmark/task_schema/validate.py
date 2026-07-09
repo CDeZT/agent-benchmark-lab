@@ -70,9 +70,15 @@ def validate_task(task: TaskSpec) -> ValidationResult:
         if "type" not in check:
             result.errors.append(f"{task.task_id}: visual_checks[{index}] is missing type")
     for index, check in enumerate(task.process_checks):
-        path = check.get("path")
-        if not isinstance(path, str) or not path:
-            result.errors.append(f"{task.task_id}: process_checks[{index}] is missing path")
+        check_type = check.get("type", "")
+        if check_type == "instruction_match":
+            expected = check.get("expected_changed_files")
+            if not isinstance(expected, list) or not expected:
+                result.errors.append(f"{task.task_id}: process_checks[{index}] instruction_match is missing expected_changed_files")
+        else:
+            path = check.get("path")
+            if not isinstance(path, str) or not path:
+                result.errors.append(f"{task.task_id}: process_checks[{index}] is missing path")
         if "type" not in check:
             result.errors.append(f"{task.task_id}: process_checks[{index}] is missing type")
         if "dimension" not in check:

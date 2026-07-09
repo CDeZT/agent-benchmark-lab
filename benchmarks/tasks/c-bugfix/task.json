@@ -8,5 +8,12 @@
   "test_command": ["sh", "test.sh"],
   "hidden_test_command": ["sh", "test_hidden_clamp.sh"],
   "protected_paths": ["test.sh", "test_clamp.c", "clamp.h"],
-  "artifact_ignore_globs": ["test_clamp"]
+  "artifact_ignore_globs": ["test_clamp"],
+  "process_checks": [
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["math_ops.c"]
+    }
+  ]
 }

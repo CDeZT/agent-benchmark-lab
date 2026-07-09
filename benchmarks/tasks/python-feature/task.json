@@ -13,6 +13,11 @@
             "type": "file_changed",
             "dimension": "execution_quality",
             "path": "sort_utils.py"
+        },
+        {
+            "type": "instruction_match",
+            "dimension": "intent_understanding",
+            "expected_changed_files": ["sort_utils.py"]
         }
     ]
 }

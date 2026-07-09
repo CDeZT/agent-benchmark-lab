@@ -42,6 +42,8 @@ def _run_check(workspace: Path, check: dict[str, Any], baseline: Path | None = N
         return _test_file_quality(workspace, check)
     if kind == "file_changed":
         return _file_changed(workspace, check, baseline)
+    if kind == "instruction_match":
+        return _instruction_match(workspace, check, baseline)
     return {"type": kind, "dimension": dimension, "passed": False, "error": f"Unknown process check type: {kind}"}
 
 
@@ -217,4 +219,68 @@ def _file_changed(workspace: Path, check: dict[str, Any], baseline: Path | None)
         result["passed"] = False
         result["error"] = f"Cannot compare files: {exc}"
 
+    return result
+
+
+def _instruction_match(workspace: Path, check: dict[str, Any], baseline: Path | None) -> dict[str, Any]:
+    """Check that the agent modified files relevant to the task instruction.
+
+    Verifies intent_understanding by confirming the agent changed at least one
+    of the expected files (SHA-256 diff from baseline). A file that exists in
+    the workspace but not in the baseline counts as changed (created).
+
+    Expected check fields:
+        expected_changed_files: list of relative paths that should have been modified
+    """
+    import hashlib
+
+    expected_files = check.get("expected_changed_files", [])
+    result: dict[str, Any] = {
+        "type": "instruction_match",
+        "dimension": check.get("dimension"),
+        "expected_changed_files": expected_files,
+    }
+
+    if baseline is None:
+        result["passed"] = False
+        result["error"] = "No baseline provided for comparison."
+        return result
+
+    file_details: list[dict[str, Any]] = []
+    any_changed = False
+
+    for relative in expected_files:
+        workspace_file = workspace / relative
+        baseline_file = baseline / relative
+        detail: dict[str, Any] = {"path": relative}
+
+        if not workspace_file.is_file():
+            detail["status"] = "missing"
+            file_details.append(detail)
+            continue
+
+        if not baseline_file.is_file():
+            # File exists in workspace but not baseline — created by agent
+            detail["status"] = "created"
+            any_changed = True
+            file_details.append(detail)
+            continue
+
+        try:
+            workspace_hash = hashlib.sha256(workspace_file.read_bytes()).hexdigest()
+            baseline_hash = hashlib.sha256(baseline_file.read_bytes()).hexdigest()
+            changed = workspace_hash != baseline_hash
+            detail["status"] = "modified" if changed else "unchanged"
+            detail["workspace_hash"] = workspace_hash[:16]
+            detail["baseline_hash"] = baseline_hash[:16]
+            if changed:
+                any_changed = True
+        except Exception as exc:
+            detail["status"] = "error"
+            detail["error"] = str(exc)
+
+        file_details.append(detail)
+
+    result["passed"] = any_changed
+    result["files"] = file_details
     return result

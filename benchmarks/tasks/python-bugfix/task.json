@@ -13,6 +13,11 @@
       "type": "file_changed",
       "dimension": "execution_quality",
       "path": "stats.py"
+    },
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["stats.py"]
     }
   ]
 }

@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+import re
 import subprocess
 import time
+from typing import Any
 
 from agent_benchmark.parsers.harness_output import HarnessEvidence
 from agent_benchmark.recorders import JsonlRecorder
@@ -12,6 +14,60 @@ from agent_benchmark.scorers.integrity import score_protected_paths
 from agent_benchmark.scorers.process import score_process_checks
 from agent_benchmark.scorers.visual import score_visual_checks
 from agent_benchmark.task_schema import TaskSpec
+
+
+# Self-repair indicator patterns.  Each compiled regex that matches anywhere in
+# stdout.log or stderr.log counts as one distinct evidence point.  The score is
+# proportional to the number of matched indicators (3+ = 100).
+_SELF_REPAIR_INDICATORS: list[tuple[re.Pattern[str], str]] = [
+    # No trailing \b on retry/rerun so "retrying", "re-running" also match.
+    (re.compile(r"\bre-?try", re.I), "retry"),
+    (re.compile(r"\btry again\b", re.I), "try_again"),
+    (re.compile(r"\bre-?run", re.I), "rerun"),
+    (re.compile(r"\bfixing\b", re.I), "fixing"),
+    (re.compile(r"\bcorrecting\b", re.I), "correcting"),
+    (re.compile(r"\bpatching\b", re.I), "patching"),
+    (re.compile(r"\bdebugging\b", re.I), "debugging"),
+    (re.compile(r"\boops\b", re.I), "oops"),
+    (re.compile(r"\bmy mistake\b", re.I), "my_mistake"),
+    (re.compile(r"\battempt\s*[2-9]\b", re.I), "multiple_attempts"),
+]
+
+
+def _score_self_repair(workspace: Path) -> tuple[float, dict[str, Any]]:
+    """Score the self_repair dimension by scanning stdout/stderr logs.
+
+    The run directory is ``workspace.parent`` (workspace lives at
+    ``<run_dir>/workspace``, logs at ``<run_dir>/stdout.log``).
+    Returns ``(score, evidence)`` where score is 0-100.
+    """
+    run_dir = workspace.parent
+    stdout_path = run_dir / "stdout.log"
+    stderr_path = run_dir / "stderr.log"
+
+    log_content = ""
+    logs_found = False
+    for log_path in (stdout_path, stderr_path):
+        if log_path.is_file():
+            logs_found = True
+            log_content += log_path.read_text(encoding="utf-8", errors="replace") + "\n"
+
+    if not logs_found:
+        return 0.0, {"error": "No log files found in run directory."}
+
+    matched: list[str] = []
+    for pattern, label in _SELF_REPAIR_INDICATORS:
+        if pattern.search(log_content):
+            matched.append(label)
+
+    # Score: proportional to indicator count, 3+ indicators = full score.
+    score = round(min(len(matched) / 3.0, 1.0) * 100.0, 2)
+    evidence: dict[str, Any] = {
+        "matched_indicators": matched,
+        "indicator_count": len(matched),
+        "target_count": 3,
+    }
+    return score, evidence
 
 
 @dataclass
@@ -104,6 +160,14 @@ def score_run(
             "count_score": round(count_score, 2),
         }
         recorder.event("tool_use.scored", evidence["tool_use"])
+
+    # self_repair: scored from stdout.log / stderr.log content analysis.
+    # Looks for evidence of self-correction (retry language, fix actions,
+    # multiple attempts, etc.) in the agent's execution logs.
+    self_repair_score, self_repair_evidence = _score_self_repair(workspace)
+    dimensions["self_repair"] = self_repair_score
+    evidence["self_repair"] = self_repair_evidence
+    recorder.event("self_repair.scored", self_repair_evidence)
 
     # Framework placeholders are deliberately explicit. They are not fake high
     # scores; they mark dimensions that need richer evidence in later phases.
