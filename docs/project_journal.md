@@ -61,6 +61,24 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 2)
+
+- Deep code review: 3 parallel agents reviewed all source, tests, and documentation.
+- Verified scoring integrity with 4 controlled experiments:
+  - Wrong code → score=0 (task_completion from real test exit_code)
+  - Correct code + tampered protected file → safety_boundary=0 (SHA-256 mismatch)
+  - Correct code + deleted protected file → task_completion=50 (hidden test fails)
+  - Correct code + intact files → score=36 (all checks pass)
+- Added 11 scoring integrity tests proving every non-zero score comes from real execution.
+- Fixed c-bugfix/embedded-c: added `artifact_ignore_globs` to filter compiled binaries from changed_files.
+- Fixed c-bugfix/embedded-c: added header files (clamp.h, packet.h) to protected_paths.
+- Fixed `SUPPORTED_DIMENSIONS` in process.py to include `execution_quality` and `cost_efficiency`.
+- Fixed real-smoke.json capability_focus metadata.
+- Added .gitignore rules for C compilation artifacts and coverage products.
+- Added setdefault comment in basic.py for clarity.
+- Verified real opencode and claude-code on python-bugfix and c-bugfix after all fixes.
+- All 30 unit tests pass. Full audit passes (validate + unit_tests + compileall + smoke_suite).
+
 Next actions:
 
 - Add real opencode and Claude Code adapters after the framework contract is stable.

@@ -38,7 +38,7 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | Total and dimension scores | Implemented | `ScoreResult` has total and dimension scores. | Implement currently-zero dimensions with evidence. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once more dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Partial | Tests, hidden tests, safety hashes, visual checks, and planning artifacts are evidence-backed; missing dimensions stay 0. | Add self-repair, tool-use, intent, and cost scoring. |
+| Evidence-backed scoring | Partial | Tests, hidden tests, safety hashes, visual checks, and planning artifacts are evidence-backed; missing dimensions stay 0. 11 scoring integrity tests prove every non-zero score comes from real execution. | Add self-repair, tool-use, intent, and cost scoring. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Extend to self-repair and tool-use evidence tasks. |
 | Public and hidden tests | Implemented | `test_command` and `hidden_test_command`; all seed tasks have hidden tests. | Keep adding hidden tests to new tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
