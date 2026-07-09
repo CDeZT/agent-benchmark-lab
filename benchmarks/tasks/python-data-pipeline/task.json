@@ -1,0 +1,18 @@
+{
+  "id": "python-data-pipeline",
+  "title": "Implement a data cleaning and transformation pipeline",
+  "instruction": "Complete the data pipeline in pipeline.py. Implement: (1) load_csv to parse CSV with type inference and error handling, (2) clean_data to handle missing values, duplicates, and invalid types, (3) detect_outliers using IQR method with configurable multiplier, (4) transform_features for normalization and encoding, (5) aggregate_metrics for groupby statistics. Handle edge cases: empty datasets, all-null columns, mixed types, malformed CSV, Unicode data.",
+  "capabilities": ["data_engineering", "python_engineering", "feature_implementation", "performance"],
+  "domains": ["python", "data_processing", "etl"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_pipeline.py"],
+  "hidden_test_command": ["python3", "test_hidden_pipeline.py"],
+  "protected_paths": ["test_pipeline.py"],
+  "process_checks": [
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["pipeline.py"]
+    }
+  ]
+}

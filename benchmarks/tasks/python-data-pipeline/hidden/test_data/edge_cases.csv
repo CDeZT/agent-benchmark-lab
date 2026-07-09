@@ -1,0 +1,21 @@
+id,name,value,category
+1,normal,10,A
+2,,20,B
+3,,"",C
+4,"has,comma",30,A
+5,"has ""quotes""",40,B
+6,very long string that goes on and on and on and on and on and on and on and on and on and on and on and on,50,C
+7,\n newline,60,A
+8,tab\there,70,B
+9,unicode: café résumé naïve,80,C
+10,emoji: 😀🎉,90,A
+11,,100,
+12,   leading spaces,110,B
+13,trailing spaces   ,120,C
+14,mIxEd CaSe,130,A
+15,NULL,140,B
+16,N/A,150,C
+17,none,160,A
+18,NaN,170,B
+19,undefined,180,C
+20,zero,0,A

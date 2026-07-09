@@ -1,0 +1,23 @@
+{
+  "id": "python-fullstack",
+  "title": "Fix multiple bugs in Book Library API and frontend",
+  "instruction": "The Book Library web app has multiple bugs affecting both backend and frontend. Read app.py, templates/index.html, and static/app.js to understand the full stack. Fix these issues in app.py: (1) PUT /api/books/<id> should update the updated_at timestamp, (2) DELETE /api/books/<id> should remove the book from reading lists first to avoid FK constraint errors, (3) POST /api/reading-list should validate that the book_id actually exists, (4) GET /api/stats should calculate average_rating excluding NULL ratings. Run test_fullstack.py to verify your fixes.",
+  "capabilities": ["bugfix", "fullstack", "python_engineering", "database", "api_design"],
+  "domains": ["python", "web", "fullstack"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_fullstack.py"],
+  "hidden_test_command": ["python3", "test_hidden_fullstack.py"],
+  "protected_paths": ["test_fullstack.py", "templates/index.html"],
+  "process_checks": [
+    {
+      "type": "file_changed",
+      "dimension": "execution_quality",
+      "path": "app.py"
+    },
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["app.py"]
+    }
+  ]
+}

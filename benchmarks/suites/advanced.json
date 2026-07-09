@@ -1,0 +1,22 @@
+{
+  "id": "advanced",
+  "title": "Advanced engineering tasks",
+  "description": "Complex, real-world engineering tasks inspired by SWE-bench. These require 10+ tool calls, multi-file modifications, and deep codebase understanding.",
+  "tasks": [
+    "python-swebench-style",
+    "c-systems-programming",
+    "python-fullstack"
+  ],
+  "capability_focus": [
+    "bugfix",
+    "debugging",
+    "cross_module_reasoning",
+    "c_engineering",
+    "systems_programming",
+    "memory_management",
+    "fullstack",
+    "database",
+    "api_design",
+    "data_pipeline"
+  ]
+}

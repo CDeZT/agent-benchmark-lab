@@ -1,0 +1,18 @@
+{
+  "id": "optics-imaging-pipeline",
+  "title": "Implement a camera sensor calibration and imaging pipeline",
+  "instruction": "Complete the imaging pipeline in imaging_pipeline.py. Implement: (1) dark_frame_subtraction to remove sensor readout noise, (2) flat_field_correction to normalize pixel sensitivity, (3) detect_hot_pixels to find pixels exceeding a sigma threshold from their local neighborhood, (4) apply_gaussian_blur for noise reduction with proper boundary handling. Handle edge cases: division by zero in flat field, NaN propagation, empty images, single-pixel images.",
+  "capabilities": ["optics_engineering", "python_engineering", "numerical_accuracy", "feature_implementation"],
+  "domains": ["python", "optics", "signal_processing"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_pipeline.py"],
+  "hidden_test_command": ["python3", "test_hidden_pipeline.py"],
+  "protected_paths": ["test_pipeline.py"],
+  "process_checks": [
+    {
+      "type": "instruction_match",
+      "dimension": "intent_understanding",
+      "expected_changed_files": ["imaging_pipeline.py"]
+    }
+  ]
+}
