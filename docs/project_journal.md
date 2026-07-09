@@ -61,6 +61,14 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 4)
+
+- Fixed Claude Code CLI UI display issues:
+  - Added COLUMNS/LINES fix to ~/.zshrc for Warp Terminal compatibility
+  - Improved statusline-command.sh: handles missing session_name, context_window.max_tokens, and transcript_path
+  - Falls back to session file for session name, infers max context from model name
+- All UI fields now show data or graceful "N/A" instead of blank/error
+
 ## 2026-07-09 (iteration 3)
 
 - Added `parsers/` module to extract model name and tool calls from real harness output.
