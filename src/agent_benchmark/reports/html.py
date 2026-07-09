@@ -16,9 +16,13 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
     )
     run_rows = "\n".join(
         f"<tr><td>{run['repetition']}</td><td>{run['score']}</td><td>{_status(run['public_test_passed'])}</td>"
-        f"<td>{_status(run['hidden_test_passed'])}</td><td>{html.escape(', '.join(run['changed_files']) or 'none')}</td></tr>"
+        f"<td>{_status(run['hidden_test_passed'])}</td><td>{run.get('tool_call_count', 0)}</td>"
+        f"<td>{run['duration_seconds']}</td><td>{html.escape(', '.join(run['changed_files']) or 'none')}</td></tr>"
         for run in summary["runs"]
     )
+    detected = summary.get("detected_model")
+    model_display = html.escape(summary['model']) + (f" (detected: {html.escape(detected)})" if detected and detected != summary["model"] else "")
+    total_tools = summary.get("total_tool_calls", 0)
     document = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -42,20 +46,21 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
 <body>
 <main>
   <h1>{html.escape(summary['task_title'])}</h1>
-  <p><code>{html.escape(summary['task_id'])}</code> with adapter <code>{html.escape(summary['adapter'])}</code>, model <code>{html.escape(summary['model'])}</code>, profile <code>{html.escape(summary['budget_profile'])}</code></p>
+  <p><code>{html.escape(summary['task_id'])}</code> with adapter <code>{html.escape(summary['adapter'])}</code>, model <code>{model_display}</code>, profile <code>{html.escape(summary['budget_profile'])}</code></p>
   <section class="summary">
     <div class="metric"><span>Mean</span><b>{summary['mean_score']}</b></div>
     <div class="metric"><span>Variance</span><b>{summary['variance']}</b></div>
     <div class="metric"><span>Best</span><b>{summary['best_score']}</b></div>
     <div class="metric"><span>Worst</span><b>{summary['worst_score']}</b></div>
     <div class="metric"><span>Mean seconds</span><b>{summary['mean_duration_seconds']}</b></div>
+    <div class="metric"><span>Tool calls</span><b>{total_tools}</b></div>
   </section>
   <h2>Radar Snapshot</h2>
   <div class="radar">{radar}</div>
   <h2>Dimension Scores</h2>
   {bars}
   <h2>Runs</h2>
-  <table><thead><tr><th>Repetition</th><th>Score</th><th>Public</th><th>Hidden</th><th>Changed Files</th></tr></thead><tbody>{run_rows}</tbody></table>
+  <table><thead><tr><th>Rep</th><th>Score</th><th>Public</th><th>Hidden</th><th>Tools</th><th>Duration</th><th>Changed Files</th></tr></thead><tbody>{run_rows}</tbody></table>
 </main>
 </body>
 </html>

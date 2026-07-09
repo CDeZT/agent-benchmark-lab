@@ -72,6 +72,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Verified opencode python-bugfix → tool_use=100, total=42.0 (was 36.0).
 - Added 2 tool_use integrity tests. Total tests now 35, all pass.
 - 5/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use.
+- Enhanced reports: detected_model, tool call counts, per-run tools column in Markdown and HTML.
 
 ## In Progress
 

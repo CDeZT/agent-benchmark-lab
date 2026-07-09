@@ -61,6 +61,13 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 6)
+
+- Enhanced Markdown and HTML reports: added detected_model display, tool call counts, and per-run tools column.
+- Markdown report now shows `Model: unspecified (detected: LongCat-2.0)` when parser detects model.
+- HTML report now includes "Tool calls" metric card and Tools/Duration columns in runs table.
+- Verified: opencode python-bugfix report correctly shows detected model and 3 tool calls.
+
 ## 2026-07-09 (iteration 5)
 
 - Connected parser data to scorer: `tool_use` dimension now scores from real harness output.
