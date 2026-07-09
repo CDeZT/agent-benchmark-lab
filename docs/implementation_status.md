@@ -35,17 +35,17 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | Compare same model across harnesses | Partial | Matrix runner supports adapter/model combinations; Claude Code and opencode adapter shells exist. | Test real local CLI commands and run actual comparisons. |
 | Compare models in same harness | Partial | Model label is recorded and matrix runner supports multiple models. | Wire model config into real harness commands. |
 | Full harness/model ranking | Partial | Matrix summaries and reports exist. | Add leaderboard sorting, history, and real runs. |
-| Total and dimension scores | Implemented | `ScoreResult` has total and dimension scores. | Implement currently-zero dimensions with evidence. |
-| Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once more dimensions are real. |
+| Total and dimension scores | Implemented | `ScoreResult` has total and dimension scores. 8/10 dimensions have real evidence. | Implement cost_efficiency with real token/cost parsing. |
+| Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Partial | Tests, hidden tests, safety hashes, visual checks, and planning artifacts are evidence-backed; missing dimensions stay 0. 11 scoring integrity tests prove every non-zero score comes from real execution. | Add self-repair, tool-use, intent, and cost scoring. |
-| Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Extend to self-repair and tool-use evidence tasks. |
+| Evidence-backed scoring | Partial | 8/10 dimensions have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair. 56 unit tests prove every non-zero score comes from real execution. | Add cost_efficiency scoring. |
+| Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Implemented | `test_command` and `hidden_test_command`; all seed tasks have hidden tests. | Keep adding hidden tests to new tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
 | Prevent test tampering | Implemented | Protected files checked with SHA-256 hashes. | Add stricter invalid-run policy levels. |
 | Visual verification | Partial | Static HTML checks exist. | Add browser screenshots and pixel checks. |
 | Cost and duration | Partial | Duration is measured; cost/token fields exist as null placeholders. | Parse real usage data from harness/provider output. |
-| Python/C/frontend seed tasks | Implemented | Foundation suite contains seed tasks. | Expand difficulty and task types. |
+| Python/C/frontend seed tasks | Implemented | Foundation suite contains 9 tasks. | Expand difficulty and task types. |
 | Embedded and optics domains | Partial | Seed tasks exist. | Add deeper domain-specific tasks. |
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
 | Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; both passed `python-bugfix` real smoke. | Run larger benchmark matrices and parse model/tool/cost evidence. |
@@ -69,26 +69,31 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | `embedded-c` | Embedded C | Yes | Yes | No |
 | `optics-python` | Optics/Python | Yes | Yes | No |
 | `process-planning` | Process/Python | Yes | Yes | No |
+| `python-feature` | Python | Yes | Yes | No |
+| `python-refactor` | Python | Yes | No | No |
+
+另有 `test-writing` suite 包含 `python-test-writing`（需真实 harness）。
 
 ## Current Score Meaning
 
-With the dummy adapter:
+With the dummy adapter and 8/10 dimensions having real evidence:
 
-- Most foundation tasks score `36.0`: task completion plus safety, with other dimensions still 0.
-- `frontend-visual` scores `40.0`: task completion, safety, and static visual verification.
-- `process-planning` scores `44.0`: task completion, safety, and planning artifact evidence.
-- The full `foundation` suite scores `38.0`.
+- `python-bugfix` scores `48.0`: task_completion(100) + safety_boundary(100) + execution_quality(100).
+- `frontend-visual` scores `40.0`: task_completion(100) + safety_boundary(100) + visual_verification(100).
+- `process-planning` scores `44.0`: task_completion(100) + safety_boundary(100) + planning(100).
+- `python-refactor` scores `48.0`: task_completion(100) + safety_boundary(100) + execution_quality(100).
+- The full `foundation` suite averages across all 8 tasks.
 
-Low scores are expected because several dimensions are intentionally zero until evidence-backed scoring exists.
+Scores are now meaningfully differentiated by task type because most dimensions have real evidence.
 
 ## Next Best Iterations
 
-1. Test and refine real `opencode` command template.
-2. Test and refine real `claude-code` command template.
-3. Add browser screenshot/pixel visual checks.
-4. Add Docker isolation.
-5. Add process scoring for planning, self-repair, and tool use.
-6. Add richer embedded and optics tasks.
+1. Add `cost_efficiency` scoring by parsing token/cost from harness output.
+2. Add browser screenshot/pixel visual checks.
+3. Add Docker isolation.
+4. Expand task difficulty and add more domain tasks.
+5. Run larger real harness matrix (opencode vs claude-code × multiple models).
+6. Import external benchmark tasks (SWE-bench style).
 
 ## How To Check This From CLI
 

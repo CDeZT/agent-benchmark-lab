@@ -15,21 +15,20 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-This repository is in foundation mode. The first implementation focuses on:
+**8/10 评分维度有真实证据**，56 个单元测试全绿，审计全绿。
 
-- Requirements and benchmark design documents.
-- A minimal Python CLI with no mandatory third-party dependencies.
-- A task manifest schema.
-- A dummy adapter for validating the runner, recorder, scorer, and report pipeline.
-- Seed tasks for Python, C, frontend/visual, embedded-style, and optics-style evaluation.
-- Matrix runs across adapter/model/budget-profile combinations.
-- Static HTML visual checks for early frontend evidence.
-- Public and hidden test commands.
-- Task and suite validation.
-- Test timeout protection.
-- Local harness/environment doctor.
-- One-command project audit.
-- Real opencode and Claude Code smoke path.
+已实现：
+- 10 维度加权评分体系（task_completion, intent_understanding, planning, execution_quality, self_repair, test_discipline, tool_use, visual_verification, safety_boundary, cost_efficiency）
+- 9 个基准任务（bugfix/feature/refactor/test-writing/visual/embedded/optics）
+- 4 种适配器（dummy/generic-command/opencode/claude-code）
+- 真实 harness 输出解析（模型名、工具调用）
+- 矩阵运行（adapter × model × budget_profile）
+- 公开测试 + 隐藏测试 + SHA-256 完整性检查
+- 静态 HTML 视觉检查
+- 过程检查（plan.md、文件变更、测试质量、指令匹配）
+- Markdown + HTML 报告（含 SVG 雷达图）
+- 自动计算均值、方差、标准差
+- 一键审计、环境诊断、交接提示
 
 See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
 
