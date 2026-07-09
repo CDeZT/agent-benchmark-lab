@@ -38,6 +38,24 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
             f"{_status(run['hidden_test_passed'])} | {tools} | {run['duration_seconds']} | {changed} |"
         )
     lines.extend(["", "## Notes", "", "Scores are evidence-backed by per-run `result.json`, `trace.jsonl`, and `diff.patch`."])
+
+    # Add dimension details from the last run
+    if summary["runs"]:
+        last_run = summary["runs"][-1]
+        if "dimensions" in last_run:
+            lines.extend(["", "## Dimension Scores (last run)", ""])
+            lines.append("| Dimension | Score | Weight |")
+            lines.append("| --- | ---: | ---: |")
+            weights = {
+                "task_completion": 30, "intent_understanding": 10, "planning": 8,
+                "execution_quality": 12, "self_repair": 10, "test_discipline": 10,
+                "tool_use": 6, "visual_verification": 4, "safety_boundary": 6,
+                "cost_efficiency": 4,
+            }
+            for dim, score in sorted(last_run["dimensions"].items()):
+                weight = weights.get(dim, 0)
+                lines.append(f"| {dim} | {score} | {weight} |")
+
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

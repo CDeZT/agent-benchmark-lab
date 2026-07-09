@@ -10,8 +10,14 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
     first_run = summary["runs"][0] if summary["runs"] else {"dimensions": {}}
     dimensions = first_run.get("dimensions", {})
     radar = _radar_svg(dimensions)
+    weights = {
+        "task_completion": 30, "intent_understanding": 10, "planning": 8,
+        "execution_quality": 12, "self_repair": 10, "test_discipline": 10,
+        "tool_use": 6, "visual_verification": 4, "safety_boundary": 6,
+        "cost_efficiency": 4,
+    }
     bars = "\n".join(
-        f"<div class='bar'><span>{html.escape(name)}</span><meter min='0' max='100' value='{value}'></meter><b>{value:.1f}</b></div>"
+        f"<div class='bar'><span>{html.escape(name)} ({weights.get(name, 0)}%)</span><meter min='0' max='100' value='{value}'></meter><b>{value:.1f}</b></div>"
         for name, value in dimensions.items()
     )
     run_rows = "\n".join(
