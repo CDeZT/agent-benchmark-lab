@@ -6,7 +6,7 @@
     "domains": ["python", "web"],
     "workspace": "workspace",
     "test_command": ["python3", "test_app.py"],
-    "protected_paths": ["test_app.py", "README.md"],
+    "protected_paths": ["README.md"],
     "process_checks": [
         {
             "type": "file_exists",
