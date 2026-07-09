@@ -3,7 +3,7 @@
   "updated_at": "2026-07-09",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation, seed tasks, reports, matrix runs, evidence-backed scoring for tests/safety/static visual checks/planning artifacts, hidden tests, test timeouts, doctor diagnostics, real opencode/Claude Code smoke tests, and an audit command. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, Docker isolation, browser screenshots, external benchmark imports, model/tool/cost parsing, and broader process scoring are still pending."
+    "plain_language": "The repository has a working benchmark framework foundation, seed tasks, reports, matrix runs, evidence-backed scoring for tests/safety/static visual checks/planning artifacts, hidden tests, test timeouts, doctor diagnostics, real opencode/Claude Code smoke tests, an audit command, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, Docker isolation, browser screenshots, external benchmark imports, model/tool/cost parsing, and broader process scoring are still pending."
   },
   "items": [
     {
@@ -166,6 +166,13 @@
       "status": "implemented",
       "evidence": ["agent-benchmark doctor checks python3, cc, opencode, claude, and adapter command env vars"],
       "remaining": ["Add provider credential checks without printing secrets"]
+    },
+    {
+      "id": "next_agent_handoff_prompt",
+      "title": "Copy-paste prompt for the next coding agent",
+      "status": "implemented",
+      "evidence": ["docs/next_agent_prompt.md exists", "agent-benchmark next-agent-prompt prints it"],
+      "remaining": ["Keep it updated whenever workflow rules change"]
     },
     {
       "id": "external_benchmark_imports",

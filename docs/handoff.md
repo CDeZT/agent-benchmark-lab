@@ -54,6 +54,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added generated artifact filtering for Python cache files.
 - Added `real-smoke` suite and real harness smoke documentation.
 - Added optional `audit --include-real-harness` to run real opencode/Claude Code smoke checks explicitly.
+- Added `docs/next_agent_prompt.md` and `agent-benchmark next-agent-prompt`.
 - Verified all seed tasks with the dummy adapter for three repetitions.
 
 ## In Progress
@@ -104,6 +105,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
+PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
 PYTHONPATH=src python3 -m compileall -q src tests
@@ -127,5 +129,7 @@ All foundation seed tasks also passed with the dummy adapter for three repetitio
 - Preserve raw evidence for every score.
 - Update this file whenever a phase completes or when important unfinished work is discovered.
 - Update `docs/implementation_status.md` and `status/implementation_status.json` whenever a requirement changes status.
+- Update `README.md`, `docs/handoff.md`, `docs/project_journal.md`, and `docs/next_agent_prompt.md` whenever workflow or handoff rules change.
 - Run `agent-benchmark audit` after meaningful feature changes.
+- Commit after each verified iteration.
 - Keep secrets out of the repo; use environment variables or ignored local config.

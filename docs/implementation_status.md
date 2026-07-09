@@ -19,6 +19,7 @@ The project now has a working benchmark foundation:
 - Public and hidden test timeouts.
 - Local harness/environment doctor.
 - A one-command audit path.
+- A copy-paste next-agent handoff prompt.
 - JSONL traces.
 - Diffs.
 - stdout/stderr logs.
@@ -54,6 +55,7 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | Handoff/journal | Implemented | Handoff and project journal exist and are updated. | Keep updating every phase. |
 | Self-audit command | Implemented | `agent-benchmark audit` runs validation, unit tests, compileall, and smoke suite. | Add lint/Docker/browser/real-harness audit levels later. |
 | Doctor command | Implemented | `agent-benchmark doctor` checks local tools and adapter command env vars. | Add credential checks without exposing secrets. |
+| Next-agent handoff prompt | Implemented | `docs/next_agent_prompt.md`; `agent-benchmark next-agent-prompt`. | Keep updated when workflow rules change. |
 | External benchmark imports | Planned | Research notes and roadmap exist. | Implement importers. |
 | Dashboard | Planned | Roadmap exists. | Build dashboard. |
 
@@ -95,4 +97,5 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status --json
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
+PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 ```

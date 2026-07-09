@@ -10,6 +10,7 @@ import uuid
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.doctor import format_doctor, run_doctor
+from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
 from agent_benchmark.reports.matrix import write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
 from agent_benchmark.runner import ExperimentConfig, run_task
@@ -58,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     doctor_parser = subparsers.add_parser("doctor", help="Check local benchmark and harness environment.")
     doctor_parser.add_argument("--json", action="store_true", help="Print raw JSON doctor summary.")
 
+    next_parser = subparsers.add_parser("next-agent-prompt", help="Print the handoff prompt for the next agent.")
+    next_parser.add_argument("--prompt-file", default=str(DEFAULT_PROMPT_PATH))
+
     run_parser = subparsers.add_parser("run", help="Run a benchmark task.")
     run_parser.add_argument("--task", required=True, help="Task id or path.")
     run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
@@ -105,6 +109,8 @@ def main(argv: list[str] | None = None) -> int:
         return _audit(args)
     if args.command == "doctor":
         return _doctor(args)
+    if args.command == "next-agent-prompt":
+        return _next_agent_prompt(args)
     if args.command == "run":
         return _run(args)
     if args.command == "run-suite":
@@ -193,6 +199,11 @@ def _doctor(args: argparse.Namespace) -> int:
     else:
         print(format_doctor(summary))
     return 0 if summary["ok"] else 1
+
+
+def _next_agent_prompt(args: argparse.Namespace) -> int:
+    print(load_next_agent_prompt(Path(args.prompt_file)))
+    return 0
 
 
 def _run(args: argparse.Namespace) -> int:

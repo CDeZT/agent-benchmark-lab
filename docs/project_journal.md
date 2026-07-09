@@ -56,6 +56,8 @@
 - Fixed generated Python cache files appearing in `changed_files`, discovered by the Claude Code run.
 - Added `real-smoke` suite plus `docs/real_harness_smoke.md`.
 - Added optional `audit --include-real-harness` for explicit real opencode/Claude Code smoke verification.
+- Added `docs/next_agent_prompt.md` and `agent-benchmark next-agent-prompt` for clean handoff when the thread cannot continue.
+- User requested that future verified iterations should be committed; this is now documented in handoff instructions.
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
@@ -69,3 +71,4 @@ Next actions:
 - Keep implementation status updated after each phase.
 - Expand audit levels with linting, Docker, browser visual checks, and real harness dry runs.
 - Parse real harness output for tool-use, model, token, and cost evidence.
+- Keep next-agent prompt, README, handoff, status, and journal synchronized after workflow changes.

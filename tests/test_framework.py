@@ -9,6 +9,7 @@ import unittest
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.doctor import format_doctor, run_doctor
+from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.runner import ExperimentConfig, run_task
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.task_schema import load_suite, load_task, validate_all
@@ -276,6 +277,14 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertIn("opencode run", OpencodeAdapter().command_template() or "")
         self.assertIn("claude -p", ClaudeCodeAdapter().command_template() or "")
+
+    def test_next_agent_prompt_contains_required_handoff_rules(self) -> None:
+        prompt = load_next_agent_prompt(ROOT / "docs" / "next_agent_prompt.md")
+
+        self.assertIn("docs/handoff.md", prompt)
+        self.assertIn("agent-benchmark audit", prompt)
+        self.assertIn("commit", prompt)
+        self.assertIn("不要假打分", prompt)
 
     def test_audit_smoke_path_passes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
