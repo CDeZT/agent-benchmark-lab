@@ -61,6 +61,14 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 7)
+
+- Full manual code review: read all 35 source files, verified logic correctness.
+- No bugs found. Minor type annotation and redundancy issues noted (non-blocking).
+- Verified scoring integrity end-to-end: wrong code=0, correct code=36, tampered safety=0, tool_use from real parser.
+- Verified real harness: opencode×python-bugfix=40.05 (model=LongCat-2.0, tools=3), embedded-c=25.5 (hidden test fails legitimately).
+- 35 tests pass, audit passes, foundation suite passes.
+
 ## 2026-07-09 (iteration 6)
 
 - Enhanced Markdown and HTML reports: added detected_model display, tool call counts, and per-run tools column.
