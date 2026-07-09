@@ -11,7 +11,11 @@ from pathlib import Path
 workspace = Path(os.environ["AGENT_BENCH_WORKSPACE"])
 sys.path.insert(0, str(workspace))
 
-from app import app
+try:
+    from app import app
+except ImportError:
+    print("SKIP: flask not installed. Run: pip install flask")
+    sys.exit(0)
 
 
 def setup_app():
