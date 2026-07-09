@@ -992,6 +992,327 @@ class FrameworkTests(unittest.TestCase):
             self.assertFalse(result.checks[0]["passed"])
             self.assertIn("No baseline", result.checks[0]["error"])
 
+    # ── code_quality process check tests ──
+
+    def test_code_quality_passes_for_clean_code(self) -> None:
+        """Prove code_quality check passes for well-written code."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "clean.py"
+            code_file.write_text(
+                '"""Module docstring."""\n\n'
+                'def short_function():\n'
+                '    """Short function with docstring."""\n'
+                '    return 42\n\n'
+                'def another_function():\n'
+                '    """Another short function."""\n'
+                '    # This is a comment\n'
+                '    return 0\n',
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "code_quality",
+                    "dimension": "execution_quality",
+                    "path": "clean.py",
+                    "max_function_lines": 10,
+                    "max_nesting_depth": 3,
+                    "require_docstrings": True,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+
+    def test_code_quality_fails_for_long_function(self) -> None:
+        """Prove code_quality check fails when function is too long."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "long_func.py"
+            # Create a function with20 lines
+            lines = ["def long_function():\n"]
+            for i in range(20):
+                lines.append(f"    x{i} = {i}\n")
+            lines.append("    return x0\n")
+            code_file.write_text("".join(lines), encoding="utf-8")
+
+            checks = [
+                {
+                    "type": "code_quality",
+                    "dimension": "execution_quality",
+                    "path": "long_func.py",
+                    "max_function_lines": 10,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("Function too long", result.checks[0]["issues"][0])
+
+    def test_code_quality_fails_for_deep_nesting(self) -> None:
+        """Prove code_quality check fails when nesting is too deep."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "nested.py"
+            code_file.write_text(
+                "def nested():\n"
+                "    if True:\n"
+                "        if True:\n"
+                "            if True:\n"
+                "                if True:\n"
+                "                    return 1\n",
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "code_quality",
+                    "dimension": "execution_quality",
+                    "path": "nested.py",
+                    "max_nesting_depth": 3,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("Nesting too deep", result.checks[0]["issues"][0])
+
+    def test_code_quality_fails_when_missing_docstrings(self) -> None:
+        """Prove code_quality check fails when require_docstrings=True but no docstrings."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "no_doc.py"
+            code_file.write_text(
+                "def function():\n"
+                "    return 42\n",
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "code_quality",
+                    "dimension": "execution_quality",
+                    "path": "no_doc.py",
+                    "require_docstrings": True,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+
+    def test_code_quality_fails_when_file_missing(self) -> None:
+        """Prove code_quality check fails when file doesn't exist."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            checks = [
+                {
+                    "type": "code_quality",
+                    "dimension": "execution_quality",
+                    "path": "nonexistent.py",
+                }
+            ]
+            result = score_process_checks(Path(tmp), checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("not found", result.checks[0]["error"])
+
+    # ── performance_check process check tests ──
+
+    def test_performance_check_passes_for_fast_code(self) -> None:
+        """Prove performance_check passes when code runs within time limit."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            # Create a simple test script
+            test_file = workspace / "test_perf.py"
+            test_file.write_text("print('fast')\n", encoding="utf-8")
+
+            checks = [
+                {
+                    "type": "performance_check",
+                    "dimension": "execution_quality",
+                    "command": ["python3", "test_perf.py"],
+                    "max_seconds": 5.0,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertIn("elapsed_seconds", result.checks[0])
+
+    def test_performance_check_fails_for_slow_code(self) -> None:
+        """Prove performance_check fails when code exceeds time limit."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            # Create a slow script
+            test_file = workspace / "slow.py"
+            test_file.write_text("import time; time.sleep(2)\n", encoding="utf-8")
+
+            checks = [
+                {
+                    "type": "performance_check",
+                    "dimension": "execution_quality",
+                    "command": ["python3", "slow.py"],
+                    "max_seconds": 0.5,  # Very short limit
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+
+    def test_performance_check_fails_for_failing_command(self) -> None:
+        """Prove performance_check fails when command exits with non-zero code."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            # Create a script that fails
+            test_file = workspace / "fail.py"
+            test_file.write_text("import sys; sys.exit(1)\n", encoding="utf-8")
+
+            checks = [
+                {
+                    "type": "performance_check",
+                    "dimension": "execution_quality",
+                    "command": ["python3", "fail.py"],
+                    "max_seconds": 5.0,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("exit code", result.checks[0]["issues"][0])
+
+    def test_performance_check_fails_when_no_command(self) -> None:
+        """Prove performance_check fails when no command is specified."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            checks = [
+                {
+                    "type": "performance_check",
+                    "dimension": "execution_quality",
+                    "max_seconds": 5.0,
+                }
+            ]
+            result = score_process_checks(Path(tmp), checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("No command", result.checks[0]["error"])
+
+    # ── documentation_check process check tests ──
+
+    def test_documentation_check_passes_for_well_documented_code(self) -> None:
+        """Prove documentation_check passes for code with good documentation."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "documented.py"
+            code_file.write_text(
+                '"""Module docstring."""\n\n'
+                'def documented_function():\n'
+                '    """This function has a docstring."""\n'
+                '    return 42\n\n'
+                'def another_function():\n'
+                '    """This also has a docstring."""\n'
+                '    return 0\n',
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "documentation_check",
+                    "dimension": "execution_quality",
+                    "path": "documented.py",
+                    "min_docstring_ratio": 0.5,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertTrue(result.checks[0]["metrics"]["has_module_docstring"])
+
+    def test_documentation_check_fails_for_missing_docstrings(self) -> None:
+        """Prove documentation_check fails when functions lack docstrings."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "undocumented.py"
+            code_file.write_text(
+                '"""Module docstring."""\n\n'
+                'def no_docstring():\n'
+                '    return 42\n\n'
+                'def also_no_docstring():\n'
+                '    return 0\n',
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "documentation_check",
+                    "dimension": "execution_quality",
+                    "path": "undocumented.py",
+                    "min_docstring_ratio": 0.5,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("Too few function docstrings", result.checks[0]["issues"][0])
+
+    def test_documentation_check_fails_for_missing_module_docstring(self) -> None:
+        """Prove documentation_check fails when module has no docstring."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            code_file = workspace / "no_module_doc.py"
+            code_file.write_text(
+                'def function():\n'
+                '    """Has docstring."""\n'
+                '    return 42\n',
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "documentation_check",
+                    "dimension": "execution_quality",
+                    "path": "no_module_doc.py",
+                    "min_docstring_ratio": 0.5,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("No module docstring", result.checks[0]["issues"][0])
+
+    def test_documentation_check_fails_when_file_missing(self) -> None:
+        """Prove documentation_check fails when file doesn't exist."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            checks = [
+                {
+                    "type": "documentation_check",
+                    "dimension": "execution_quality",
+                    "path": "nonexistent.py",
+                }
+            ]
+            result = score_process_checks(Path(tmp), checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("not found", result.checks[0]["error"])
+
     # ── self_repair scoring tests ──
 
     def test_self_repair_zero_when_no_logs(self) -> None:
