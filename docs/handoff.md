@@ -73,6 +73,8 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added 2 tool_use integrity tests. Total tests now 35, all pass.
 - 5/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use.
 - Enhanced reports: detected_model, tool call counts, per-run tools column in Markdown and HTML.
+- Added `python-feature` task (feature implementation: merge_sorted). Foundation suite now has 7 tasks.
+- Full manual code review of all 35 source files — no bugs found.
 
 ## In Progress
 

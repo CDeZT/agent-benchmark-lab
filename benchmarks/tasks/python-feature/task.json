@@ -1,0 +1,11 @@
+{
+    "id": "python-feature",
+    "title": "Implement a sorted list merge function",
+    "instruction": "Implement merge_sorted in sort_utils.py. It should merge two sorted lists into one sorted list in O(n) time. Do not use Python's built-in sort or sorted.",
+    "capabilities": ["feature_implementation", "python_engineering", "test_discipline"],
+    "domains": ["python"],
+    "workspace": "workspace",
+    "test_command": ["python3", "test_merge.py"],
+    "hidden_test_command": ["python3", "test_hidden_merge.py"],
+    "protected_paths": ["test_merge.py"]
+}

@@ -61,6 +61,13 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 8)
+
+- Added `python-feature` task: implement merge_sorted function (feature implementation, not bugfix).
+- Task tests O(n) merge algorithm with public and hidden tests covering edge cases.
+- Added to foundation suite. Suite now has 7 tasks.
+- Full manual code review completed — no bugs found in any source file.
+
 ## 2026-07-09 (iteration 7)
 
 - Full manual code review: read all 35 source files, verified logic correctness.
