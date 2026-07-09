@@ -7,5 +7,6 @@
   "workspace": "workspace",
   "test_command": ["sh", "test.sh"],
   "hidden_test_command": ["sh", "test_hidden_packet.sh"],
-  "protected_paths": ["test.sh", "test_packet.c"]
+  "protected_paths": ["test.sh", "test_packet.c", "packet.h"],
+  "artifact_ignore_globs": ["test_packet"]
 }

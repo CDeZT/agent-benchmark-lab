@@ -84,6 +84,8 @@ def score_run(task: TaskSpec, baseline: Path, workspace: Path, recorder: JsonlRe
 
     # Framework placeholders are deliberately explicit. They are not fake high
     # scores; they mark dimensions that need richer evidence in later phases.
+    # setdefault will NOT overwrite values already populated above (e.g.
+    # process_checks dimensions), so existing evidence is preserved.
     for dimension in [
         "intent_understanding",
         "planning",

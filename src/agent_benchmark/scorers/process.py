@@ -11,7 +11,7 @@ class ProcessScoreResult:
     checks: list[dict[str, Any]] = field(default_factory=list)
 
 
-SUPPORTED_DIMENSIONS = {"planning", "self_repair", "tool_use", "intent_understanding", "test_discipline"}
+SUPPORTED_DIMENSIONS = {"planning", "self_repair", "tool_use", "intent_understanding", "test_discipline", "execution_quality", "cost_efficiency"}
 
 
 def score_process_checks(workspace: Path, checks: list[dict[str, Any]]) -> ProcessScoreResult:

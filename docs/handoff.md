@@ -56,6 +56,14 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added optional `audit --include-real-harness` to run real opencode/Claude Code smoke checks explicitly.
 - Added `docs/next_agent_prompt.md` and `agent-benchmark next-agent-prompt`.
 - Verified all seed tasks with the dummy adapter for three repetitions.
+- Added 11 scoring integrity tests that prove every non-zero score comes from real execution evidence.
+- Fixed C tasks (`c-bugfix`, `embedded-c`): added `artifact_ignore_globs` to filter compiled binaries from changed_files.
+- Fixed C tasks: added header files (`clamp.h`, `packet.h`) to `protected_paths` to prevent agent from bypassing constraints.
+- Fixed `SUPPORTED_DIMENSIONS` in `process.py` to include `execution_quality` and `cost_efficiency`, matching the placeholder list in `basic.py`.
+- Fixed `real-smoke.json` `capability_focus` metadata: replaced `public_hidden_tests` with `test_discipline`.
+- Added `.gitignore` rules for C compilation artifacts (`*.o`, `*.so`, `*.dylib`) and coverage products.
+- Added `setdefault` comment in `basic.py` clarifying that placeholders don't overwrite process_check evidence.
+- Verified real opencode and claude-code on `python-bugfix` and `c-bugfix` after all fixes.
 
 ## In Progress
 
@@ -97,14 +105,14 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands passed on 2026-07-09:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests
+PYTHONPATH=src python3 -m unittest discover -s tests          # 30 tests, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
-PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
+PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 4 checks, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1

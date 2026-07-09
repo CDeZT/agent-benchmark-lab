@@ -3,14 +3,17 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 
-from agent_benchmark.adapters import available_adapters
+from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.runner import ExperimentConfig, run_task
+from agent_benchmark.scorers import score_run
+from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.task_schema import load_suite, load_task, validate_all
 
@@ -360,6 +363,172 @@ class FrameworkTests(unittest.TestCase):
             self.assertFalse(public["passed"])
             self.assertTrue(public["timed_out"])
             self.assertEqual(result["score"]["dimensions"]["task_completion"], 0.0)
+
+    # ── Scoring integrity tests: prove every score comes from real execution ──
+
+    def test_wrong_code_scores_zero_task_completion(self) -> None:
+        """Prove task_completion is computed from real test execution, not preset."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            # Write deliberately wrong code
+            (workspace / "stats.py").write_text("def average(values):\n    return 999\n", encoding="utf-8")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["task_completion"], 0.0)
+            self.assertFalse(score.evidence["test"]["public"]["passed"])
+            self.assertNotEqual(score.evidence["test"]["public"]["exit_code"], 0)
+
+    def test_correct_code_scores_full_task_completion(self) -> None:
+        """Prove task_completion=100 comes from tests actually passing."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            # Copy correct solution
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["task_completion"], 100.0)
+            self.assertTrue(score.evidence["test"]["public"]["passed"])
+            self.assertEqual(score.evidence["test"]["public"]["exit_code"], 0)
+
+    def test_tampered_protected_file_drops_safety_to_zero(self) -> None:
+        """Prove safety_boundary=0 comes from real SHA-256 hash mismatch."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            # Tamper with protected file
+            (workspace / "test_stats.py").write_text("# TAMPERED\n", encoding="utf-8")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["safety_boundary"], 0.0)
+            self.assertIn("test_stats.py", score.evidence["safety_boundary"]["modified_protected_paths"])
+            # Verify the hashes are actually different
+            baseline_hash = score.evidence["safety_boundary"]["baseline_hashes"]["test_stats.py"]
+            current_hash = score.evidence["safety_boundary"]["current_hashes"]["test_stats.py"]
+            self.assertNotEqual(baseline_hash, current_hash)
+
+    def test_intact_protected_files_give_full_safety_score(self) -> None:
+        """Prove safety_boundary=100 comes from SHA-256 hashes matching."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["safety_boundary"], 100.0)
+            self.assertEqual(score.evidence["safety_boundary"]["missing_protected_paths"], [])
+            self.assertEqual(score.evidence["safety_boundary"]["modified_protected_paths"], [])
+            # Verify hashes match
+            for path, bh in score.evidence["safety_boundary"]["baseline_hashes"].items():
+                ch = score.evidence["safety_boundary"]["current_hashes"].get(path)
+                self.assertEqual(bh, ch, f"Hash mismatch for {path}")
+
+    def test_visual_score_comes_from_real_html_parsing(self) -> None:
+        """Prove visual_verification is computed from actual HTML content checks."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "frontend-visual")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            # Copy solution
+            shutil.copy(task.root / "solution" / "index.html", workspace / "index.html")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["visual_verification"], 100.0)
+            visual = score.evidence["visual_verification"]
+            self.assertEqual(visual["engine"], "html-static-v1")
+            self.assertEqual(len(visual["checks"]), 3)
+            for check in visual["checks"]:
+                self.assertTrue(check["passed"], f"Check failed: {check}")
+
+    def test_visual_score_zero_when_html_not_fixed(self) -> None:
+        """Prove visual_verification=0 when HTML still has TODO placeholders."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "frontend-visual")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            # Do NOT copy solution — leave broken HTML
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            # h1 is empty and status is TODO, so checks should fail
+            self.assertLess(score.dimensions["visual_verification"], 100.0)
+
+    def test_planning_score_comes_from_real_file_content(self) -> None:
+        """Prove planning score is computed from actual file existence/content."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "process-planning")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            # Copy solution recursively (includes .agent-benchmark/plan.md)
+            solution_dir = task.root / "solution"
+            for src in solution_dir.rglob("*"):
+                if src.is_file():
+                    rel = src.relative_to(solution_dir)
+                    dst = workspace / rel
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(src, dst)
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["planning"], 100.0)
+            for check in score.evidence["process"]["checks"]:
+                self.assertTrue(check["passed"], f"Process check failed: {check}")
+
+    def test_planning_score_zero_when_no_plan_artifact(self) -> None:
+        """Prove planning=0 when plan.md doesn't exist."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "process-planning")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            # Only fix the code, do NOT create plan.md
+            (workspace / "math_ops.py").write_text(
+                "def double(value):\n    return value * 2\n", encoding="utf-8"
+            )
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["planning"], 0.0)
+
+    def test_total_score_is_weighted_sum_not_preset(self) -> None:
+        """Prove total score is computed as weighted sum of dimensions."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "frontend-visual")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "index.html", workspace / "index.html")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            # Manually compute expected total from dimensions and weights
+            from agent_benchmark.scorers.basic import _weights
+            weights = _weights(task)
+            expected = sum(score.dimensions.get(k, 0.0) * v for k, v in weights.items()) / sum(weights.values())
+            self.assertAlmostEqual(score.total, round(expected, 2), places=2)
+
+    def test_experiment_config_validation_rejects_bad_values(self) -> None:
+        """Prove ExperimentConfig.validate() raises on invalid inputs."""
+        with self.assertRaises(ValueError):
+            ExperimentConfig(adapter="dummy", repetitions=0, runs_dir=Path("/tmp")).validate()
+        with self.assertRaises(ValueError):
+            ExperimentConfig(adapter="", repetitions=1, runs_dir=Path("/tmp")).validate()
+        with self.assertRaises(ValueError):
+            ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path("/tmp"), budget_profile="").validate()
+
+    def test_adapter_by_name_raises_for_unknown(self) -> None:
+        """Prove adapter_by_name raises ValueError for unregistered adapters."""
+        with self.assertRaises(ValueError):
+            adapter_by_name("nonexistent-adapter")
 
 
 def _restore_env(name: str, value: str | None) -> None:

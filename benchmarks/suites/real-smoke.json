@@ -8,6 +8,6 @@
   "capability_focus": [
     "bugfix",
     "python_engineering",
-    "public_hidden_tests"
+    "test_discipline"
   ]
 }

@@ -19,3 +19,13 @@ tmp/
 .env
 .env.*
 !.env.example
+
+# C compilation artifacts
+*.o
+*.so
+*.dylib
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
