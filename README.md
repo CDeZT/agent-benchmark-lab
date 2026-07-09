@@ -29,7 +29,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
   - visual_verification(4%) — HTML 静态检查
   - safety_boundary(6%) — SHA-256 完整性检查
   - cost_efficiency(4%) — token/cost 数据或工具调用效率
-- 14 个基准任务（bugfix/feature/refactor/test-writing/visual/embedded/optics/fullstack/data-pipeline）
+- 15 个基准任务（bugfix/feature/refactor/test-writing/visual/embedded/optics/fullstack/data-pipeline/CI调试/代码审查/代码库理解/项目生成）
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 矩阵运行（adapter × model × budget_profile）

@@ -61,6 +61,18 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 14)
+
+- Added CI debugging task: debug failing CI pipeline with calculator bugs.
+- Added code-review task: security review and fix authentication module.
+- Added repo-understanding task: understand and document a codebase.
+- Added project-generation task: create Todo API from requirements.
+- Foundation suite now has 12 tasks covering all major capability areas.
+- Advanced suite has 3 complex tasks (SWE-bench style, fullstack, C systems).
+- Improved reports: show dimension weights and detailed scores.
+- 75 unit tests pass. Full audit passes.
+- Task coverage now includes: bugfix, feature, refactor, test-writing, visual, embedded, optics, fullstack, data-pipeline, systems, CI debugging, code-review, repo-understanding, project-generation.
+
 ## 2026-07-09 (iteration 13)
 
 - Added complex engineering tasks inspired by SWE-bench and real-world challenges:
