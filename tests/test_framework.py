@@ -570,6 +570,43 @@ class FrameworkTests(unittest.TestCase):
         self.assertIsNone(evidence.model)
         self.assertEqual(evidence.tool_calls, [])
 
+    def test_tool_use_scored_from_real_harness_evidence(self) -> None:
+        """Prove tool_use dimension is computed from parsed harness output."""
+        from agent_benchmark.parsers.harness_output import HarnessEvidence
+
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            # Simulate harness evidence with tool calls
+            evidence = HarnessEvidence(
+                model="test-model",
+                tool_calls=[
+                    {"type": "read", "path": "stats.py"},
+                    {"type": "edit", "path": "stats.py"},
+                    {"type": "bash", "command": "python3 test_stats.py"},
+                ],
+            )
+            score = score_run(task, baseline, workspace, recorder, harness_evidence=evidence)
+            self.assertGreater(score.dimensions["tool_use"], 0.0)
+            self.assertIn("tool_use", score.evidence)
+            self.assertEqual(score.evidence["tool_use"]["tool_count"], 3)
+
+    def test_tool_use_zero_without_harness_evidence(self) -> None:
+        """Prove tool_use=0 when no harness evidence is provided."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        baseline = task.workspace_path
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(baseline, workspace)
+            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            score = score_run(task, baseline, workspace, recorder)
+            self.assertEqual(score.dimensions["tool_use"], 0.0)
+
 
 def _restore_env(name: str, value: str | None) -> None:
     if value is None:

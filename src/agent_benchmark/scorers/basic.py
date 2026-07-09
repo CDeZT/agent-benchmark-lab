@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import time
 
+from agent_benchmark.parsers.harness_output import HarnessEvidence
 from agent_benchmark.recorders import JsonlRecorder
 from agent_benchmark.scorers.integrity import score_protected_paths
 from agent_benchmark.scorers.process import score_process_checks
@@ -20,7 +21,13 @@ class ScoreResult:
     evidence: dict[str, object] = field(default_factory=dict)
 
 
-def score_run(task: TaskSpec, baseline: Path, workspace: Path, recorder: JsonlRecorder) -> ScoreResult:
+def score_run(
+    task: TaskSpec,
+    baseline: Path,
+    workspace: Path,
+    recorder: JsonlRecorder,
+    harness_evidence: HarnessEvidence | None = None,
+) -> ScoreResult:
     dimensions: dict[str, float] = {}
     evidence: dict[str, object] = {}
 
@@ -81,6 +88,22 @@ def score_run(task: TaskSpec, baseline: Path, workspace: Path, recorder: JsonlRe
             "passed_count": sum(1 for check in process.checks if check.get("passed")),
         },
     )
+
+    # tool_use: scored from parsed harness output (tool call count and variety)
+    if harness_evidence and harness_evidence.tool_calls:
+        tool_types = {t["type"] for t in harness_evidence.tool_calls}
+        call_count = len(harness_evidence.tool_calls)
+        # Score: 50% for having any tools, 50% for variety (up to 4+ types)
+        variety_score = min(len(tool_types) / 4.0, 1.0) * 50.0
+        count_score = min(call_count / 5.0, 1.0) * 50.0
+        dimensions["tool_use"] = round(variety_score + count_score, 2)
+        evidence["tool_use"] = {
+            "tool_types": sorted(tool_types),
+            "tool_count": call_count,
+            "variety_score": round(variety_score, 2),
+            "count_score": round(count_score, 2),
+        }
+        recorder.event("tool_use.scored", evidence["tool_use"])
 
     # Framework placeholders are deliberately explicit. They are not fake high
     # scores; they mark dimensions that need richer evidence in later phases.

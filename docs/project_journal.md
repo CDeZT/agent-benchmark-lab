@@ -61,6 +61,15 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 5)
+
+- Connected parser data to scorer: `tool_use` dimension now scores from real harness output.
+- tool_use scoring: 50% from tool variety (up to 4+ types), 50% from call count (up to 5+).
+- Verified: opencode python-bugfix → tool_use=100, total=42.0 (was 36.0).
+- Verified: dummy adapter → tool_use=0 (no tool calls parsed).
+- Added 2 tool_use integrity tests. Total tests now 35, all pass.
+- 5 out of 10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use.
+
 ## 2026-07-09 (iteration 4)
 
 - Fixed Claude Code CLI UI display issues:

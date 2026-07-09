@@ -68,6 +68,10 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Integrated parser into runner: `detected_model` and `tool_call_count` now in summary/run results.
 - Verified opencode parser extracts `LongCat-2.0` model name and tool calls from stderr.
 - Added 3 parser unit tests. Total tests now 33, all pass.
+- Connected parser to scorer: `tool_use` now scores from real harness output (tool variety + count).
+- Verified opencode python-bugfix → tool_use=100, total=42.0 (was 36.0).
+- Added 2 tool_use integrity tests. Total tests now 35, all pass.
+- 5/10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use.
 
 ## In Progress
 

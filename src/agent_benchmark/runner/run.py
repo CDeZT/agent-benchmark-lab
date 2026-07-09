@@ -89,7 +89,7 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
                 "tools": [t["type"] for t in harness_evidence.tool_calls],
             })
 
-        score = score_run(task, baseline, workspace, recorder)
+        score = score_run(task, baseline, workspace, recorder, harness_evidence=harness_evidence)
         duration_seconds = time.monotonic() - run_start
         result = RunResult(
             run_id=run_id,
