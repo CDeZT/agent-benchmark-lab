@@ -10,7 +10,8 @@
     "optics-python",
     "process-planning",
     "python-feature",
-    "python-refactor"
+    "python-refactor",
+    "ci-debugging"
   ],
   "capability_focus": [
     "bugfix",

@@ -1,0 +1,22 @@
+{
+    "id": "ci-debugging",
+    "title": "Debug failing CI pipeline",
+    "instruction": "The CI pipeline is failing. Investigate the failing tests in tests/test_calculator.py and fix the bugs in src/calculator.py. The tests expect: (1) divide by zero returns None, (2) power uses exponentiation not multiplication, (3) average handles empty list, (4) factorial handles negative numbers. Fix all bugs to make the tests pass.",
+    "capabilities": ["ci_debugging", "bugfix", "python_engineering"],
+    "domains": ["python", "ci"],
+    "workspace": "workspace",
+    "test_command": ["python3", "-m", "pytest", "tests/", "-v"],
+    "protected_paths": ["tests/test_calculator.py", ".github/workflows/ci.yml"],
+    "process_checks": [
+        {
+            "type": "file_changed",
+            "dimension": "execution_quality",
+            "path": "src/calculator.py"
+        },
+        {
+            "type": "instruction_match",
+            "dimension": "intent_understanding",
+            "expected_changed_files": ["src/calculator.py"]
+        }
+    ]
+}
