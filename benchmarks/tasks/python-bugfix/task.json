@@ -7,5 +7,12 @@
   "workspace": "workspace",
   "test_command": ["python3", "test_stats.py"],
   "hidden_test_command": ["python3", "test_hidden_stats.py"],
-  "protected_paths": ["test_stats.py"]
+  "protected_paths": ["test_stats.py"],
+  "process_checks": [
+    {
+      "type": "file_changed",
+      "dimension": "execution_quality",
+      "path": "stats.py"
+    }
+  ]
 }

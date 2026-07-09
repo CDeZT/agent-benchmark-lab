@@ -77,7 +77,7 @@ def score_run(
         },
     )
 
-    process = score_process_checks(workspace, task.process_checks)
+    process = score_process_checks(workspace, task.process_checks, baseline=baseline)
     dimensions.update(process.dimensions)
     evidence["process"] = {"checks": process.checks, "dimensions": process.dimensions}
     recorder.event(

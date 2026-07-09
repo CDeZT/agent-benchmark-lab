@@ -1,0 +1,12 @@
+{
+  "id": "test-writing",
+  "title": "Test writing capability suite",
+  "description": "Tasks that evaluate an agent's ability to write effective tests. These require a real harness — they cannot be run with the dummy adapter because the agent must create test files from scratch.",
+  "tasks": [
+    "python-test-writing"
+  ],
+  "capability_focus": [
+    "test_discipline",
+    "test_writing"
+  ]
+}

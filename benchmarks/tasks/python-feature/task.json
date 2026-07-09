@@ -7,5 +7,12 @@
     "workspace": "workspace",
     "test_command": ["python3", "test_merge.py"],
     "hidden_test_command": ["python3", "test_hidden_merge.py"],
-    "protected_paths": ["test_merge.py"]
+    "protected_paths": ["test_merge.py"],
+    "process_checks": [
+        {
+            "type": "file_changed",
+            "dimension": "execution_quality",
+            "path": "sort_utils.py"
+        }
+    ]
 }

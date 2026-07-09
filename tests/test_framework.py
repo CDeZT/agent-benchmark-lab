@@ -46,7 +46,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["repetitions"], 2)
             self.assertEqual(summary["model"], "unspecified")
             self.assertEqual(summary["budget_profile"], "open_ended")
-            self.assertEqual(summary["mean_score"], 36.0)
+            self.assertEqual(summary["mean_score"], 48.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
             for run in summary["runs"]:
@@ -86,7 +86,7 @@ class FrameworkTests(unittest.TestCase):
                         runs_dir=Path(tmp),
                     ),
                 )
-                self.assertEqual(summary["mean_score"], 36.0)
+                self.assertEqual(summary["mean_score"], 48.0)
                 self.assertEqual(summary["model"], "local-test-model")
                 self.assertEqual(summary["budget_profile"], "oneshot")
                 self.assertIn("generic-command", available_adapters())
@@ -606,6 +606,184 @@ class FrameworkTests(unittest.TestCase):
             recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
             score = score_run(task, baseline, workspace, recorder)
             self.assertEqual(score.dimensions["tool_use"], 0.0)
+
+    # ── test_file_quality process check tests ──
+
+    def test_file_quality_passes_when_test_file_has_content(self) -> None:
+        """Prove test_file_quality check passes for a file with test functions and assertions."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            test_file = workspace / "test_example.py"
+            test_file.write_text(
+                "import example\n\n"
+                "def test_one():\n"
+                "    assert example.add(1, 2) == 3\n\n"
+                "def test_two():\n"
+                "    assert example.add(0, 0) == 0\n\n"
+                "def test_three():\n"
+                "    assert example.add(-1, 1) == 0\n",
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "test_file_quality",
+                    "dimension": "test_discipline",
+                    "path": "test_example.py",
+                    "min_test_functions": 3,
+                    "min_assertions": 3,
+                    "must_import": "example",
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["test_discipline"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["test_function_count"], 3)
+            self.assertEqual(result.checks[0]["assertion_count"], 3)
+
+    def test_file_quality_fails_when_no_test_functions(self) -> None:
+        """Prove test_file_quality check fails when file has no test functions."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            test_file = workspace / "test_empty.py"
+            test_file.write_text("# no tests here\nprint('hello')\n", encoding="utf-8")
+            checks = [
+                {
+                    "type": "test_file_quality",
+                    "dimension": "test_discipline",
+                    "path": "test_empty.py",
+                    "min_test_functions": 2,
+                    "min_assertions": 2,
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["test_discipline"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["test_function_count"], 0)
+
+    def test_file_quality_fails_when_file_missing(self) -> None:
+        """Prove test_file_quality check fails when test file doesn't exist."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            checks = [
+                {
+                    "type": "test_file_quality",
+                    "dimension": "test_discipline",
+                    "path": "nonexistent.py",
+                }
+            ]
+            result = score_process_checks(Path(tmp), checks)
+            self.assertEqual(result.dimensions["test_discipline"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("not found", result.checks[0]["error"])
+
+    def test_file_quality_fails_when_missing_required_import(self) -> None:
+        """Prove test_file_quality check fails when must_import is absent."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            test_file = workspace / "test_noimport.py"
+            test_file.write_text(
+                "def test_one():\n"
+                "    assert 1 + 1 == 2\n\n"
+                "def test_two():\n"
+                "    assert True\n",
+                encoding="utf-8",
+            )
+            checks = [
+                {
+                    "type": "test_file_quality",
+                    "dimension": "test_discipline",
+                    "path": "test_noimport.py",
+                    "min_test_functions": 2,
+                    "min_assertions": 2,
+                    "must_import": "stats",
+                }
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["test_discipline"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertFalse(result.checks[0]["import_ok"])
+
+    # ── file_changed process check tests ──
+
+    def test_file_changed_passes_when_file_differs(self) -> None:
+        """Prove file_changed check passes when workspace file differs from baseline."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            (baseline / "code.py").write_text("old content\n", encoding="utf-8")
+            (workspace / "code.py").write_text("new content\n", encoding="utf-8")
+            checks = [
+                {"type": "file_changed", "dimension": "execution_quality", "path": "code.py"}
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["execution_quality"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["status"], "modified")
+
+    def test_file_changed_fails_when_file_unchanged(self) -> None:
+        """Prove file_changed check fails when workspace file is same as baseline."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            (baseline / "code.py").write_text("same content\n", encoding="utf-8")
+            (workspace / "code.py").write_text("same content\n", encoding="utf-8")
+            checks = [
+                {"type": "file_changed", "dimension": "execution_quality", "path": "code.py"}
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["status"], "unchanged")
+
+    def test_file_changed_passes_when_file_created(self) -> None:
+        """Prove file_changed check passes when file exists in workspace but not baseline."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "workspace"
+            baseline.mkdir()
+            workspace.mkdir()
+            # File only in workspace (created by agent)
+            (workspace / "new_file.py").write_text("new code\n", encoding="utf-8")
+            checks = [
+                {"type": "file_changed", "dimension": "execution_quality", "path": "new_file.py"}
+            ]
+            result = score_process_checks(workspace, checks, baseline=baseline)
+            self.assertEqual(result.dimensions["execution_quality"], 100.0)
+            self.assertTrue(result.checks[0]["passed"])
+            self.assertEqual(result.checks[0]["status"], "created")
+
+    def test_file_changed_fails_without_baseline(self) -> None:
+        """Prove file_changed check fails when no baseline is provided."""
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            workspace.mkdir()
+            (workspace / "code.py").write_text("content\n", encoding="utf-8")
+            checks = [
+                {"type": "file_changed", "dimension": "execution_quality", "path": "code.py"}
+            ]
+            result = score_process_checks(workspace, checks)
+            self.assertEqual(result.dimensions["execution_quality"], 0.0)
+            self.assertFalse(result.checks[0]["passed"])
+            self.assertIn("No baseline", result.checks[0]["error"])
 
 
 def _restore_env(name: str, value: str | None) -> None:

@@ -61,6 +61,20 @@
 - Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
 - Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
 
+## 2026-07-09 (iteration 10)
+
+- Added `test_file_quality` process check type: verifies test files have real test functions and assertions.
+- Added `file_changed` process check type: verifies agent actually modified source files (execution_quality).
+- Created `python-test-writing` task: agent writes tests for buggy stats.py, tests must catch ≥ 3 of 5 bugs.
+- verify_tests.py runs agent's tests against buggy code — tests that FAIL prove they caught bugs.
+- Designed 5 demonstrable bugs: mean([]) returns 0, median even-length wrong, mode returns all, std_dev crashes on single, percentile IndexError at 100.
+- Added `test-writing` suite for meta-tasks that require real harness (not dummy-compatible).
+- Added `file_changed` checks to python-bugfix and python-feature tasks for execution_quality scoring.
+- `execution_quality` dimension now has real evidence (file diff from baseline).
+- Updated test expectations: dummy adapter score for python-bugfix is now 48.0 (was 36.0) due to execution_quality.
+- 6 out of 10 dimensions now have real evidence: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality.
+- 43 unit tests pass. Full audit passes.
+
 ## 2026-07-09 (iteration 8)
 
 - Added `python-feature` task: implement merge_sorted function (feature implementation, not bugfix).
