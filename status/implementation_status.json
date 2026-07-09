@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-07-09",
+  "summary": {
+    "current_phase": "early_phase_1_minimal_working_benchmark",
+    "plain_language": "The repository has a working benchmark framework foundation, seed tasks, reports, matrix runs, evidence-backed scoring for tests/safety/static visual checks/planning artifacts, hidden tests, test timeouts, doctor diagnostics, real opencode/Claude Code smoke tests, and an audit command. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, Docker isolation, browser screenshots, external benchmark imports, model/tool/cost parsing, and broader process scoring are still pending."
+  },
+  "items": [
+    {
+      "id": "compare_harness_same_model",
+      "title": "Compare different harnesses with the same model",
+      "status": "partial",
+      "evidence": ["run-matrix supports adapter x model x budget profile combinations", "adapter shells exist for claude-code and opencode"],
+      "remaining": ["Test and refine real Claude Code and opencode commands", "Run real harnesses with the same model"]
+    },
+    {
+      "id": "compare_models_same_harness",
+      "title": "Compare different models under the same harness",
+      "status": "partial",
+      "evidence": ["ExperimentConfig records model", "run-matrix accepts multiple model labels"],
+      "remaining": ["Connect model configuration to real harness adapters", "Parse provider cost/token output where available"]
+    },
+    {
+      "id": "combination_ranking",
+      "title": "Rank full harness/model combinations",
+      "status": "partial",
+      "evidence": ["run-matrix produces matrix_summary.json and matrix_report.md"],
+      "remaining": ["Add richer leaderboard sorting and historical comparison", "Run real adapters"]
+    },
+    {
+      "id": "total_and_dimension_scores",
+      "title": "Total score and per-dimension scores",
+      "status": "implemented",
+      "evidence": ["ScoreResult contains total and dimensions", "HTML and Markdown reports show scores"],
+      "remaining": ["Add evidence-backed implementations for currently-zero dimensions"]
+    },
+    {
+      "id": "radar_chart",
+      "title": "Radar chart",
+      "status": "implemented",
+      "evidence": ["HTML report includes SVG radar snapshot"],
+      "remaining": ["Improve styling after more dimensions have real scores"]
+    },
+    {
+      "id": "repeated_runs_mean_variance",
+      "title": "Repeated runs with mean and variance",
+      "status": "implemented",
+      "evidence": ["run and run-suite support repetitions", "summary includes mean, variance, stdev, best, worst"],
+      "remaining": ["Add confidence intervals and statistical comparison tests"]
+    },
+    {
+      "id": "evidence_backed_scoring",
+      "title": "No fake scoring; every score backed by evidence",
+      "status": "partial",
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Unimplemented dimensions remain 0"],
+      "remaining": ["Add evidence-backed scoring for self-repair, tool use, intent understanding, and cost efficiency"]
+    },
+    {
+      "id": "process_planning_scoring",
+      "title": "Evidence-backed planning/process scoring seed",
+      "status": "implemented",
+      "evidence": ["process_checks supports planning file evidence", "process-planning task scores planning from .agent-benchmark/plan.md"],
+      "remaining": ["Extend process checks to self-repair and tool-use evidence tasks"]
+    },
+    {
+      "id": "public_and_hidden_tests",
+      "title": "Public tests plus hidden/private acceptance tests",
+      "status": "implemented",
+      "evidence": ["hidden_test_command is supported", "All five foundation tasks include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
+      "remaining": ["Add hidden tests to all future tasks"]
+    },
+    {
+      "id": "test_timeouts",
+      "title": "Timeout protection for public and hidden tests",
+      "status": "implemented",
+      "evidence": ["TaskSpec supports test_timeout_seconds", "Timed out tests are recorded as failed evidence"],
+      "remaining": ["Tune default timeouts per suite as tasks become heavier"]
+    },
+    {
+      "id": "test_integrity",
+      "title": "Detect modified or deleted benchmark tests",
+      "status": "implemented",
+      "evidence": ["Protected paths are checked with SHA-256 baseline/current hashes"],
+      "remaining": ["Add policy levels for invalid run vs penalty"]
+    },
+    {
+      "id": "visual_verification",
+      "title": "Visual verification for UI tasks",
+      "status": "partial",
+      "evidence": ["visual_checks supports static HTML checks", "frontend-visual has visual evidence"],
+      "remaining": ["Add Playwright/browser screenshot capture", "Add pixel checks and screenshot artifacts"]
+    },
+    {
+      "id": "cost_and_duration",
+      "title": "Cost and duration tracking",
+      "status": "partial",
+      "evidence": ["Run, adapter, and test durations are aggregated", "Cost/token fields exist as explicit nulls"],
+      "remaining": ["Parse real token/cost data from harness/provider outputs"]
+    },
+    {
+      "id": "task_coverage_seed",
+      "title": "Initial Python, C, frontend, embedded, and optics task coverage",
+      "status": "implemented",
+      "evidence": ["foundation suite contains python-bugfix, c-bugfix, frontend-visual, embedded-c, optics-python"],
+      "remaining": ["Expand to feature work, refactor, CI, review, full-stack, data processing, large repo tasks"]
+    },
+    {
+      "id": "embedded_and_optics_domains",
+      "title": "Embedded engineering and optics represented",
+      "status": "partial",
+      "evidence": ["embedded-c and optics-python seed tasks exist"],
+      "remaining": ["Add deeper domain tasks: protocols, memory safety, timing, calibration, imaging simulation"]
+    },
+    {
+      "id": "budget_profiles",
+      "title": "Budget profiles such as oneshot and open_ended",
+      "status": "partial",
+      "evidence": ["ExperimentConfig records budget_profile", "run-matrix accepts multiple budget profiles"],
+      "remaining": ["Enforce profile behavior such as max attempts, time caps, or open-ended loops"]
+    },
+    {
+      "id": "real_harness_adapters",
+      "title": "Real Claude Code and opencode adapters",
+      "status": "partial",
+      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, and model env", "Both opencode and Claude Code passed real python-bugfix smoke tests"],
+      "remaining": ["Run larger benchmark matrices", "Parse model/tool/cost evidence from real harness outputs", "Handle provider-specific permissions and interaction behavior"]
+    },
+    {
+      "id": "real_harness_smoke",
+      "title": "Low-cost real opencode and Claude Code smoke tests",
+      "status": "implemented",
+      "evidence": ["opencode passed python-bugfix public and hidden tests", "claude-code passed python-bugfix public and hidden tests", "real-smoke suite exists"],
+      "remaining": ["Add optional real smoke mode to audit"]
+    },
+    {
+      "id": "isolation",
+      "title": "Clean isolated environment per run",
+      "status": "partial",
+      "evidence": ["Each repetition copies task workspace into a run directory"],
+      "remaining": ["Add Docker isolation", "Add network policy", "Add dependency caching strategy"]
+    },
+    {
+      "id": "logs_and_replay",
+      "title": "Logs and replayable evidence",
+      "status": "partial",
+      "evidence": ["trace.jsonl, result.json, diff.patch, stdout.log, stderr.log are written per run"],
+      "remaining": ["Add replay viewer/dashboard", "Add richer harness tool traces where available"]
+    },
+    {
+      "id": "handoff_and_journal",
+      "title": "Handoff and development journal",
+      "status": "implemented",
+      "evidence": ["docs/handoff.md and docs/project_journal.md are maintained"],
+      "remaining": ["Keep updating after each meaningful phase"]
+    },
+    {
+      "id": "self_audit_command",
+      "title": "One-command project self-audit",
+      "status": "implemented",
+      "evidence": ["agent-benchmark audit runs validation, unit tests, compileall, and foundation smoke suite", "Audit reports are saved under runs/audit-*"],
+      "remaining": ["Add optional lint, Docker smoke, browser screenshot, and real harness dry-run audit levels"]
+    },
+    {
+      "id": "doctor_command",
+      "title": "Local environment and harness diagnostics",
+      "status": "implemented",
+      "evidence": ["agent-benchmark doctor checks python3, cc, opencode, claude, and adapter command env vars"],
+      "remaining": ["Add provider credential checks without printing secrets"]
+    },
+    {
+      "id": "external_benchmark_imports",
+      "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
+      "status": "planned",
+      "evidence": ["research notes and architecture mention importers"],
+      "remaining": ["Implement importers and task converters"]
+    },
+    {
+      "id": "dashboard",
+      "title": "Dashboard and historical comparison",
+      "status": "planned",
+      "evidence": ["Roadmap includes dashboard"],
+      "remaining": ["Build local dashboard, history browser, and leaderboard views"]
+    }
+  ]
+}

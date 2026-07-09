@@ -1,0 +1,71 @@
+# Project Journal
+
+## 2026-07-09
+
+- Confirmed the workspace is already a Git repository on `main` with no commits yet.
+- Reframed the project as a long-term personal agent benchmark lab rather than a small benchmark script.
+- Decided to use a docs-first foundation so the user's full requirements are preserved before implementation details narrow the first version.
+- Selected a conservative initial implementation: Python standard library CLI, JSON manifests, JSONL traces, Markdown/HTML reports, dummy adapter first.
+- Recorded benchmark research directions from SWE-bench, Terminal-Bench, Inspect AI, Aider benchmarks, OpenHands, WebArena, and OSWorld.
+- Added `docs/conversation_requirements.md` to preserve informal but important user requirements.
+- Added `docs/adapter_contract.md` and `docs/run_log_schema.md`.
+- Implemented the first Python standard-library CLI and runner.
+- Implemented a dummy adapter that copies `solution/` files to validate the benchmark pipeline.
+- Added five seed tasks: Python bugfix, C bugfix, frontend/visual, embedded-style C, and optics-style Python.
+- Added a `foundation` suite manifest for the first seed tasks.
+- Added `run-suite` CLI command for running every task in a suite.
+- Ran all five seed tasks with the dummy adapter for three repetitions each.
+- Observed expected score of 36.0 for passing dummy runs because only task completion and protected-path existence currently have evidence-backed scoring.
+- Added `generic-command` adapter. It runs `AGENT_BENCH_COMMAND` from the isolated workspace and passes task instructions on stdin.
+- Added a first SVG radar snapshot to HTML reports.
+- Added ADRs for experiment config, evidence-backed safety scoring, and zero-until-evidenced dimensions.
+- Added `ExperimentConfig` and adapter registry to reduce hard-coded runner state.
+- Replaced protected-path existence checks with SHA-256 baseline/current integrity checks.
+- Added per-run stdout/stderr log files.
+- Added suite-level `suite_summary.json` and `suite_report.md`.
+- Extracted shared shell command adapter logic.
+- Added initial command-configured `opencode` and `claude-code` adapter shells.
+- Added `run-matrix` and matrix-level summary/report output.
+- Added ADR 0004 for visual verification.
+- Added `visual_checks` task schema and `html-static-v1` visual scorer.
+- Added static visual checks to `frontend-visual`; the task now scores 40.0 with dummy evidence.
+- Added duration aggregation for runs, adapters, tests, suites, and matrix reports.
+- Added explicit null cost/token fields to summaries; these are placeholders for real measured values, not estimates.
+- Verified the `foundation` suite now scores 36.8 with the dummy adapter because only the frontend seed task has visual evidence.
+- Added ADR 0005 for hidden tests and definition validation.
+- Added `hidden_test_command` support. Hidden tests run from `task/hidden` and receive `AGENT_BENCH_WORKSPACE` as an absolute path.
+- Added hidden tests to all five foundation seed tasks.
+- Added `agent-benchmark validate`.
+- Added public/hidden pass status to reports.
+- Added `docs/implementation_status.md` and `status/implementation_status.json` to map user requirements to implemented, partial, and planned states.
+- Added `agent-benchmark status`.
+- Added ADR 0006 for self-audit and test timeout behavior.
+- Added `test_timeout_seconds`; public and hidden tests now fail safely on timeout.
+- Added `agent-benchmark audit`, which runs validation, unit tests, compileall, and a foundation smoke suite.
+- Ran full audit successfully.
+- Confirmed local `opencode` and `claude` commands are installed.
+- Added `agent-benchmark doctor` for local environment diagnostics and recommended command templates.
+- Enhanced command adapters with `{workspace}`, `{instruction_file}`, `{prompt}`, `{task_id}`, and `{title}` placeholders.
+- Injected `AGENT_BENCH_MODEL`, `AGENT_BENCH_BUDGET_PROFILE`, and `AGENT_BENCH_LABEL` during adapter execution.
+- Added `process_checks` and a `process-planning` seed task to make planning scoring evidence-backed.
+- Updated `foundation` suite to include `process-planning`; dummy foundation score is now 38.0.
+- Added built-in default command templates for opencode and Claude Code adapters.
+- Ran real opencode smoke on `python-bugfix`; public and hidden tests passed.
+- Ran real Claude Code smoke on `python-bugfix`; public and hidden tests passed.
+- Fixed adapter instruction-file workspace pollution discovered by the opencode run.
+- Fixed generated Python cache files appearing in `changed_files`, discovered by the Claude Code run.
+- Added `real-smoke` suite plus `docs/real_harness_smoke.md`.
+- Added unit tests for task loading, suite loading, dummy runs, and generic command runs.
+- Verified the `foundation` suite with `run-suite --suite foundation --adapter dummy --repetitions 1`.
+
+Next actions:
+
+- Add real opencode and Claude Code adapters after the framework contract is stable.
+- Add baseline hashing so protected tests cannot be modified silently.
+- Add browser screenshot and pixel verification.
+- Add real token and cost parsing for opencode and Claude Code outputs where possible.
+- Add importers that map external benchmark private tests to `hidden_test_command`.
+- Keep implementation status updated after each phase.
+- Expand audit levels with linting, Docker, browser visual checks, and real harness dry runs.
+- Add optional real-harness smoke mode to audit.
+- Parse real harness output for tool-use, model, token, and cost evidence.

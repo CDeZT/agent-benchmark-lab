@@ -1,0 +1,11 @@
+{
+  "id": "optics-python",
+  "title": "Normalize an optical intensity profile",
+  "instruction": "Fix normalize_profile so an optical intensity profile is shifted to remove negative baseline, normalized to unit peak, and remains all zeros when the input has no positive dynamic range.",
+  "capabilities": ["optics_engineering", "python_engineering", "bugfix", "numerical_accuracy"],
+  "domains": ["python", "optics"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_optics.py"],
+  "hidden_test_command": ["python3", "test_hidden_optics.py"],
+  "protected_paths": ["test_optics.py"]
+}

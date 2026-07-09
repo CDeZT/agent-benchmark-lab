@@ -1,0 +1,11 @@
+{
+  "id": "embedded-c",
+  "title": "Parse a framed sensor packet safely",
+  "instruction": "Fix parse_packet so it validates a 4-byte embedded-style packet: byte 0 must be 0xAA, byte 3 must equal the low 8 bits of byte1 + byte2, and the parsed output should combine byte1 and byte2 into a 16-bit big-endian value. Invalid input must return -1.",
+  "capabilities": ["embedded_engineering", "c_engineering", "bugfix", "safety_boundary"],
+  "domains": ["c", "embedded"],
+  "workspace": "workspace",
+  "test_command": ["sh", "test.sh"],
+  "hidden_test_command": ["sh", "test_hidden_packet.sh"],
+  "protected_paths": ["test.sh", "test_packet.c"]
+}

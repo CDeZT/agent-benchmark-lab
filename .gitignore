@@ -1,0 +1,21 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Benchmark outputs can become large and may contain model traces.
+runs/
+artifacts/
+tmp/
+
+# Secrets must stay outside the repository.
+.env
+.env.*
+!.env.example

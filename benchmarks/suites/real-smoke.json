@@ -1,0 +1,13 @@
+{
+  "id": "real-smoke",
+  "title": "Low-cost real harness smoke suite",
+  "description": "A tiny suite intended for real opencode/Claude Code smoke tests before running larger benchmark matrices.",
+  "tasks": [
+    "python-bugfix"
+  ],
+  "capability_focus": [
+    "bugfix",
+    "python_engineering",
+    "public_hidden_tests"
+  ]
+}

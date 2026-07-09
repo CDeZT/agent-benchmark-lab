@@ -1,0 +1,11 @@
+{
+  "id": "python-bugfix",
+  "title": "Fix edge-case average calculation",
+  "instruction": "Fix the average function so it returns the arithmetic mean for non-empty inputs and returns 0.0 for an empty input without raising an exception. Preserve the public function name.",
+  "capabilities": ["bugfix", "test_discipline", "python_engineering"],
+  "domains": ["python"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_stats.py"],
+  "hidden_test_command": ["python3", "test_hidden_stats.py"],
+  "protected_paths": ["test_stats.py"]
+}

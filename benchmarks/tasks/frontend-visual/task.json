@@ -1,0 +1,30 @@
+{
+  "id": "frontend-visual",
+  "title": "Repair frontend status rendering",
+  "instruction": "Fix the generated status page so it contains a visible h1 title, a status element with text PASS, and no placeholder text. This seed task represents future browser and visual verification work.",
+  "capabilities": ["frontend_visual", "visual_verification", "bugfix"],
+  "domains": ["frontend", "fullstack"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_page.py"],
+  "hidden_test_command": ["python3", "test_hidden_page.py"],
+  "protected_paths": ["test_page.py"],
+  "visual_checks": [
+    {
+      "type": "html_selector_text",
+      "path": "index.html",
+      "selector": "h1",
+      "text": "System Status"
+    },
+    {
+      "type": "html_selector_text",
+      "path": "index.html",
+      "selector": "#status",
+      "text": "PASS"
+    },
+    {
+      "type": "html_not_contains_text",
+      "path": "index.html",
+      "text": "TODO"
+    }
+  ]
+}

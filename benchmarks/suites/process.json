@@ -1,0 +1,13 @@
+{
+  "id": "process",
+  "title": "Process evidence seed suite",
+  "description": "Seed tasks for evidence-backed process dimensions such as planning, self-repair, and tool use.",
+  "tasks": [
+    "process-planning"
+  ],
+  "capability_focus": [
+    "planning",
+    "bugfix",
+    "python_engineering"
+  ]
+}

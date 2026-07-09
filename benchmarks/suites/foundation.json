@@ -1,0 +1,21 @@
+{
+  "id": "foundation",
+  "title": "Foundation seed suite",
+  "description": "Small seed tasks used to validate the benchmark framework and preserve the project's long-term coverage direction.",
+  "tasks": [
+    "python-bugfix",
+    "c-bugfix",
+    "frontend-visual",
+    "embedded-c",
+    "optics-python",
+    "process-planning"
+  ],
+  "capability_focus": [
+    "bugfix",
+    "test_discipline",
+    "frontend_visual",
+    "embedded_engineering",
+    "optics_engineering",
+    "planning"
+  ]
+}

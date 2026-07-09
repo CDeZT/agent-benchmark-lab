@@ -1,0 +1,11 @@
+{
+  "id": "c-bugfix",
+  "title": "Fix C clamp function",
+  "instruction": "Fix clamp_int so values below the lower bound return the lower bound, values above the upper bound return the upper bound, and values inside the range are unchanged.",
+  "capabilities": ["bugfix", "c_engineering", "test_discipline"],
+  "domains": ["c"],
+  "workspace": "workspace",
+  "test_command": ["sh", "test.sh"],
+  "hidden_test_command": ["sh", "test_hidden_clamp.sh"],
+  "protected_paths": ["test.sh", "test_clamp.c"]
+}

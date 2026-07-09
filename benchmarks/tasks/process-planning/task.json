@@ -1,0 +1,36 @@
+{
+  "id": "process-planning",
+  "title": "Fix a function and leave planning evidence",
+  "instruction": "Fix double so it returns value * 2. Before or while working, write a concise plan to .agent-benchmark/plan.md that includes the words inspect, implement, and verify.",
+  "capabilities": ["planning", "bugfix", "python_engineering"],
+  "domains": ["python", "process"],
+  "workspace": "workspace",
+  "test_command": ["python3", "test_math_ops.py"],
+  "hidden_test_command": ["python3", "test_hidden_math_ops.py"],
+  "protected_paths": ["test_math_ops.py"],
+  "process_checks": [
+    {
+      "type": "file_exists",
+      "dimension": "planning",
+      "path": ".agent-benchmark/plan.md"
+    },
+    {
+      "type": "file_contains",
+      "dimension": "planning",
+      "path": ".agent-benchmark/plan.md",
+      "text": "inspect"
+    },
+    {
+      "type": "file_contains",
+      "dimension": "planning",
+      "path": ".agent-benchmark/plan.md",
+      "text": "implement"
+    },
+    {
+      "type": "file_contains",
+      "dimension": "planning",
+      "path": ".agent-benchmark/plan.md",
+      "text": "verify"
+    }
+  ]
+}
