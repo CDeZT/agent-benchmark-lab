@@ -32,6 +32,7 @@ Current deliverable:
 ```bash
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
+PYTHONPATH=src python3 -m agent_benchmark.cli.main audit --include-real-harness
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
 PYTHONPATH=src AGENT_BENCH_OPENCODE_TIMEOUT_SECONDS=180 python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter opencode --model unspecified --budget-profile real_smoke --repetitions 1
 PYTHONPATH=src AGENT_BENCH_CLAUDE_CODE_TIMEOUT_SECONDS=180 python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter claude-code --model unspecified --budget-profile real_smoke --repetitions 1

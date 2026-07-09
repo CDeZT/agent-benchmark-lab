@@ -32,6 +32,9 @@ class AuditOptions:
     include_unit_tests: bool = True
     include_compile: bool = True
     include_smoke: bool = True
+    include_real_harness: bool = False
+    real_harness_adapters: list[str] = field(default_factory=lambda: ["opencode", "claude-code"])
+    real_harness_suite: str = "real-smoke"
 
 
 def run_audit(options: AuditOptions) -> dict[str, Any]:
@@ -47,6 +50,8 @@ def run_audit(options: AuditOptions) -> dict[str, Any]:
         checks.append(_check_command("compileall", [sys.executable, "-m", "compileall", "-q", "src", "tests"], options))
     if options.include_smoke:
         checks.append(_check_smoke_suite(options, audit_dir))
+    if options.include_real_harness:
+        checks.append(_check_real_harness_smoke(options, audit_dir))
 
     summary = {
         "audit_id": audit_id,
@@ -149,6 +154,59 @@ def _check_smoke_suite(options: AuditOptions, audit_dir: Path) -> AuditCheck:
     except Exception as exc:  # noqa: BLE001 - audit should report failures as data.
         return AuditCheck(
             name="smoke_suite",
+            passed=False,
+            duration_seconds=round(time.monotonic() - start, 4),
+            details={"error": str(exc)},
+        )
+
+
+def _check_real_harness_smoke(options: AuditOptions, audit_dir: Path) -> AuditCheck:
+    start = time.monotonic()
+    try:
+        suite = load_suite(_resolve_suite(options.real_harness_suite, options.suites_dir))
+        real_runs_dir = audit_dir / "real_harness_runs"
+        outcomes = []
+        for adapter in options.real_harness_adapters:
+            for task_id in suite.tasks:
+                task = load_task(options.tasks_dir / task_id)
+                summary = run_task(
+                    task,
+                    ExperimentConfig(
+                        adapter=adapter,
+                        model="unspecified",
+                        budget_profile="real_smoke",
+                        repetitions=1,
+                        runs_dir=real_runs_dir,
+                    ),
+                )
+                outcomes.append(
+                    {
+                        "adapter": adapter,
+                        "task_id": task_id,
+                        "mean_score": summary["mean_score"],
+                        "runs": summary["runs"],
+                    }
+                )
+        failed = [
+            {"adapter": outcome["adapter"], "task_id": outcome["task_id"]}
+            for outcome in outcomes
+            if not all(run.get("public_test_passed") and run.get("hidden_test_passed") for run in outcome["runs"])
+        ]
+        return AuditCheck(
+            name="real_harness_smoke",
+            passed=not failed,
+            duration_seconds=round(time.monotonic() - start, 4),
+            details={
+                "suite": suite.suite_id,
+                "adapters": options.real_harness_adapters,
+                "failed": failed,
+                "outcomes": outcomes,
+                "real_runs_dir": str(real_runs_dir),
+            },
+        )
+    except Exception as exc:  # noqa: BLE001 - audit should report failures as data.
+        return AuditCheck(
+            name="real_harness_smoke",
             passed=False,
             duration_seconds=round(time.monotonic() - start, 4),
             details={"error": str(exc)},

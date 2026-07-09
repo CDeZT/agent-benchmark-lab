@@ -48,7 +48,7 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | Embedded and optics domains | Partial | Seed tasks exist. | Add deeper domain-specific tasks. |
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
 | Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; both passed `python-bugfix` real smoke. | Run larger benchmark matrices and parse model/tool/cost evidence. |
-| Real harness smoke | Implemented | `opencode` and `claude-code` both passed `python-bugfix`; `real-smoke` suite exists. | Add optional real smoke mode to audit. |
+| Real harness smoke | Implemented | `opencode` and `claude-code` both passed `python-bugfix`; `real-smoke` suite exists; `audit --include-real-harness` exists. | Expand beyond smoke tasks. |
 | Isolation | Partial | Per-run workspace copies exist. | Add Docker and network policy. |
 | Logs and evidence | Partial | trace/result/diff/stdout/stderr are saved. | Add replay UI and richer tool traces. |
 | Handoff/journal | Implemented | Handoff and project journal exist and are updated. | Keep updating every phase. |

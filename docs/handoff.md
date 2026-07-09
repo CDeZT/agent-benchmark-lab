@@ -53,6 +53,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Fixed workspace pollution from adapter instruction files.
 - Added generated artifact filtering for Python cache files.
 - Added `real-smoke` suite and real harness smoke documentation.
+- Added optional `audit --include-real-harness` to run real opencode/Claude Code smoke checks explicitly.
 - Verified all seed tasks with the dummy adapter for three repetitions.
 
 ## In Progress
@@ -112,8 +113,8 @@ All foundation seed tasks also passed with the dummy adapter for three repetitio
 
 ## Recommended Next Phase
 
-1. Add optional real-harness smoke mode to `audit`.
-2. Parse opencode/Claude outputs for tool-use and model/cost evidence.
+1. Parse opencode/Claude outputs for tool-use and model/cost evidence.
+2. Add a larger real harness matrix suite beyond `real-smoke`.
 3. Add browser screenshot and pixel-based visual verification for `frontend-visual`.
 4. Parse token and cost data from real harness outputs where available.
 5. Add richer process scoring for planning, self-repair, and tool use from trace events.

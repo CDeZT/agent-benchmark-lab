@@ -294,6 +294,27 @@ class FrameworkTests(unittest.TestCase):
             self.assertTrue(summary["passed"], summary)
             self.assertTrue((Path(summary["audit_dir"]) / "audit_summary.json").exists())
 
+    def test_audit_real_harness_path_can_be_exercised_with_dummy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = run_audit(
+                AuditOptions(
+                    project_root=ROOT,
+                    tasks_dir=ROOT / "benchmarks" / "tasks",
+                    suites_dir=ROOT / "benchmarks" / "suites",
+                    runs_dir=Path(tmp),
+                    include_unit_tests=False,
+                    include_compile=False,
+                    include_smoke=False,
+                    include_real_harness=True,
+                    real_harness_adapters=["dummy"],
+                    real_harness_suite="real-smoke",
+                )
+            )
+
+            self.assertTrue(summary["passed"], summary)
+            check_names = [check["name"] for check in summary["checks"]]
+            self.assertEqual(check_names, ["validate", "real_harness_smoke"])
+
     def test_public_test_timeout_is_recorded_as_failure(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             task_dir = Path(tmp) / "timeout-task"

@@ -129,8 +129,8 @@
       "id": "real_harness_smoke",
       "title": "Low-cost real opencode and Claude Code smoke tests",
       "status": "implemented",
-      "evidence": ["opencode passed python-bugfix public and hidden tests", "claude-code passed python-bugfix public and hidden tests", "real-smoke suite exists"],
-      "remaining": ["Add optional real smoke mode to audit"]
+      "evidence": ["opencode passed python-bugfix public and hidden tests", "claude-code passed python-bugfix public and hidden tests", "real-smoke suite exists", "audit --include-real-harness exists"],
+      "remaining": ["Expand beyond smoke tasks"]
     },
     {
       "id": "isolation",

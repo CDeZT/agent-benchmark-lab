@@ -50,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     audit_parser.add_argument("--skip-unit-tests", action="store_true")
     audit_parser.add_argument("--skip-compile", action="store_true")
     audit_parser.add_argument("--skip-smoke", action="store_true")
+    audit_parser.add_argument("--include-real-harness", action="store_true", help="Run real opencode/Claude Code smoke tests.")
+    audit_parser.add_argument("--real-harness-adapters", default="opencode,claude-code", help="Comma-separated real harness adapters for audit.")
+    audit_parser.add_argument("--real-harness-suite", default="real-smoke", help="Suite id or path for real harness smoke audit.")
     audit_parser.add_argument("--json", action="store_true", help="Print raw JSON audit summary.")
 
     doctor_parser = subparsers.add_parser("doctor", help="Check local benchmark and harness environment.")
@@ -171,6 +174,9 @@ def _audit(args: argparse.Namespace) -> int:
         include_unit_tests=not args.skip_unit_tests,
         include_compile=not args.skip_compile,
         include_smoke=not args.skip_smoke,
+        include_real_harness=args.include_real_harness,
+        real_harness_adapters=_split_csv(args.real_harness_adapters),
+        real_harness_suite=args.real_harness_suite,
     )
     summary = run_audit(options)
     if args.json:
