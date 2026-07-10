@@ -40,7 +40,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - `config/model_registry.example.json`：支持把同一规范模型名映射为 Claude Code / opencode 各自需要的 CLI 参数，避免不同 CLI 命名导致伪同模型比较。
 - 矩阵运行与恢复（adapter × model × budget_profile）；每个组合与内部 suite 都有 checkpoint，`resume-matrix` 可补跑未完成组合
 - 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名
-- 公开测试 + 隐藏测试 + SHA-256 完整性检查
+- 公开测试（19/19）+ 隐藏测试（16/19）+ SHA-256 完整性检查
 - 静态 HTML 视觉检查
 - 过程检查（plan.md、文件变更、测试质量、指令匹配）
 - Markdown + HTML 报告（含 SVG 雷达图）

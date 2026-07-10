@@ -1,5 +1,14 @@
 # Project Journal
 
+## 2026-07-10 (iteration 15)
+
+- Added hidden tests to ci-debugging, code-review, python-refactor, python-test-writing, and repo-understanding.
+- Hidden test coverage improved: 16/19 tasks now have hidden tests (was 13/19).
+- Verified all new CLI commands work: catalog, calibrate-difficulty, taxonomy.
+- Attempted Colima Docker daemon start; download timed out (known issue from previous iteration).
+- Full audit passes: 5 checks (validate, corpus_quality, unit_tests, compileall, smoke_suite).
+- Updated all documentation per handoff rules.
+
 ## 2026-07-10
 
 - Audited score architecture after the user questioned task discriminability. Found that strict totals correctly keep unavailable dimensions at zero, but could be misread as direct task success. Added per-run verified evidence coverage, verified-only normalized score, and explicit verified/heuristic/unavailable dimension status.

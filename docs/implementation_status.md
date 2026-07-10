@@ -44,7 +44,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints; `resume`, `resume-suite`, and `resume-matrix` reuse saved work and only run missing repetitions/tasks/combinations. | Add an optional historical recovery browser. |
 | Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches from unverified/mismatched requests. 92 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
-| Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 13 of 19 tasks currently have hidden tests. | Add independent hidden tests to every comparable task. |
+| Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 16 of 19 tasks currently have hidden tests. | Add independent hidden tests to the remaining3 tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
 | Prevent test tampering | Implemented | Protected files checked with SHA-256 hashes. | Add stricter invalid-run policy levels. |
 | Visual verification | Partial | Static HTML checks exist. | Add browser screenshots and pixel checks. |
