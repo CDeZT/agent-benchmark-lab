@@ -1,5 +1,16 @@
 # Project Journal
 
+## 2026-07-10
+
+- Audited the post-handoff repository state and git history from another coding agent's iterations.
+- Found documentation drift: README/handoff/status claimed 15 tasks and 75 tests while the repository actually had 19 task definitions and, after this iteration, 76 unittest test functions.
+- Found an evidence-integrity issue in `cost_efficiency`: tool-call count was being used as a cost proxy. Tightened scoring so only parsed token/cost data can produce a non-zero cost score.
+- Preserved tool-call count as `tool_use` evidence only.
+- Fixed runner summaries so parsed `cost_usd`, `input_tokens`, and `output_tokens` are carried into per-run records and mean summary fields.
+- Added a unit test proving usage evidence aggregation is not dropped from summaries.
+- Added `docs/task_provenance.md` to clarify that current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks.
+- Updated README, implementation status, handoff, next-agent prompt, and machine-readable status to reflect the current boundary and next steps.
+
 ## 2026-07-09
 
 - Confirmed the workspace is already a Git repository on `main` with no commits yet.

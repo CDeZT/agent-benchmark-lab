@@ -8,11 +8,13 @@ import tempfile
 import unittest
 
 from agent_benchmark.adapters import adapter_by_name, available_adapters
+from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.next_agent import load_next_agent_prompt
-from agent_benchmark.runner import ExperimentConfig, run_task
-from agent_benchmark.scorers import score_run
+from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
+from agent_benchmark.runner.run import _summarize
+from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.task_schema import load_suite, load_task, validate_all
@@ -63,6 +65,69 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(result["score"]["dimensions"]["visual_verification"], 0.0)
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
                 self.assertTrue(result["score"]["evidence"]["test"]["hidden"]["passed"])
+
+    def test_summary_aggregates_real_usage_evidence(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        results = [
+            RunResult(
+                run_id="usage-r1",
+                task_id=task.task_id,
+                adapter="opencode",
+                model="usage-model",
+                budget_profile="oneshot",
+                repetition=1,
+                score=ScoreResult(total=50.0, dimensions={}),
+                adapter_result=AdapterResult(adapter="opencode", exit_code=0, duration_seconds=1.0),
+                changed_files=[],
+                run_dir="/tmp/usage-r1",
+                duration_seconds=2.0,
+                detected_model="LongCat-2.0",
+                tool_call_count=4,
+                cost_usd=0.01,
+                input_tokens=100,
+                output_tokens=50,
+            ),
+            RunResult(
+                run_id="usage-r2",
+                task_id=task.task_id,
+                adapter="opencode",
+                model="usage-model",
+                budget_profile="oneshot",
+                repetition=2,
+                score=ScoreResult(total=70.0, dimensions={}),
+                adapter_result=AdapterResult(adapter="opencode", exit_code=0, duration_seconds=1.0),
+                changed_files=[],
+                run_dir="/tmp/usage-r2",
+                duration_seconds=2.0,
+                detected_model="LongCat-2.0",
+                tool_call_count=6,
+                cost_usd=0.03,
+                input_tokens=300,
+                output_tokens=150,
+            ),
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = _summarize(
+                results,
+                "usage-exp",
+                Path(tmp),
+                task,
+                ExperimentConfig(
+                    adapter="opencode",
+                    model="usage-model",
+                    budget_profile="oneshot",
+                    repetitions=2,
+                    runs_dir=Path(tmp),
+                ),
+            )
+
+        self.assertEqual(summary["mean_cost_usd"], 0.02)
+        self.assertEqual(summary["mean_input_tokens"], 200)
+        self.assertEqual(summary["mean_output_tokens"], 100)
+        self.assertEqual(summary["total_tool_calls"], 10)
+        self.assertEqual(summary["runs"][0]["cost_usd"], 0.01)
+        self.assertEqual(summary["runs"][1]["input_tokens"], 300)
 
     def test_generic_command_adapter_can_modify_workspace(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
@@ -632,22 +697,16 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(ev["cost_usd"], 0.05)
         self.assertGreater(score, 0.0)
 
-    def test_cost_efficiency_from_tool_call_efficiency(self) -> None:
-        """Prove cost_efficiency uses tool call proxy when no token/cost data."""
+    def test_cost_efficiency_zero_with_only_tool_calls(self) -> None:
+        """Prove tool calls alone do not masquerade as cost evidence."""
         from agent_benchmark.scorers.basic import _score_cost_efficiency
         from agent_benchmark.parsers.harness_output import HarnessEvidence
 
-        # Few tool calls = efficient
-        evidence_few = HarnessEvidence(tool_calls=[{"type": "read"}, {"type": "edit"}])
-        score_few, ev_few = _score_cost_efficiency(evidence_few)
-        self.assertEqual(ev_few["method"], "tool_call_efficiency")
-        self.assertEqual(score_few, 100.0)
-
-        # Many tool calls = less efficient
-        evidence_many = HarnessEvidence(tool_calls=[{"type": "read"}] * 15)
-        score_many, ev_many = _score_cost_efficiency(evidence_many)
-        self.assertEqual(ev_many["method"], "tool_call_efficiency")
-        self.assertLess(score_many, score_few)
+        evidence = HarnessEvidence(tool_calls=[{"type": "read"}, {"type": "edit"}])
+        score, ev = _score_cost_efficiency(evidence)
+        self.assertEqual(score, 0.0)
+        self.assertEqual(ev["method"], "no_token_or_cost_evidence")
+        self.assertEqual(ev["tool_count"], 2)
 
     def test_cost_efficiency_zero_without_evidence(self) -> None:
         """Prove cost_efficiency=0 when no harness evidence."""
@@ -657,7 +716,7 @@ class FrameworkTests(unittest.TestCase):
         evidence = HarnessEvidence()
         score, ev = _score_cost_efficiency(evidence)
         self.assertEqual(score, 0.0)
-        self.assertEqual(ev["method"], "no_evidence")
+        self.assertEqual(ev["method"], "no_token_or_cost_evidence")
 
     def test_opencode_parser_extracts_tokens(self) -> None:
         """Prove parser extracts token counts from opencode stderr."""

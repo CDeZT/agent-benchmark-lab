@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-07-09",
+  "updated_at": "2026-07-10",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation, seed tasks, reports, matrix runs, evidence-backed scoring for tests/safety/static visual checks/planning artifacts, hidden tests, test timeouts, doctor diagnostics, real opencode/Claude Code smoke tests, an audit command, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, Docker isolation, browser screenshots, external benchmark imports, model/tool/cost parsing, and broader process scoring are still pending."
+    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 5 suites, reports, matrix runs, evidence-backed scoring, hidden tests, test timeouts, doctor diagnostics, real opencode/Claude Code smoke tests, an audit command, task provenance notes, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, Docker isolation, browser screenshots, external benchmark imports, and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
   },
   "items": [
     {
@@ -32,7 +32,7 @@
       "title": "Total score and per-dimension scores",
       "status": "implemented",
       "evidence": ["ScoreResult contains total and dimensions", "HTML and Markdown reports show scores"],
-      "remaining": ["Add evidence-backed implementations for currently-zero dimensions"]
+      "remaining": ["Keep strengthening weak heuristic dimensions"]
     },
     {
       "id": "radar_chart",
@@ -52,21 +52,21 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "implemented",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Unimplemented dimensions remain 0", "11 scoring integrity tests prove every non-zero score comes from real execution", "tool_use scored from parsed harness output (tool variety + count)", "execution_quality scored from file_changed process check (SHA-256 diff from baseline)", "test_discipline scored from test_file_quality process check (test function count + assertions)", "intent_understanding scored from instruction_match process check (agent modified correct files)", "self_repair scored from stdout/stderr log analysis (retry/fix/correct patterns)", "cost_efficiency scored from token/cost data or tool call efficiency proxy", "**10/10 dimensions now have real evidence**: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair, test_discipline, cost_efficiency", "62 unit tests prove every non-zero score comes from real execution"],
-      "remaining": []
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Unimplemented or unevidenced dimensions remain 0", "Scoring integrity tests prove non-zero scores come from execution evidence", "tool_use scored from parsed harness output (tool variety + count)", "execution_quality scored from file_changed process check (SHA-256 diff from baseline)", "test_discipline scored from test_file_quality process check (test function count + assertions)", "intent_understanding scored from instruction_match process check (agent modified correct files)", "self_repair scored from stdout/stderr log analysis (retry/fix/correct patterns)", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "76 unittest test functions cover framework and scoring behavior"],
+      "remaining": ["Improve heuristic dimensions and add provenance validation warnings"]
     },
     {
       "id": "process_planning_scoring",
       "title": "Evidence-backed planning/process scoring seed",
       "status": "implemented",
       "evidence": ["process_checks supports planning file evidence", "process-planning task scores planning from .agent-benchmark/plan.md"],
-      "remaining": ["Extend process checks to self-repair and tool-use evidence tasks"]
+      "remaining": ["Extend process checks and make self-repair evidence less keyword-dependent"]
     },
     {
       "id": "public_and_hidden_tests",
       "title": "Public tests plus hidden/private acceptance tests",
       "status": "implemented",
-      "evidence": ["hidden_test_command is supported", "All five foundation tasks include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
+      "evidence": ["hidden_test_command is supported", "13 of 19 task definitions currently include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
       "remaining": ["Add hidden tests to all future tasks"]
     },
     {
@@ -94,21 +94,21 @@
       "id": "cost_and_duration",
       "title": "Cost and duration tracking",
       "status": "partial",
-      "evidence": ["Run, adapter, and test durations are aggregated", "Cost/token fields exist as explicit nulls"],
-      "remaining": ["Parse real token/cost data from harness/provider outputs"]
+      "evidence": ["Run, adapter, and test durations are aggregated", "Parsed cost/token fields are carried into per-run and mean summary fields when harness output exposes them"],
+      "remaining": ["Improve provider-specific token/cost parsing and report rendering"]
     },
     {
       "id": "task_coverage_seed",
       "title": "Initial Python, C, frontend, embedded, and optics task coverage",
       "status": "implemented",
-      "evidence": ["foundation suite contains python-bugfix, c-bugfix, frontend-visual, embedded-c, optics-python, python-feature", "test-writing suite contains python-test-writing (meta-task for test writing capability)"],
-      "remaining": ["Expand to refactor, CI, review, full-stack, data processing, large repo tasks"]
+      "evidence": ["Repository contains 19 task definitions", "foundation suite contains 12 tasks", "advanced suite contains 3 complex tasks", "test-writing suite contains python-test-writing (meta-task for test writing capability)"],
+      "remaining": ["Expand difficulty and add imported benchmark tasks with provenance"]
     },
     {
       "id": "embedded_and_optics_domains",
       "title": "Embedded engineering and optics represented",
       "status": "partial",
-      "evidence": ["embedded-c and optics-python seed tasks exist"],
+      "evidence": ["embedded-c, embedded-protocol-parser, optics-python, and optics-imaging-pipeline seed tasks exist"],
       "remaining": ["Add deeper domain tasks: protocols, memory safety, timing, calibration, imaging simulation"]
     },
     {
@@ -178,8 +178,8 @@
       "id": "external_benchmark_imports",
       "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
       "status": "planned",
-      "evidence": ["research notes and architecture mention importers"],
-      "remaining": ["Implement importers and task converters"]
+      "evidence": ["research notes, architecture notes, roadmap, and docs/task_provenance.md mention importers"],
+      "remaining": ["Implement importers and task converters", "Add provenance metadata to task manifests"]
     },
     {
       "id": "dashboard",

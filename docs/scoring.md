@@ -102,6 +102,6 @@ For each harness/model/task/profile combination, report:
 - Mean duration.
 - Mean cost if available.
 
-Cost fields currently exist in summaries as explicit `null` values until real harness adapters expose token or provider usage data. Future adapters should fill these fields from structured provider output where available, never by guessing.
+Cost fields remain `null` when harness output does not expose token or provider usage data. When parsers extract `cost_usd`, `input_tokens`, or `output_tokens`, those values are preserved in per-run summaries and aggregated into mean fields. Adapters should fill these fields from structured provider output where available, never by guessing.
 
 At least three repetitions are recommended for meaningful comparison.

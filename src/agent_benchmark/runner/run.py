@@ -38,6 +38,9 @@ class RunResult:
     duration_seconds: float
     detected_model: str | None = None
     tool_call_count: int = 0
+    cost_usd: float | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
@@ -105,6 +108,9 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
             duration_seconds=duration_seconds,
             detected_model=harness_evidence.model,
             tool_call_count=len(harness_evidence.tool_calls),
+            cost_usd=harness_evidence.cost_usd,
+            input_tokens=harness_evidence.input_tokens,
+            output_tokens=harness_evidence.output_tokens,
         )
         results.append(result)
         (run_dir / "result.json").write_text(_result_json(result), encoding="utf-8")
@@ -220,6 +226,9 @@ def _summarize(
     test_durations = [_test_duration(result.score.evidence.get("test")) for result in results]
     detected_models = [r.detected_model for r in results if r.detected_model]
     total_tool_calls = sum(r.tool_call_count for r in results)
+    costs = [r.cost_usd for r in results if r.cost_usd is not None]
+    input_tokens = [r.input_tokens for r in results if r.input_tokens is not None]
+    output_tokens = [r.output_tokens for r in results if r.output_tokens is not None]
     return {
         "experiment_id": experiment_id,
         "task_id": task.task_id,
@@ -238,9 +247,9 @@ def _summarize(
         "mean_duration_seconds": round(statistics.mean(durations), 4) if durations else 0.0,
         "mean_adapter_duration_seconds": round(statistics.mean(adapter_durations), 4) if adapter_durations else 0.0,
         "mean_test_duration_seconds": round(statistics.mean(test_durations), 4) if test_durations else 0.0,
-        "mean_cost_usd": None,
-        "mean_input_tokens": None,
-        "mean_output_tokens": None,
+        "mean_cost_usd": round(statistics.mean(costs), 6) if costs else None,
+        "mean_input_tokens": round(statistics.mean(input_tokens), 2) if input_tokens else None,
+        "mean_output_tokens": round(statistics.mean(output_tokens), 2) if output_tokens else None,
         "detected_model": detected_models[0] if detected_models else None,
         "total_tool_calls": total_tool_calls,
         "runs": [
@@ -254,9 +263,9 @@ def _summarize(
                 "adapter_duration_seconds": round(result.adapter_result.duration_seconds, 4),
                 "public_test_passed": _test_passed(result.score.evidence.get("test"), "public"),
                 "hidden_test_passed": _test_passed(result.score.evidence.get("test"), "hidden"),
-                "cost_usd": None,
-                "input_tokens": None,
-                "output_tokens": None,
+                "cost_usd": result.cost_usd,
+                "input_tokens": result.input_tokens,
+                "output_tokens": result.output_tokens,
                 "detected_model": result.detected_model,
                 "tool_call_count": result.tool_call_count,
                 "run_dir": result.run_dir,

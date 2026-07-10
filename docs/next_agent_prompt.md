@@ -22,6 +22,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - docs/requirements.md
 - docs/conversation_requirements.md
 - docs/project_journal.md
+- docs/task_provenance.md
 - README.md
 
 开始工作前先运行：
@@ -29,9 +30,12 @@ Copy this prompt into the next coding agent if this thread cannot continue.
     PYTHONPATH=src python3 -m agent_benchmark.cli.main status
     PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
+    PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 重要规则：
 - 不要假打分。没有证据的维度保持 0 或 partial，不要为了好看填分。
+- 不要把当前自定义 seed/inspired 任务说成已导入的权威题库；外部导入还没实现。
+- `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
 - 每次新增功能后，必须补测试或可验证命令。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
 - 每次迭代如果改变需求状态，必须更新：
@@ -47,23 +51,24 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 
 当前已实现的大方向：
 - CLI benchmark lab。
-- task/suite/matrix runner（15 个任务，3 个套件）。
+- task/suite/matrix runner（当前 19 个任务定义，5 个套件）。
 - public tests + hidden tests。
 - SHA-256 protected path integrity。
 - static HTML visual checks。
 - process planning evidence checks。
-- 10 维度评分体系，10/10 有真实证据。
+- 10 维度评分体系；所有非零分都必须有真实执行证据。
 - dummy/generic/opencode/claude-code adapters。
-- 真实 harness 输出解析（模型名、工具调用、token、cost）。
+- 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 75 个单元测试，全部通过。
+- 76 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 运行 real harness matrix（opencode vs claude-code × 多个模型）。
 - 增加 browser screenshot/pixel visual verification。
 - 增加 Docker isolation。
 - 导入外部基准任务（SWE-bench、Terminal-Bench）。
+- 为所有任务补 provenance metadata，并用 validation warning 防止来源被误标。
 - 构建 dashboard 展示历史结果。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。

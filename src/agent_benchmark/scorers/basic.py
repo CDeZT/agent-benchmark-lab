@@ -38,7 +38,9 @@ def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, di
     """Score the cost_efficiency dimension from harness evidence.
 
     If token/cost data is available, score based on actual cost (lower = better).
-    Otherwise, use tool call efficiency as a proxy (fewer calls = more efficient).
+    Otherwise, keep the dimension at zero. Tool-call count is useful evidence
+    for tool_use, but it is not a cost measurement and should not stand in for
+    token/provider billing data.
 
     Returns (score, evidence) where score is 0-100.
     """
@@ -65,29 +67,12 @@ def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, di
             "score": round(score, 2),
         }
 
-    # Priority 2: Tool call efficiency proxy
-    if harness_evidence.tool_calls:
-        call_count = len(harness_evidence.tool_calls)
-        # Score: fewer calls = more efficient
-        # 1-2 calls: 100, 3-5: 80, 6-10: 60, 11-20: 40, 20+: 20
-        if call_count <= 2:
-            score = 100.0
-        elif call_count <= 5:
-            score = 80.0
-        elif call_count <= 10:
-            score = 60.0
-        elif call_count <= 20:
-            score = 40.0
-        else:
-            score = 20.0
-        return round(score, 2), {
-            "method": "tool_call_efficiency",
-            "tool_count": call_count,
-            "score": round(score, 2),
-        }
-
     # No evidence available
-    return 0.0, {"method": "no_evidence", "score": 0.0}
+    return 0.0, {
+        "method": "no_token_or_cost_evidence",
+        "score": 0.0,
+        "tool_count": len(harness_evidence.tool_calls),
+    }
 
 
 def _score_self_repair(workspace: Path) -> tuple[float, dict[str, Any]]:
@@ -225,8 +210,8 @@ def score_run(
     evidence["self_repair"] = self_repair_evidence
     recorder.event("self_repair.scored", self_repair_evidence)
 
-    # cost_efficiency: scored from harness evidence (token/cost data) or
-    # tool call efficiency proxy when token data is unavailable.
+    # cost_efficiency: scored only from real token/cost data. Tool-call counts
+    # are preserved under tool_use evidence and must not masquerade as cost.
     if harness_evidence:
         cost_score, cost_evidence = _score_cost_efficiency(harness_evidence)
         dimensions["cost_efficiency"] = cost_score
