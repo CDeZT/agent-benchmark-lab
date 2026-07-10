@@ -20,6 +20,9 @@ tmp/
 .env.*
 !.env.example
 
+# Local model registry may contain provider-specific mappings.
+config/model_registry.json
+
 # C compilation artifacts
 *.o
 *.so
