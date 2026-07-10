@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 82 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 83 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -112,6 +112,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Applied the first live calibration result: `python-bugfix` is 100% successful across four non-dummy combinations and twelve recorded runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
 - Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
 - Added `audit-corpus`, which proves baseline/reference contrast, and made it a mandatory default `audit` check. Fixed `code-review`, `repo-understanding`, and `python-test-writing`; the current corpus result is 15 local tasks passing and 4 container-required tasks skipped.
+- Added interruption-safe experiment persistence: manifests are written before a run, checkpoints are updated after each repetition, and `resume --experiment-dir` reuses completed result files and runs only missing repetitions.
 
 ## In Progress
 
@@ -153,7 +154,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 82 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 83 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -166,6 +167,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 5 checks, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
+PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
 PYTHONPATH=src python3 -m compileall -q src tests
 ```

@@ -147,6 +147,23 @@ class FrameworkTests(unittest.TestCase):
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
                 self.assertTrue(result["score"]["evidence"]["test"]["hidden"]["passed"])
 
+    def test_run_can_resume_from_saved_repetition_results(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        with tempfile.TemporaryDirectory() as tmp:
+            initial = run_task(task, ExperimentConfig(adapter="dummy", repetitions=2, runs_dir=Path(tmp)))
+            experiment_dir = Path(initial["experiment_dir"])
+            (experiment_dir / "summary.json").unlink()
+            resumed = run_task(
+                task,
+                ExperimentConfig(adapter="dummy", repetitions=2, runs_dir=Path(tmp)),
+                resume_experiment_dir=experiment_dir,
+            )
+            checkpoint = json.loads((experiment_dir / "checkpoint.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(resumed["experiment_id"], initial["experiment_id"])
+        self.assertEqual(checkpoint["completed_repetitions"], [1, 2])
+        self.assertEqual(checkpoint["status"], "complete")
+
     def test_summary_aggregates_real_usage_evidence(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
         results = [

@@ -26,7 +26,7 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 82 unittest test functions, all expected to pass in the current tree.
+- 83 unittest test functions, all expected to pass in the current tree.
 
 It is not yet a finished real Claude Code versus opencode benchmark. Docker isolation, browser screenshots, and external benchmark importers still need to be implemented and tested.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
@@ -41,7 +41,8 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Total and dimension scores | Partial | `ScoreResult` has strict weighted total, per-dimension scores, verified evidence coverage, and verified-only normalized score. | Browser/subagent/causal self-repair evidence is still incomplete. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 82 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
+| Interrupted-run resume | Implemented | Each experiment has an immutable manifest and repetition checkpoint; `resume` reuses completed result files and rebuilds reports. | Add suite/matrix-level resumability. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 83 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 13 of 19 tasks currently have hidden tests. | Add independent hidden tests to every comparable task. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |

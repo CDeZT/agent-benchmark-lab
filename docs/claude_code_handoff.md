@@ -17,6 +17,17 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 Do not bypass a failing corpus audit by changing a task role. Repair the baseline/reference/test contrast or keep the task out of comparative suites.
 
+## Interruption and Resume Protocol
+
+Every task experiment now writes `experiment_manifest.json` before the first harness call and updates `checkpoint.json` after every completed repetition. If an agent, network, or provider call is interrupted:
+
+1. Do not delete the experiment directory under `runs/`.
+2. Inspect `checkpoint.json` for completed and remaining repetitions.
+3. Resume with `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>`.
+4. The resume path reuses completed `result.json` files and runs only missing repetitions, then rebuilds summary and reports.
+
+Commit meaningful code/documentation phases before starting expensive real harness matrices. `runs/` remains untracked evidence, so the manifest/checkpoint path must be included in any human handoff message if the work stops mid-matrix.
+
 ## Next Deliverable: Comparable Local Matrix
 
 1. Run `doctor`; do not assume Docker exists. The current machine had no `docker` command in the last audit.

@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、82 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、83 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -43,6 +43,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 自动计算均值、方差、标准差
 - 严格总分 + 已验证证据覆盖率 + 已验证维度归一化分，防止将“暂未测到的维度为 0”误读为能力失败
 - `calibrate-difficulty`：依据真实 harness/model 多组合、多次运行的通过率与差异，判断题目是否有区分度；不把 dummy 结果当作难度结论
+- 可恢复实验：每次 run 写入 manifest 和 repetition checkpoint；中断后用 `resume` 仅补做未完成轮次
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
 - 一键审计、环境诊断、交接提示
 
@@ -64,6 +65,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit --include-real-harness
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
+PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite calibration --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1

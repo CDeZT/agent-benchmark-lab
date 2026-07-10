@@ -8,6 +8,7 @@
 - Confirmed the remaining weak dimensions are explicitly tracked rather than claimed complete: visual checks are static only, self-repair and tool-use trace interpretation are heuristic, subagent allocation has no direct evidence yet, and cost needs provider telemetry.
 - Added an outcome capability scorecard so task-domain results are separate from process scores: software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability. Smoke-only tasks are automatically excluded.
 - Added a baseline/reference corpus audit, fixed two tasks whose baseline already passed acceptance and a test-writing task without a reference artifact, then made corpus quality a mandatory default audit check. Current result: 15 local tasks pass, 4 container tasks are explicitly skipped.
+- Added durable experiment manifests, repetition checkpoints, and CLI resume support so interrupted network/provider runs reuse completed evidence instead of restarting and consuming tokens again.
 - Re-audited the long-term user requirements: the benchmark needs both authoritative external tracks and project-owned embedded/optics tasks, with a deliberate easy-to-expert progression rather than a flat pile of examples.
 - Added task-level `difficulty`, `difficulty_rationale`, and provenance metadata to all 19 manifests; validation now rejects invalid tiers and incomplete external-import provenance.
 - Added `agent-benchmark catalog` and an 8-task local `calibration` suite; current distribution is easy=3, medium=9, hard=4, expert=3.

@@ -45,19 +45,36 @@ class RunResult:
     task_provenance_type: str = "unspecified"
 
 
-def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
+def run_task(
+    task: TaskSpec,
+    config: ExperimentConfig,
+    resume_experiment_dir: Path | None = None,
+) -> dict[str, object]:
     config.validate()
     ensure_task_environment_supported(task)
     adapter = adapter_by_name(config.adapter)
-    experiment_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
-    experiment_dir = config.runs_dir / experiment_id
-    experiment_dir.mkdir(parents=True, exist_ok=True)
+    if resume_experiment_dir is None:
+        experiment_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
+        experiment_dir = config.runs_dir / experiment_id
+        experiment_dir.mkdir(parents=True, exist_ok=True)
+        _write_experiment_manifest(experiment_dir, experiment_id, task, config, "in_progress")
+    else:
+        experiment_dir = resume_experiment_dir
+        manifest = _load_experiment_manifest(experiment_dir)
+        experiment_id = str(manifest["experiment_id"])
+        if manifest.get("task_id") != task.task_id:
+            raise ValueError(f"Resume manifest task_id does not match '{task.task_id}'.")
 
     results: list[RunResult] = []
     for repetition in range(1, config.repetitions + 1):
+        run_dir = experiment_dir / f"repetition_{repetition}"
+        existing_result = run_dir / "result.json"
+        if existing_result.is_file():
+            results.append(_load_run_result(existing_result))
+            continue
+
         run_start = time.monotonic()
         run_id = f"{experiment_id}-r{repetition}"
-        run_dir = experiment_dir / f"repetition_{repetition}"
         workspace = run_dir / "workspace"
         baseline = run_dir / "baseline"
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -120,11 +137,14 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
         results.append(result)
         (run_dir / "result.json").write_text(_result_json(result), encoding="utf-8")
         recorder.event("run.finished", {"run_id": run_id, "score": score.total, "duration_seconds": duration_seconds})
+        _write_checkpoint(experiment_dir, config.repetitions)
 
     summary = _summarize(results, experiment_id, experiment_dir, task, config)
     (experiment_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     write_markdown_report(experiment_dir / "report.md", summary, results)
     write_html_report(experiment_dir / "report.html", summary)
+    _write_experiment_manifest(experiment_dir, experiment_id, task, config, "complete")
+    _write_checkpoint(experiment_dir, config.repetitions, complete=True)
     return summary
 
 
@@ -228,6 +248,62 @@ def _read_text_lines(path: Path) -> list[str]:
 
 def _result_json(result: RunResult) -> str:
     return json.dumps(asdict(result), indent=2, ensure_ascii=False)
+
+
+def _write_experiment_manifest(
+    experiment_dir: Path,
+    experiment_id: str,
+    task: TaskSpec,
+    config: ExperimentConfig,
+    status: str,
+) -> None:
+    payload = {
+        "experiment_id": experiment_id,
+        "task_id": task.task_id,
+        "task_dir": str(task.root.resolve()),
+        "runs_dir": str(config.runs_dir.resolve()),
+        "config": {
+            "adapter": config.adapter,
+            "model": config.model,
+            "budget_profile": config.budget_profile,
+            "label": config.label,
+            "repetitions": config.repetitions,
+        },
+        "status": status,
+    }
+    (experiment_dir / "experiment_manifest.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _load_experiment_manifest(experiment_dir: Path) -> dict[str, object]:
+    path = experiment_dir / "experiment_manifest.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"Cannot resume: missing experiment manifest at {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid experiment manifest at {path}")
+    return payload
+
+
+def _write_checkpoint(experiment_dir: Path, target_repetitions: int, complete: bool = False) -> None:
+    completed = sorted(
+        int(path.parent.name.removeprefix("repetition_"))
+        for path in experiment_dir.glob("repetition_*/result.json")
+        if path.parent.name.removeprefix("repetition_").isdigit()
+    )
+    payload = {
+        "target_repetitions": target_repetitions,
+        "completed_repetitions": completed,
+        "remaining_repetitions": [item for item in range(1, target_repetitions + 1) if item not in completed],
+        "status": "complete" if complete else "in_progress",
+    }
+    (experiment_dir / "checkpoint.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _load_run_result(path: Path) -> RunResult:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    score = ScoreResult(**payload.pop("score"))
+    adapter_result = AdapterResult(**payload.pop("adapter_result"))
+    return RunResult(score=score, adapter_result=adapter_result, **payload)
 
 
 def _summarize(

@@ -97,6 +97,9 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     run_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
 
+    resume_parser = subparsers.add_parser("resume", help="Resume an interrupted task experiment from its checkpoint.")
+    resume_parser.add_argument("--experiment-dir", required=True, help="Path to a run directory containing experiment_manifest.json.")
+
     suite_run_parser = subparsers.add_parser("run-suite", help="Run every task in a benchmark suite.")
     suite_run_parser.add_argument("--suite", required=True, help="Suite id or path.")
     suite_run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
@@ -146,6 +149,8 @@ def main(argv: list[str] | None = None) -> int:
         return _next_agent_prompt(args)
     if args.command == "run":
         return _run(args)
+    if args.command == "resume":
+        return _resume(args)
     if args.command == "run-suite":
         return _run_suite(args)
     if args.command == "run-matrix":
@@ -319,6 +324,25 @@ def _run(args: argparse.Namespace) -> int:
     task = load_task(task_dir)
     config = _config_from_args(args)
     summary = run_task(task, config)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _resume(args: argparse.Namespace) -> int:
+    experiment_dir = Path(args.experiment_dir)
+    manifest_path = experiment_dir / "experiment_manifest.json"
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    task = load_task(Path(data["task_dir"]))
+    config_data = data["config"]
+    config = ExperimentConfig(
+        adapter=config_data["adapter"],
+        model=config_data["model"],
+        budget_profile=config_data["budget_profile"],
+        label=config_data["label"],
+        repetitions=int(config_data["repetitions"]),
+        runs_dir=Path(data["runs_dir"]),
+    )
+    summary = run_task(task, config, resume_experiment_dir=experiment_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 
