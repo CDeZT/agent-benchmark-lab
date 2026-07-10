@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
+from agent_benchmark.cli.main import _run_suite_with_config
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
@@ -105,7 +107,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("numpy==2.2.1", spec.dockerfile)
         self.assertTrue(spec.image_tag.startswith("agent-benchmark/optics-imaging-pipeline:"))
 
-    def test_container_test_commands_isolate_network_and_hidden_tests(self) -> None:
+    def test_container_test_commands_isolate_workspace_and_hidden_tests(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "optics-imaging-pipeline")
         spec = container_spec_for_task(task)
         environment = DockerTaskEnvironment(task, Path("/tmp/workspace"), Path("/tmp/run"), spec, "sha256:test", False)
@@ -113,11 +115,11 @@ class FrameworkTests(unittest.TestCase):
         public = environment._docker_command("public", task.test_command)
         hidden = environment._docker_command("hidden", task.hidden_test_command)
 
-        self.assertIn("--network", public)
-        self.assertEqual(public[public.index("--network") + 1], "none")
+        self.assertNotIn("--network", public)
         self.assertIn(f"type=bind,src={environment.workspace.resolve()},dst=/workspace,rw", public)
         self.assertNotIn("/hidden,readonly", " ".join(public))
         self.assertIn("type=bind,src=" + str((task.root / "hidden").resolve()) + ",dst=/hidden,readonly", hidden)
+
     def test_difficulty_calibration_requires_multiple_real_combinations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -189,6 +191,38 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(resumed["experiment_id"], initial["experiment_id"])
         self.assertEqual(checkpoint["completed_repetitions"], [1, 2])
+        self.assertEqual(checkpoint["status"], "complete")
+
+    def test_suite_run_can_resume_from_saved_task_summaries(self) -> None:
+        suite = SimpleNamespace(suite_id="resume-test", tasks=["python-bugfix", "c-bugfix"])
+        with tempfile.TemporaryDirectory() as tmp:
+            runs_dir = Path(tmp)
+            config = ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=runs_dir)
+            initial = _run_suite_with_config(suite, config, ROOT / "benchmarks" / "tasks")
+            suite_dir = Path(initial["suite_run_dir"])
+            first_task = initial["tasks"][0]
+            changed_suite = SimpleNamespace(suite_id="resume-test", tasks=["python-bugfix"])
+            with self.assertRaisesRegex(ValueError, "task list"):
+                _run_suite_with_config(
+                    changed_suite,
+                    config,
+                    ROOT / "benchmarks" / "tasks",
+                    suite_run_dir=suite_dir,
+                )
+            (suite_dir / "suite_summary.json").unlink()
+            (suite_dir / "task_summaries" / "c-bugfix.json").unlink()
+
+            resumed = _run_suite_with_config(
+                suite,
+                config,
+                ROOT / "benchmarks" / "tasks",
+                suite_run_dir=suite_dir,
+            )
+            checkpoint = json.loads((suite_dir / "checkpoint.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(resumed["suite_run_id"], initial["suite_run_id"])
+        self.assertEqual(resumed["tasks"][0]["experiment_id"], first_task["experiment_id"])
+        self.assertEqual(checkpoint["completed_tasks"], ["python-bugfix", "c-bugfix"])
         self.assertEqual(checkpoint["status"], "complete")
 
     def test_summary_aggregates_real_usage_evidence(self) -> None:

@@ -37,6 +37,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
     PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --help
+    PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --help
     PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 重要规则：
@@ -72,7 +73,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 85 个 unittest 测试函数，应该全部通过。
+- 86 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 激活并实测 Docker evaluator：当前 Docker CLI 和 Colima 已安装，但 Colima VM 镜像下载曾因网络超时失败；不要把未实际运行的容器任务算入比较。
@@ -82,7 +83,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
 - `python-bugfix` 已经实测为 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。
 - `audit-corpus` 已是默认 audit 的质量门禁；任何新增或改动的可比较任务必须保持 baseline 失败、reference 通过。
-- 长矩阵运行中断时，保留 `runs/<experiment-id>`，读取 checkpoint.json，并用 `resume --experiment-dir` 恢复；不要重跑已经写出 result.json 的 repetition。
+- task run 中断时保留 `runs/<experiment-id>`，读取 checkpoint.json，并用 `resume --experiment-dir` 恢复；suite run 中断时用 `resume-suite --suite-run-dir runs/<suite-run-id>`。两者都不要重跑已保存的结果；matrix-level resume 仍需实现。
 - 构建 dashboard 展示历史结果。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。

@@ -19,12 +19,14 @@ Do not bypass a failing corpus audit by changing a task role. Repair the baselin
 
 ## Interruption and Resume Protocol
 
-Every task experiment now writes `experiment_manifest.json` before the first harness call and updates `checkpoint.json` after every completed repetition. If an agent, network, or provider call is interrupted:
+Every task experiment now writes `experiment_manifest.json` before the first harness call and updates `checkpoint.json` after every completed repetition. Suite runs also write `suite_manifest.json`, `task_summaries/<task-id>.json`, and a suite checkpoint. If an agent, network, or provider call is interrupted:
 
 1. Do not delete the experiment directory under `runs/`.
 2. Inspect `checkpoint.json` for completed and remaining repetitions.
 3. Resume with `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>`.
 4. The resume path reuses completed `result.json` files and runs only missing repetitions, then rebuilds summary and reports.
+
+For a suite interruption, use `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>`. It reuses completed task summaries and only reruns tasks lacking a saved summary. Matrix-level resumption remains the next step.
 
 Commit meaningful code/documentation phases before starting expensive real harness matrices. `runs/` remains untracked evidence, so the manifest/checkpoint path must be included in any human handoff message if the work stops mid-matrix.
 
@@ -43,7 +45,7 @@ This produces a preliminary personal answer to the harness question. It is not a
 
 Activate and validate the Docker runner before attempting external benchmarks. The four `container_required` tasks now use it automatically once `docker` is ready.
 
-- Task environment contract: generated Dockerfile, exact Python dependency versions, image ID, timeout, no-network verifier policy, CPU/memory limits, and mounted workspace boundaries.
+- Task environment contract: generated Dockerfile, exact Python dependency versions, image ID, timeout, CPU/memory limits, and mounted workspace boundaries. Do not impose a blanket network restriction; network-aware tasks must make their own evaluator contract explicit.
 - Runner evidence: image tag/ID, Dockerfile, build log, command, exit status, stdout/stderr, and test output saved per repetition.
 - The harness CLI remains on the host so it can use the user's existing login/provider configuration; its prompt includes a prebuilt public container-test helper. Do not mount credentials into images.
 - Before a comparative claim, run a real container task and preserve its run directory. The current machine installed `docker` and Colima, but Colima VM image download timed out twice on 2026-07-10; `doctor` must be green before this gate is considered passed.

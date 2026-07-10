@@ -52,7 +52,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "85 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "86 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
     },
     {
@@ -129,8 +129,8 @@
       "id": "interrupted_run_resume",
       "title": "Resume interrupted task experiments",
       "status": "implemented",
-      "evidence": ["experiment_manifest.json is written before first harness execution", "checkpoint.json records completed repetitions", "resume command reuses completed result.json files and only runs missing repetitions"],
-      "remaining": ["Add suite-level and matrix-level resumability"]
+      "evidence": ["experiment_manifest.json is written before first harness execution", "checkpoint.json records completed repetitions", "resume command reuses completed result.json files and only runs missing repetitions", "suite_manifest.json and task_summaries persist completed suite tasks", "resume-suite only runs tasks with missing saved summaries"],
+      "remaining": ["Add matrix-level resumability"]
     },
     {
       "id": "real_harness_adapters",

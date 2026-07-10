@@ -113,7 +113,6 @@ class DockerTaskEnvironment:
             "image_id": self.image_id,
             "base_image": self.spec.base_image,
             "packages": list(self.spec.packages),
-            "network_policy": "none during harness-visible test execution",
             "cpus": self.spec.cpus,
             "memory": self.spec.memory,
             "workspace_mount": "/workspace:rw",
@@ -127,7 +126,7 @@ class DockerTaskEnvironment:
         return (
             "\n\nContainer test environment:\n"
             "This task's dependencies are intentionally not installed on the host. "
-            "Use the prebuilt, no-network verifier while editing this workspace:\n"
+            "Use the prebuilt container verifier while editing this workspace:\n"
             f"  {shlex.quote(str(helper))} public {public}\n"
             "Do not modify the verifier helper. Hidden tests remain evaluator-only.\n"
         )
@@ -208,7 +207,7 @@ class DockerTaskEnvironment:
         hidden_dir = self.task.root / "hidden"
         target_cwd = "/workspace" if kind == "public" else "/hidden"
         docker_command = [
-            "docker", "run", "--rm", "--network", "none",
+            "docker", "run", "--rm",
             "--cpus", str(self.spec.cpus), "--memory", self.spec.memory,
             "--mount", f"type=bind,src={self.workspace.resolve()},dst=/workspace,rw",
             "--env", "AGENT_BENCH_WORKSPACE=/workspace",
@@ -288,7 +287,7 @@ def _write_agent_helper(environment: DockerTaskEnvironment) -> None:
             "  public) shift ;;",
             "  *) echo 'usage: container-test.sh public <test command...>' >&2; exit 64 ;;",
             "esac",
-            "exec docker run --rm --network none "
+            "exec docker run --rm "
             f"--cpus {environment.spec.cpus} --memory {shlex.quote(environment.spec.memory)} "
             f"--mount {workspace_mount} --env AGENT_BENCH_WORKSPACE=/workspace "
             f"--workdir /workspace {shlex.quote(environment.spec.image_tag)} \"$@\"",

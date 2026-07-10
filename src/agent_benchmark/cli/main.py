@@ -111,6 +111,11 @@ def main(argv: list[str] | None = None) -> int:
     suite_run_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
     suite_run_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
 
+    resume_suite_parser = subparsers.add_parser("resume-suite", help="Resume an interrupted suite run from saved task summaries.")
+    resume_suite_parser.add_argument("--suite-run-dir", required=True, help="Path containing suite_manifest.json.")
+    resume_suite_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    resume_suite_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
+
     matrix_parser = subparsers.add_parser("run-matrix", help="Run a suite across adapter/model/profile combinations.")
     matrix_parser.add_argument("--suite", required=True, help="Suite id or path.")
     matrix_parser.add_argument("--adapters", default="dummy", help="Comma-separated adapter names.")
@@ -153,6 +158,8 @@ def main(argv: list[str] | None = None) -> int:
         return _resume(args)
     if args.command == "run-suite":
         return _run_suite(args)
+    if args.command == "resume-suite":
+        return _resume_suite(args)
     if args.command == "run-matrix":
         return _run_matrix(args)
     parser.error("Unknown command")
@@ -333,15 +340,7 @@ def _resume(args: argparse.Namespace) -> int:
     manifest_path = experiment_dir / "experiment_manifest.json"
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     task = load_task(Path(data["task_dir"]))
-    config_data = data["config"]
-    config = ExperimentConfig(
-        adapter=config_data["adapter"],
-        model=config_data["model"],
-        budget_profile=config_data["budget_profile"],
-        label=config_data["label"],
-        repetitions=int(config_data["repetitions"]),
-        runs_dir=Path(data["runs_dir"]),
-    )
+    config = _config_from_saved_data(data["config"], Path(data["runs_dir"]))
     summary = run_task(task, config, resume_experiment_dir=experiment_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
@@ -353,6 +352,19 @@ def _run_suite(args: argparse.Namespace) -> int:
     config = _config_from_args(args)
     suite_summary = _run_suite_with_config(suite, config, Path(args.tasks_dir))
     print(json.dumps(suite_summary, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _resume_suite(args: argparse.Namespace) -> int:
+    suite_run_dir = Path(args.suite_run_dir)
+    manifest_path = suite_run_dir / "suite_manifest.json"
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    suite = load_suite(_resolve_suite(Path(data["suite_id"]), Path(args.suites_dir)))
+    config = _config_from_saved_data(data["config"], Path(data["runs_dir"]))
+    saved_tasks_dir = Path(data["tasks_dir"])
+    tasks_dir = saved_tasks_dir if saved_tasks_dir.is_dir() else Path(args.tasks_dir)
+    summary = _run_suite_with_config(suite, config, tasks_dir, suite_run_dir=suite_run_dir)
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -390,18 +402,42 @@ def _run_matrix(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_suite_with_config(suite: object, config: ExperimentConfig, tasks_dir: Path) -> dict[str, object]:
-    suite_tasks = []
-    for task_id in suite.tasks:
-        task = load_task(_resolve_task(Path(task_id), tasks_dir))
-        ensure_task_environment_supported(task)
-        suite_tasks.append(task)
+def _run_suite_with_config(
+    suite: object,
+    config: ExperimentConfig,
+    tasks_dir: Path,
+    suite_run_dir: Path | None = None,
+) -> dict[str, object]:
+    if suite_run_dir is None:
+        suite_run_id = f"suite-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
+        suite_run_dir = config.runs_dir / suite_run_id
+        suite_run_dir.mkdir(parents=True, exist_ok=True)
+        _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "in_progress")
+    else:
+        manifest = _load_suite_manifest(suite_run_dir)
+        suite_run_id = str(manifest["suite_run_id"])
+        if manifest.get("suite_id") != suite.suite_id:
+            raise ValueError(f"Resume manifest suite_id does not match '{suite.suite_id}'.")
+        if manifest.get("task_ids") != list(suite.tasks):
+            raise ValueError("Resume manifest task list does not match the current suite definition.")
 
     summaries = []
-    for task in suite_tasks:
-        summaries.append(run_task(task, config))
+    summaries_dir = suite_run_dir / "task_summaries"
+    summaries_dir.mkdir(parents=True, exist_ok=True)
+    for task_id in suite.tasks:
+        summary_path = summaries_dir / f"{task_id}.json"
+        if summary_path.is_file():
+            summaries.append(json.loads(summary_path.read_text(encoding="utf-8")))
+            continue
+        task = load_task(_resolve_task(Path(task_id), tasks_dir))
+        ensure_task_environment_supported(task)
+        task_summary = run_task(task, config)
+        summary_path.write_text(json.dumps(task_summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        summaries.append(task_summary)
+        _write_suite_checkpoint(suite_run_dir, suite.tasks)
+
     suite_summary = {
-        "suite_run_id": f"suite-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}",
+        "suite_run_id": suite_run_id,
         "suite_id": suite.suite_id,
         "adapter": config.adapter,
         "model": config.model,
@@ -422,10 +458,75 @@ def _run_suite_with_config(suite: object, config: ExperimentConfig, tasks_dir: P
         "tasks": summaries,
     }
     suite_summary["evaluation_axis_scorecard"] = build_scorecard(summaries)
-    suite_run_dir = config.runs_dir / suite_summary["suite_run_id"]
     suite_summary["suite_run_dir"] = str(suite_run_dir)
     write_suite_summary(suite_run_dir, suite_summary)
+    _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "complete")
+    _write_suite_checkpoint(suite_run_dir, suite.tasks, complete=True)
     return suite_summary
+
+
+def _config_from_saved_data(config_data: dict[str, object], runs_dir: Path) -> ExperimentConfig:
+    config = ExperimentConfig(
+        adapter=str(config_data["adapter"]),
+        model=str(config_data["model"]),
+        budget_profile=str(config_data["budget_profile"]),
+        label=str(config_data["label"]),
+        repetitions=int(config_data["repetitions"]),
+        runs_dir=runs_dir,
+    )
+    config.validate()
+    return config
+
+
+def _write_suite_manifest(
+    suite_run_dir: Path,
+    suite_run_id: str,
+    suite: object,
+    config: ExperimentConfig,
+    tasks_dir: Path,
+    status: str,
+) -> None:
+    payload = {
+        "suite_run_id": suite_run_id,
+        "suite_id": suite.suite_id,
+        "task_ids": list(suite.tasks),
+        "tasks_dir": str(tasks_dir.resolve()),
+        "runs_dir": str(config.runs_dir.resolve()),
+        "config": {
+            "adapter": config.adapter,
+            "model": config.model,
+            "budget_profile": config.budget_profile,
+            "label": config.label,
+            "repetitions": config.repetitions,
+        },
+        "status": status,
+    }
+    (suite_run_dir / "suite_manifest.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _load_suite_manifest(suite_run_dir: Path) -> dict[str, object]:
+    path = suite_run_dir / "suite_manifest.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"Cannot resume suite: missing suite manifest at {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid suite manifest at {path}")
+    return payload
+
+
+def _write_suite_checkpoint(
+    suite_run_dir: Path,
+    task_ids: list[str],
+    complete: bool = False,
+) -> None:
+    summaries_dir = suite_run_dir / "task_summaries"
+    completed = [task_id for task_id in task_ids if (summaries_dir / f"{task_id}.json").is_file()]
+    payload = {
+        "completed_tasks": completed,
+        "remaining_tasks": [task_id for task_id in task_ids if task_id not in completed],
+        "status": "complete" if complete else "in_progress",
+    }
+    (suite_run_dir / "checkpoint.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _mean_optional(values: list[object]) -> float | None:

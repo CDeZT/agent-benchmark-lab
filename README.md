@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、85 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、86 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -33,7 +33,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 机器可读题库目录：难度分层为 easy=3、medium=9、hard=4、expert=3；每题都有难度依据和来源类型
 - 当前任务是项目自定义 seed/inspired tasks，部分受 SWE-bench、Terminal-Bench 等思路启发；尚未真正导入权威外部题库。详见 `docs/task_provenance.md`。
 - `calibration` suite 从易到专家级覆盖本机可运行任务；依赖 Flask、NumPy、SciPy 或 pandas 的任务明确标记为 `container_required`，不会混进默认本机比较。
-- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、无网络测试执行、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。首次本机运行仍需要可用的 Docker daemon。
+- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。首次本机运行仍需要可用的 Docker daemon。
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 矩阵运行（adapter × model × budget_profile）
@@ -44,7 +44,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 自动计算均值、方差、标准差
 - 严格总分 + 已验证证据覆盖率 + 已验证维度归一化分，防止将“暂未测到的维度为 0”误读为能力失败
 - `calibrate-difficulty`：依据真实 harness/model 多组合、多次运行的通过率与差异，判断题目是否有区分度；不把 dummy 结果当作难度结论
-- 可恢复实验：每次 run 写入 manifest 和 repetition checkpoint；中断后用 `resume` 仅补做未完成轮次
+- 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
 - 一键审计、环境诊断、交接提示
 
@@ -67,6 +67,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main audit --include-real-harness
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
+PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite calibration --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
