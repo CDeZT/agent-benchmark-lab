@@ -341,6 +341,13 @@ def _measurement_summary(
 
     verified_dimensions = [name for name, status in statuses.items() if status == "verified"]
     heuristic_dimensions = [name for name, status in statuses.items() if status == "heuristic"]
+    # Dimensions with at least some evidence (verified or heuristic). Used at the
+    # matrix comparison level to determine which dimensions are fair to compare
+    # across different harnesses -- if one harness has telemetry for cost_efficiency
+    # but another doesn't, it is excluded from cross-harness comparison.
+    dimensions_with_evidence = sorted(
+        name for name, status in statuses.items() if status != "unavailable"
+    )
     verified_weight = sum(weights[name] for name in verified_dimensions)
     weighted_verified_score = sum(dimensions.get(name, 0.0) * weights[name] for name in verified_dimensions)
     normalized = weighted_verified_score / verified_weight if verified_weight else None
@@ -348,11 +355,36 @@ def _measurement_summary(
         "dimension_status": statuses,
         "verified_dimensions": verified_dimensions,
         "heuristic_dimensions": heuristic_dimensions,
+        "dimensions_with_evidence": dimensions_with_evidence,
+        "weights": weights,
         "verified_weight": round(verified_weight, 2),
         "total_weight": round(sum(weights.values()), 2),
         "verified_coverage_percent": round(100.0 * verified_weight / sum(weights.values()), 2) if weights else 0.0,
         "verified_normalized_score": round(normalized, 2) if normalized is not None else None,
     }
+
+
+def _comparable_score(
+    dimensions: dict[str, float],
+    weights: dict[str, float],
+    comparable_dimensions: set[str],
+) -> float | None:
+    """Compute a score using only dimensions shared across all harnesses.
+
+    When comparing harnesses that instrument different dimensions (e.g. one
+    reports cost data but not tool calls, another the reverse), the strict
+    all-dimension score penalises the harness with fewer evidence sources. This
+    helper produces a fairer comparison by limiting the score to dimensions that
+    every harness in the comparison has evidence for.
+
+    Returns None if there are no comparable dimensions.
+    """
+    comp_weights = {k: v for k, v in weights.items() if k in comparable_dimensions}
+    if not comp_weights:
+        return None
+    total_weight = sum(comp_weights.values())
+    total = sum(dimensions.get(k, 0.0) * v for k, v in comp_weights.items()) / total_weight
+    return round(total, 2)
 
 
 def _run_test_command(

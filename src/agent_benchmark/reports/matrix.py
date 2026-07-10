@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from agent_benchmark.scorers.basic import _comparable_score
+
 
 def write_matrix_summary(run_dir: Path, matrix_summary: dict[str, Any]) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -20,8 +22,33 @@ def build_matrix_leaderboard(combinations: list[dict[str, Any]]) -> dict[str, An
     Strict score is the primary ordering because unavailable dimensions stay at
     zero. The report must still show verified score and coverage next to it so
     an instrumentation gap is never mistaken for a capability gap.
+
+    When different harnesses instrument different dimensions (e.g. one reports
+    cost data but the other doesn't), the ``comparable_dimensions`` intersection
+    identifies which dimensions are fair to compare. The ``mean_comparable_score``
+    on each row uses only those shared dimensions so harnesses aren't penalised
+    for missing telemetry.
     """
-    rows = [_leaderboard_row(combination) for combination in combinations]
+    # Compute the set of dimensions that have evidence in EVERY combination,
+    # i.e. dimensions that are instrumented by all harnesses being compared.
+    combo_evidence: list[set[str]] = []
+    for combination in combinations:
+        dims: set[str] = set()
+        for task in combination.get("tasks", []):
+            if task.get("benchmark_role", "comparative_candidate") != "comparative_candidate":
+                continue
+            for run in task.get("runs", []):
+                measurement = run.get("measurement", {})
+                if isinstance(measurement, dict):
+                    dims.update(measurement.get("dimensions_with_evidence", []))
+        if dims:
+            combo_evidence.append(dims)
+
+    comparable_dimensions = set.intersection(*combo_evidence) if combo_evidence else set()
+    all_observed_dimensions = set.union(*combo_evidence) if combo_evidence else set()
+    noncomparable_dimensions = sorted(all_observed_dimensions - comparable_dimensions)
+
+    rows = [_leaderboard_row(combination, comparable_dimensions) for combination in combinations]
     ranked = [row for row in rows if row["comparative_task_count"]]
     ranked.sort(
         key=_ranking_key
@@ -40,6 +67,8 @@ def build_matrix_leaderboard(combinations: list[dict[str, Any]]) -> dict[str, An
         "ranking_basis": "comparative-task strict score, then evidence coverage and verified score; equal evidence scores share rank while variance, duration, and cost remain separate evidence. Model identity status must be checked before making same-model claims.",
         "rows": rows,
         "ranked_combination_count": len(ranked),
+        "comparable_dimensions": sorted(comparable_dimensions),
+        "noncomparable_dimensions": noncomparable_dimensions,
     }
 
 
@@ -51,7 +80,7 @@ def _ranking_key(row: dict[str, Any]) -> tuple[float, float, float]:
     )
 
 
-def _leaderboard_row(combination: dict[str, Any]) -> dict[str, Any]:
+def _leaderboard_row(combination: dict[str, Any], comparable_dimensions: set[str] | None = None) -> dict[str, Any]:
     tasks = combination.get("tasks", [])
     comparable = [task for task in tasks if task.get("benchmark_role", "comparative_candidate") == "comparative_candidate"]
     run_outcomes = [
@@ -60,6 +89,20 @@ def _leaderboard_row(combination: dict[str, Any]) -> dict[str, Any]:
         for run in task.get("runs", [])
         if _run_success(run) is not None
     ]
+
+    # Compute a comparable score using only dimensions that every harness in
+    # the comparison has evidence for.  This prevents penalising a harness for
+    # missing telemetry that another harness happens to provide.
+    mean_comparable_score = None
+    if comparable_dimensions:
+        task_scores: list[float] = []
+        for task in comparable:
+            task_cs = _task_comparable_score(task, comparable_dimensions)
+            if task_cs is not None:
+                task_scores.append(task_cs)
+        if task_scores:
+            mean_comparable_score = round(sum(task_scores) / len(task_scores), 4)
+
     return {
         "adapter": combination.get("adapter"),
         "model": combination.get("model"),
@@ -74,12 +117,46 @@ def _leaderboard_row(combination: dict[str, Any]) -> dict[str, Any]:
         "mean_strict_score": _mean([task.get("mean_score") for task in comparable]),
         "mean_verified_normalized_score": _mean([task.get("mean_verified_normalized_score") for task in comparable]),
         "mean_verified_coverage_percent": _mean([task.get("mean_verified_coverage_percent") for task in comparable]),
+        "mean_comparable_score": mean_comparable_score,
         "task_pass_rate_percent": round(100.0 * sum(run_outcomes) / len(run_outcomes), 2) if run_outcomes else None,
         "observed_test_runs": len(run_outcomes),
         "mean_task_stdev": _mean([task.get("stdev") for task in comparable]),
         "mean_duration_seconds": _mean([task.get("mean_duration_seconds") for task in comparable]),
         "mean_cost_usd": _mean([task.get("mean_cost_usd") for task in comparable]),
     }
+
+
+def _task_comparable_score(task: dict[str, Any], comparable_dimensions: set[str]) -> float | None:
+    """Compute a comparable score for a single task across its runs.
+
+    Returns the weighted score using only ``comparable_dimensions``, averaged
+    across all repetitions. Returns None if no weights or run data is present.
+    """
+    runs = task.get("runs", [])
+    if not runs:
+        return None
+
+    # Collect per-dimension mean scores across repetitions and extract weights
+    # from the measurement stored with the first run.
+    all_dim_keys: set[str] = set()
+    weights: dict[str, float] = {}
+    for run in runs:
+        dims = run.get("dimensions", {})
+        if isinstance(dims, dict):
+            all_dim_keys.update(dims.keys())
+        if not weights:
+            measurement = run.get("measurement", {})
+            if isinstance(measurement, dict):
+                weights = measurement.get("weights", {})
+    if not weights:
+        return None
+
+    mean_dims: dict[str, float] = {}
+    for key in all_dim_keys:
+        values = [float(run.get("dimensions", {}).get(key, 0.0)) for run in runs]
+        mean_dims[key] = sum(values) / len(values)
+
+    return _comparable_score(mean_dims, weights, comparable_dimensions)
 
 
 def _aggregate_model_identity(tasks: list[dict[str, Any]]) -> str:
@@ -133,6 +210,8 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
         )
     leaderboard = matrix_summary.get("leaderboard")
     if isinstance(leaderboard, dict):
+        comparable = leaderboard.get("comparable_dimensions", [])
+        noncomparable = leaderboard.get("noncomparable_dimensions", [])
         lines.extend(
             [
                 "",
@@ -140,9 +219,24 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
                 "",
                 f"- Basis: {leaderboard.get('ranking_basis')}",
                 "- `smoke_only` and other non-comparative tasks are excluded from this table.",
+            ]
+        )
+        if comparable:
+            lines.append(
+                f"- **Comparable dimensions** (instrumented by all harnesses): "
+                + ", ".join(f"`{d}`" for d in comparable)
+            )
+        if noncomparable:
+            lines.append(
+                f"- **Non-comparable dimensions** (missing telemetry in at least one harness): "
+                + ", ".join(f"`{d}`" for d in noncomparable)
+                + ". These are excluded from the Comparable Score to avoid penalising harnesses for missing instrumentation."
+            )
+        lines.extend(
+            [
                 "",
-                "| Rank | Adapter | Canonical Model | Adapter Model | Model Evidence | Profile | Comparative Tasks | Strict | Verified | Coverage | Pass Rate | Stdev | Duration | Cost USD |",
-                "| ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+                "| Rank | Adapter | Canonical Model | Adapter Model | Model Evidence | Profile | Comparative Tasks | Strict | Comparable | Verified | Coverage | Pass Rate | Stdev | Duration | Cost USD |",
+                "| ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for row in leaderboard.get("rows", []):
@@ -151,7 +245,8 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
             lines.append(
                 f"| {row.get('rank') or 'n/a'} | `{row.get('adapter')}` | `{row.get('model')}` | `{row.get('adapter_model')}` | "
                 f"`{row.get('model_identity_status')}` | `{row.get('budget_profile')}` | {row.get('comparative_task_count')} | "
-                f"{row.get('mean_strict_score')} | {row.get('mean_verified_normalized_score')} | "
+                f"{row.get('mean_strict_score')} | {row.get('mean_comparable_score')} | "
+                f"{row.get('mean_verified_normalized_score')} | "
                 f"{row.get('mean_verified_coverage_percent')}% | {row.get('task_pass_rate_percent')}% | "
                 f"{row.get('mean_task_stdev')} | {row.get('mean_duration_seconds')} | {row.get('mean_cost_usd')} |"
             )
