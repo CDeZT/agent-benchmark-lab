@@ -10,6 +10,7 @@
   "metadata": {"benchmark_role": "comparative_candidate"},
   "workspace": "workspace",
     "test_command": ["python3", "test_user_auth.py"],
+    "hidden_test_command": ["python3", "test_hidden_auth.py"],
     "protected_paths": ["test_user_auth.py"],
     "process_checks": [
         {

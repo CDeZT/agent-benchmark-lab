@@ -10,6 +10,7 @@
     "metadata": {"benchmark_role": "comparative_candidate"},
     "workspace": "workspace",
     "test_command": ["python3", "verify_tests.py"],
+    "hidden_test_command": ["python3", "test_hidden_test_quality.py"],
     "protected_paths": ["stats.py", "verify_tests.py"],
     "process_checks": [
         {
