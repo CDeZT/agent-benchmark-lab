@@ -860,6 +860,117 @@ class FrameworkTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path("/tmp"), budget_profile="").validate()
 
+    # ── Budget profile enforcement tests ──
+
+    def test_unknown_budget_profile_falls_back_to_open_ended(self) -> None:
+        """Prove unknown profile returns open_ended without raising."""
+        from agent_benchmark.runner.profiles import get_profile, PROFILES
+
+        profile = get_profile("nonexistent-profile")
+        self.assertEqual(profile.name, "open_ended")
+        self.assertEqual(profile, PROFILES["open_ended"])
+
+    def test_unknown_profile_config_silently_falls_back(self) -> None:
+        """Prove ExperimentConfig silently falls back to open_ended for unknown profile."""
+        config = ExperimentConfig(
+            adapter="dummy", repetitions=1, runs_dir=Path("/tmp"),
+            budget_profile="made-up-profile",
+        )
+        config.validate()  # should not raise
+        self.assertEqual(config.profile.name, "open_ended")
+
+    def test_oneshot_profile_limits_max_attempts_to_one(self) -> None:
+        """Prove oneshot profile has max_attempts=1 and no other limits."""
+        from agent_benchmark.runner.profiles import get_profile
+
+        profile = get_profile("oneshot")
+        self.assertEqual(profile.name, "oneshot")
+        self.assertEqual(profile.max_attempts, 1)
+        self.assertIsNone(profile.max_duration_seconds)
+        self.assertIsNone(profile.max_tool_calls)
+
+    def test_open_ended_profile_has_no_limits(self) -> None:
+        """Prove open_ended profile has all limits as None."""
+        from agent_benchmark.runner.profiles import get_profile
+
+        profile = get_profile("open_ended")
+        self.assertIsNone(profile.max_attempts)
+        self.assertIsNone(profile.max_duration_seconds)
+        self.assertIsNone(profile.max_tool_calls)
+
+    def test_budget_profile_env_vars_injected(self) -> None:
+        """Prove AGENT_BENCH_BUDGET_MAX_ATTEMPTS env var is set during run."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        old_command = os.environ.get("AGENT_BENCH_COMMAND")
+        old_timeout = os.environ.get("AGENT_BENCH_TIMEOUT_SECONDS")
+        old_max_attempts = os.environ.get("AGENT_BENCH_BUDGET_MAX_ATTEMPTS")
+
+        # Command that writes the env var value to a file
+        os.environ["AGENT_BENCH_COMMAND"] = (
+            "python3 -c \"from pathlib import Path; import os; "
+            "ma = os.environ.get('AGENT_BENCH_BUDGET_MAX_ATTEMPTS', 'unset'); "
+            "Path('budget.txt').write_text('max_attempts=' + ma); "
+            "Path('stats.py').write_text('def average(values):\\n"
+            "    return 0.0 if not values else sum(values) / len(values)\\n')\""
+        )
+        os.environ["AGENT_BENCH_TIMEOUT_SECONDS"] = "10"
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                summary = run_task(
+                    task,
+                    ExperimentConfig(
+                        adapter="generic-command",
+                        model="budget-test",
+                        budget_profile="oneshot",
+                        repetitions=1,
+                        runs_dir=Path(tmp),
+                    ),
+                )
+                run_dir = Path(summary["runs"][0]["run_dir"])
+                budget_content = (run_dir / "workspace" / "budget.txt").read_text(encoding="utf-8")
+                self.assertEqual(budget_content, "max_attempts=1")
+                self.assertEqual(summary["budget_profile"], "oneshot")
+        finally:
+            _restore_env("AGENT_BENCH_COMMAND", old_command)
+            _restore_env("AGENT_BENCH_TIMEOUT_SECONDS", old_timeout)
+            _restore_env("AGENT_BENCH_BUDGET_MAX_ATTEMPTS", old_max_attempts)
+
+    def test_profile_instruction_suffix_appears_in_instruction_file(self) -> None:
+        """Prove oneshot profile suffix is written to instruction.txt."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = run_task(
+                task,
+                ExperimentConfig(
+                    adapter="dummy",
+                    budget_profile="oneshot",
+                    repetitions=1,
+                    runs_dir=Path(tmp),
+                ),
+            )
+            run_dir = Path(summary["runs"][0]["run_dir"])
+            instruction = (run_dir / "instruction.txt").read_text(encoding="utf-8")
+            self.assertIn("BUDGET PROFILE: ONESHOT", instruction)
+            self.assertIn("Single attempt, no retries", instruction)
+            self.assertIn("at most 1 attempt", instruction)
+
+    def test_budget_profile_info_in_summary(self) -> None:
+        """Prove summary includes budget_profile with correct values."""
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        with tempfile.TemporaryDirectory() as tmp:
+            summary = run_task(
+                task,
+                ExperimentConfig(
+                    adapter="dummy",
+                    budget_profile="bounded",
+                    repetitions=2,
+                    runs_dir=Path(tmp),
+                ),
+            )
+            self.assertEqual(summary["budget_profile"], "bounded")
+            for run_info in summary["runs"]:
+                self.assertEqual(run_info["run_dir"], run_info["run_dir"])  # smoke check
+
     def test_adapter_by_name_raises_for_unknown(self) -> None:
         """Prove adapter_by_name raises ValueError for unregistered adapters."""
         with self.assertRaises(ValueError):

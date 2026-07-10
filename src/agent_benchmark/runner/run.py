@@ -21,6 +21,7 @@ from agent_benchmark.reports.html import write_html_report
 from agent_benchmark.reports.markdown import write_markdown_report
 from agent_benchmark.runner.config import ExperimentConfig
 from agent_benchmark.runner.container import DockerTaskEnvironment, ensure_docker_ready, prepare_docker_environment
+from agent_benchmark.runner.profiles import BudgetProfile, profile_instruction_suffix
 from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.task_schema import TaskSpec
 
@@ -99,13 +100,15 @@ def run_task(
 
         _copy_workspace(task.workspace_path, workspace)
         _copy_workspace(task.workspace_path, baseline)
-        (run_dir / "instruction.txt").write_text(task.instruction, encoding="utf-8")
+
+        instruction = task.instruction + profile_instruction_suffix(config.profile)
+        (run_dir / "instruction.txt").write_text(instruction, encoding="utf-8")
 
         container_environment: DockerTaskEnvironment | None = None
         runtime_task = task
         if task.metadata.get("environment", "local") == "container_required":
             container_environment = prepare_docker_environment(task, workspace, run_dir)
-            runtime_task = replace(task, instruction=task.instruction + container_environment.agent_instruction())
+            runtime_task = replace(task, instruction=instruction + container_environment.agent_instruction())
             (run_dir / "instruction.txt").write_text(runtime_task.instruction, encoding="utf-8")
 
         adapter_result = _run_adapter_with_env(adapter, runtime_task, workspace, recorder, config)
@@ -184,12 +187,17 @@ def _copy_workspace(source: Path, target: Path) -> None:
 
 
 def _run_adapter_with_env(adapter: object, task: TaskSpec, workspace: Path, recorder: JsonlRecorder, config: ExperimentConfig) -> AdapterResult:
+    profile = config.profile
     injected = {
         "AGENT_BENCH_MODEL": config.invocation_model,
         "AGENT_BENCH_CANONICAL_MODEL": config.model,
         "AGENT_BENCH_BUDGET_PROFILE": config.budget_profile,
         "AGENT_BENCH_LABEL": config.label,
     }
+    if profile.max_attempts is not None:
+        injected["AGENT_BENCH_BUDGET_MAX_ATTEMPTS"] = str(profile.max_attempts)
+    if profile.max_duration_seconds is not None:
+        injected["AGENT_BENCH_BUDGET_MAX_SECONDS"] = str(profile.max_duration_seconds)
     previous = {key: os.environ.get(key) for key in injected}
     os.environ.update(injected)
     try:

@@ -44,6 +44,8 @@ class ShellCommandAdapter:
             workspace=shlex.quote(str(workspace.resolve())),
             instruction_file=shlex.quote(str(instruction_file.resolve())),
             prompt=shlex.quote(task.instruction),
+            budget_max_attempts=shlex.quote(os.environ.get("AGENT_BENCH_BUDGET_MAX_ATTEMPTS", "")),
+            budget_max_seconds=shlex.quote(os.environ.get("AGENT_BENCH_BUDGET_MAX_SECONDS", "")),
         )
         timeout = self.timeout_seconds()
         recorder.event("adapter.started", {"adapter": self.name})

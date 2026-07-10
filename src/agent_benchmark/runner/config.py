@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from agent_benchmark.runner.profiles import BudgetProfile, get_profile
+
 
 @dataclass(frozen=True)
 class ExperimentConfig:
@@ -27,3 +29,7 @@ class ExperimentConfig:
     @property
     def invocation_model(self) -> str:
         return self.adapter_model or self.model
+
+    @property
+    def profile(self) -> BudgetProfile:
+        return get_profile(self.budget_profile)
