@@ -310,11 +310,13 @@ def _measurement_summary(
 
     self_repair_evidence = evidence.get("self_repair")
     if isinstance(self_repair_evidence, dict) and "error" not in self_repair_evidence:
-        statuses["self_repair"] = "heuristic"
+        if statuses.get("self_repair") != "verified":
+            statuses["self_repair"] = "heuristic"
 
     tool_evidence = evidence.get("tool_use")
     if isinstance(tool_evidence, dict) and tool_evidence.get("tool_count") is not None:
-        statuses["tool_use"] = "heuristic"
+        if statuses.get("tool_use") != "verified":
+            statuses["tool_use"] = "heuristic"
 
     cost_evidence = evidence.get("cost_efficiency")
     if isinstance(cost_evidence, dict) and cost_evidence.get("method") not in {None, "no_token_or_cost_evidence"}:

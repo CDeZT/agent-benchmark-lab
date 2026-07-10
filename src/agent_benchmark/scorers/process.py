@@ -132,16 +132,11 @@ def _test_file_quality(workspace: Path, check: dict[str, Any]) -> dict[str, Any]
     test_funcs = re.findall(r"^\s*(?:async\s+)?def\s+(test_\w+)", content, re.MULTILINE)
     func_count = len(test_funcs)
 
-    # Count assertions: assert ..., self.assert..., assertEqual, assertTrue, etc.
+    # Count assertions: plain assert and self.assert* methods.
+    # Using two non-overlapping patterns to avoid double-counting.
     assertion_patterns = [
         r"\bassert\b",
         r"\.assert\w+\(",
-        r"\.assertEqual\(",
-        r"\.assertTrue\(",
-        r"\.assertFalse\(",
-        r"\.assertRaises\(",
-        r"\.assertIn\(",
-        r"\.assertIs\(",
     ]
     assert_count = 0
     for pattern in assertion_patterns:

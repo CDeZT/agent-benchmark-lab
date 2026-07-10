@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 """Parse real harness output to extract model name, tool calls, and usage evidence.
 
 This module extracts structured data from opencode and claude-code stdout/stderr
 so the scorer can populate dimensions like tool_use and cost_efficiency.
 """
-
-from __future__ import annotations
 
 import json
 import re

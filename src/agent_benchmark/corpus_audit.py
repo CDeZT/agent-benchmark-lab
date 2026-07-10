@@ -95,7 +95,16 @@ def _run_command(kind: str, command: list[str], cwd: Path, workspace: Path, time
     environment = os.environ.copy()
     environment["AGENT_BENCH_WORKSPACE"] = str(workspace.resolve())
     try:
-        completed = subprocess.run(command, cwd=cwd, env=environment, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, check=False)
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            check=False,
+        )
         return {"kind": kind, "configured": True, "passed": completed.returncode == 0, "exit_code": completed.returncode, "stdout_tail": completed.stdout[-500:], "stderr_tail": completed.stderr[-500:]}
     except subprocess.TimeoutExpired:
         return {"kind": kind, "configured": True, "passed": False, "exit_code": 124, "timed_out": True}

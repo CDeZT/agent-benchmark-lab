@@ -160,7 +160,7 @@ def run_task(
         _write_checkpoint(experiment_dir, config.repetitions)
 
     summary = _summarize(results, experiment_id, experiment_dir, task, config)
-    (experiment_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    (experiment_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     write_markdown_report(experiment_dir / "report.md", summary, results)
     write_html_report(experiment_dir / "report.html", summary)
     _write_experiment_manifest(experiment_dir, experiment_id, task, config, "complete")
@@ -263,7 +263,7 @@ def _read_text_lines(path: Path) -> list[str]:
 
 
 def _result_json(result: RunResult) -> str:
-    return json.dumps(asdict(result), indent=2, ensure_ascii=False)
+    return json.dumps(asdict(result), ensure_ascii=False, indent=2)
 
 
 def _write_experiment_manifest(
@@ -288,7 +288,7 @@ def _write_experiment_manifest(
         },
         "status": status,
     }
-    (experiment_dir / "experiment_manifest.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    (experiment_dir / "experiment_manifest.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _load_experiment_manifest(experiment_dir: Path) -> dict[str, object]:
@@ -313,7 +313,7 @@ def _write_checkpoint(experiment_dir: Path, target_repetitions: int, complete: b
         "remaining_repetitions": [item for item in range(1, target_repetitions + 1) if item not in completed],
         "status": "complete" if complete else "in_progress",
     }
-    (experiment_dir / "checkpoint.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    (experiment_dir / "checkpoint.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _load_run_result(path: Path) -> RunResult:
