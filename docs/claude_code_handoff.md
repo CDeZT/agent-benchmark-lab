@@ -19,14 +19,14 @@ Do not bypass a failing corpus audit by changing a task role. Repair the baselin
 
 ## Interruption and Resume Protocol
 
-Every task experiment now writes `experiment_manifest.json` before the first harness call and updates `checkpoint.json` after every completed repetition. Suite runs also write `suite_manifest.json`, `task_summaries/<task-id>.json`, and a suite checkpoint. If an agent, network, or provider call is interrupted:
+Task, suite, and matrix execution all persist recovery evidence. Every task experiment writes `experiment_manifest.json` before the first harness call and updates `checkpoint.json` after every completed repetition. Suite runs also write `suite_manifest.json`, `task_summaries/<task-id>.json`, and a suite checkpoint. Matrix runs write `matrix_manifest.json`, per-combination summaries, nested suite runs, and a matrix checkpoint. If an agent, network, or provider call is interrupted:
 
 1. Do not delete the experiment directory under `runs/`.
 2. Inspect `checkpoint.json` for completed and remaining repetitions.
 3. Resume with `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>`.
 4. The resume path reuses completed `result.json` files and runs only missing repetitions, then rebuilds summary and reports.
 
-For a suite interruption, use `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>`. It reuses completed task summaries and only reruns tasks lacking a saved summary. Matrix-level resumption remains the next step.
+For a suite interruption, use `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>`. For a matrix interruption, use `PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-dir runs/<matrix-run-id>`. Both reuse saved work and refuse recovery when the task list or requested combination specifications differ from the manifest.
 
 Commit meaningful code/documentation phases before starting expensive real harness matrices. `runs/` remains untracked evidence, so the manifest/checkpoint path must be included in any human handoff message if the work stops mid-matrix.
 
@@ -37,7 +37,7 @@ Commit meaningful code/documentation phases before starting expensive real harne
 3. Run the same model through `opencode` and `claude-code` with the same task suite and budget profile. Use at least three repetitions per task.
 4. Preserve raw run directories, model labels, detected model metadata, traces, diffs, test results, duration, and real token/cost output when available.
 5. Run `calibrate-difficulty` after the matrix. Tasks with insufficient evidence, `too_easy`, or `too_hard` must be reported separately, not averaged into a public winner claim.
-6. Report strict score, verified normalized score, verified coverage, per-axis scorecards, task success rate, variance, duration, and cost separately. Never substitute a tool-call count for cost.
+6. The matrix report now has a raw suite table and a comparative-only ranking. Treat the latter as the selection aid: it excludes `smoke_only`, ranks conservative strict score, and always displays verified normalized score, coverage, task pass rate, variance, duration, and cost separately. Never substitute a tool-call count for cost.
 
 This produces a preliminary personal answer to the harness question. It is not an authoritative public leaderboard yet.
 

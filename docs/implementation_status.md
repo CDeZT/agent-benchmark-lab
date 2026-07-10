@@ -26,7 +26,7 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 86 unittest test functions, all expected to pass in the current tree.
+- 89 unittest test functions, all expected to pass in the current tree.
 
 It is not yet a finished real Claude Code versus opencode benchmark. The Docker evaluator contract is implemented but still needs a working local daemon and a real container-task smoke run; browser screenshots and external benchmark importers remain unfinished.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
@@ -37,12 +37,12 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | --- | --- | --- | --- |
 | Compare same model across harnesses | Partial | Matrix runner supports adapter/model combinations; Claude Code and opencode adapter shells exist. | Test real local CLI commands and run actual comparisons. |
 | Compare models in same harness | Partial | Model label is recorded and matrix runner supports multiple models. | Wire model config into real harness commands. |
-| Full harness/model ranking | Partial | Matrix summaries and reports exist. | Add leaderboard sorting, history, and real runs. |
+| Full harness/model ranking | Partial | Matrix reports separate raw suite aggregation from comparative-only ranking; smoke tasks are excluded and strict score, verified score, coverage, pass rate, variance, duration, and cost are all visible. | Add historical cross-matrix comparison and real runs. |
 | Total and dimension scores | Partial | `ScoreResult` has strict weighted total, per-dimension scores, verified evidence coverage, and verified-only normalized score. | Browser/subagent/causal self-repair evidence is still incomplete. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Interrupted-run resume | Implemented | Task experiments use manifests/checkpoints; suite runs persist each completed task summary and `resume-suite` only reruns missing tasks. | Add matrix-level resumability. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 86 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
+| Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints; `resume`, `resume-suite`, and `resume-matrix` reuse saved work and only run missing repetitions/tasks/combinations. | Add an optional historical recovery browser. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 89 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 13 of 19 tasks currently have hidden tests. | Add independent hidden tests to every comparable task. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |

@@ -13,7 +13,7 @@ from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
-from agent_benchmark.cli.main import _run_suite_with_config
+from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_config
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
@@ -22,6 +22,7 @@ from agent_benchmark.runner.container import DockerTaskEnvironment, DockerUnavai
 from agent_benchmark.runner.run import _summarize
 from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.recorders.jsonl import JsonlRecorder
+from agent_benchmark.reports.matrix import build_matrix_leaderboard
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.taxonomy import axes_for_task, build_scorecard
@@ -223,6 +224,92 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(resumed["suite_run_id"], initial["suite_run_id"])
         self.assertEqual(resumed["tasks"][0]["experiment_id"], first_task["experiment_id"])
         self.assertEqual(checkpoint["completed_tasks"], ["python-bugfix", "c-bugfix"])
+        self.assertEqual(checkpoint["status"], "complete")
+
+    def test_matrix_leaderboard_excludes_smoke_only_tasks(self) -> None:
+        leaderboard = build_matrix_leaderboard(
+            [
+                {
+                    "adapter": "opencode",
+                    "model": "model-a",
+                    "budget_profile": "open_ended",
+                    "suite_run_dir": "/tmp/suite-a",
+                    "tasks": [
+                        {
+                            "task_id": "candidate",
+                            "benchmark_role": "comparative_candidate",
+                            "mean_score": 60.0,
+                            "mean_verified_normalized_score": 75.0,
+                            "mean_verified_coverage_percent": 80.0,
+                            "stdev": 2.0,
+                            "mean_duration_seconds": 4.0,
+                            "mean_cost_usd": 0.02,
+                            "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+                        },
+                        {
+                            "task_id": "smoke",
+                            "benchmark_role": "smoke_only",
+                            "mean_score": 100.0,
+                            "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+                        },
+                    ],
+                }
+            ]
+        )
+
+        row = leaderboard["rows"][0]
+        self.assertEqual(row["comparative_task_count"], 1)
+        self.assertEqual(row["excluded_noncomparative_task_ids"], ["smoke"])
+        self.assertEqual(row["mean_strict_score"], 60.0)
+        self.assertEqual(row["task_pass_rate_percent"], 100.0)
+        self.assertEqual(row["rank"], 1)
+
+    def test_matrix_leaderboard_ties_equal_evidence_scores(self) -> None:
+        base_task = {
+            "task_id": "candidate",
+            "benchmark_role": "comparative_candidate",
+            "mean_score": 60.0,
+            "mean_verified_normalized_score": 75.0,
+            "mean_verified_coverage_percent": 80.0,
+            "stdev": 0.0,
+            "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+        }
+        leaderboard = build_matrix_leaderboard(
+            [
+                {"adapter": "a", "model": "one", "budget_profile": "open_ended", "tasks": [base_task]},
+                {"adapter": "b", "model": "two", "budget_profile": "open_ended", "tasks": [base_task]},
+            ]
+        )
+
+        self.assertEqual([row["rank"] for row in leaderboard["rows"]], [1, 1])
+
+    def test_matrix_run_can_resume_from_saved_combination_summaries(self) -> None:
+        suite = SimpleNamespace(suite_id="matrix-resume-test", tasks=["c-bugfix"])
+        specs = [
+            {"adapter": "dummy", "model": "model-a", "budget_profile": "oneshot", "label": "", "repetitions": 1},
+            {"adapter": "dummy", "model": "model-b", "budget_profile": "oneshot", "label": "", "repetitions": 1},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            runs_dir = Path(tmp)
+            initial = _run_matrix_with_specs(suite, specs, ROOT / "benchmarks" / "tasks", runs_dir)
+            matrix_dir = Path(initial["matrix_run_dir"])
+            first_suite_id = initial["combinations"][0]["suite_run_id"]
+            (matrix_dir / "matrix_summary.json").unlink()
+            second_summary = sorted((matrix_dir / "combination_summaries").glob("*.json"))[1]
+            second_summary.unlink()
+
+            resumed = _run_matrix_with_specs(
+                suite,
+                specs,
+                ROOT / "benchmarks" / "tasks",
+                runs_dir,
+                matrix_run_dir=matrix_dir,
+            )
+            checkpoint = json.loads((matrix_dir / "checkpoint.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(resumed["matrix_run_id"], initial["matrix_run_id"])
+        self.assertEqual(resumed["combinations"][0]["suite_run_id"], first_suite_id)
+        self.assertEqual(checkpoint["remaining_combinations"], [])
         self.assertEqual(checkpoint["status"], "complete")
 
     def test_summary_aggregates_real_usage_evidence(self) -> None:

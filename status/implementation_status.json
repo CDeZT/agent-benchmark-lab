@@ -24,8 +24,8 @@
       "id": "combination_ranking",
       "title": "Rank full harness/model combinations",
       "status": "partial",
-      "evidence": ["run-matrix produces matrix_summary.json and matrix_report.md"],
-      "remaining": ["Add richer leaderboard sorting and historical comparison", "Run real adapters"]
+      "evidence": ["run-matrix produces raw aggregation plus comparative-only leaderboard", "leaderboard excludes smoke_only tasks and shows strict score, verified score, coverage, pass rate, variance, duration, and cost"],
+      "remaining": ["Add historical cross-matrix comparison", "Run real adapters"]
     },
     {
       "id": "total_and_dimension_scores",
@@ -52,7 +52,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "86 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "89 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
     },
     {
@@ -129,8 +129,8 @@
       "id": "interrupted_run_resume",
       "title": "Resume interrupted task experiments",
       "status": "implemented",
-      "evidence": ["experiment_manifest.json is written before first harness execution", "checkpoint.json records completed repetitions", "resume command reuses completed result.json files and only runs missing repetitions", "suite_manifest.json and task_summaries persist completed suite tasks", "resume-suite only runs tasks with missing saved summaries"],
-      "remaining": ["Add matrix-level resumability"]
+      "evidence": ["experiment_manifest.json is written before first harness execution", "checkpoint.json records completed repetitions", "resume command reuses completed result.json files and only runs missing repetitions", "suite_manifest.json and task_summaries persist completed suite tasks", "resume-suite only runs tasks with missing saved summaries", "matrix_manifest.json and per-combination summaries persist matrix progress", "resume-matrix reuses saved combinations and nested suite checkpoints"],
+      "remaining": ["Add an optional historical recovery browser"]
     },
     {
       "id": "real_harness_adapters",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -13,7 +14,7 @@ from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
-from agent_benchmark.reports.matrix import write_matrix_summary
+from agent_benchmark.reports.matrix import build_matrix_leaderboard, write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
 from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_supported, run_task
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
@@ -127,6 +128,11 @@ def main(argv: list[str] | None = None) -> int:
     matrix_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
     matrix_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
 
+    resume_matrix_parser = subparsers.add_parser("resume-matrix", help="Resume an interrupted matrix run from saved combination checkpoints.")
+    resume_matrix_parser.add_argument("--matrix-run-dir", required=True, help="Path containing matrix_manifest.json.")
+    resume_matrix_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    resume_matrix_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
+
     args = parser.parse_args(argv)
     if args.command == "list-tasks":
         return _list_tasks(Path(args.tasks_dir))
@@ -162,6 +168,8 @@ def main(argv: list[str] | None = None) -> int:
         return _resume_suite(args)
     if args.command == "run-matrix":
         return _run_matrix(args)
+    if args.command == "resume-matrix":
+        return _resume_matrix(args)
     parser.error("Unknown command")
     return 2
 
@@ -374,32 +382,183 @@ def _run_matrix(args: argparse.Namespace) -> int:
     adapters = _split_csv(args.adapters)
     models = _split_csv(args.models)
     budget_profiles = _split_csv(args.budget_profiles)
-    combinations = []
+    combination_specs = []
     for adapter in adapters:
         for model in models:
             for budget_profile in budget_profiles:
-                config = ExperimentConfig(
-                    adapter=adapter,
-                    model=model,
-                    budget_profile=budget_profile,
-                    label=args.label,
-                    repetitions=args.repetitions,
-                    runs_dir=Path(args.runs_dir),
+                combination_specs.append(
+                    {
+                        "adapter": adapter,
+                        "model": model,
+                        "budget_profile": budget_profile,
+                        "label": args.label,
+                        "repetitions": args.repetitions,
+                    }
                 )
-                config.validate()
-                combinations.append(_run_suite_with_config(suite, config, Path(args.tasks_dir)))
+    matrix_summary = _run_matrix_with_specs(
+        suite,
+        combination_specs,
+        Path(args.tasks_dir),
+        Path(args.runs_dir),
+    )
+    print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _resume_matrix(args: argparse.Namespace) -> int:
+    matrix_run_dir = Path(args.matrix_run_dir)
+    manifest = _load_matrix_manifest(matrix_run_dir)
+    suite = load_suite(_resolve_suite(Path(manifest["suite_id"]), Path(args.suites_dir)))
+    saved_tasks_dir = Path(manifest["tasks_dir"])
+    tasks_dir = saved_tasks_dir if saved_tasks_dir.is_dir() else Path(args.tasks_dir)
+    specs = manifest["combination_specs"]
+    if not isinstance(specs, list):
+        raise ValueError("Matrix manifest combination_specs must be a list.")
+    if not all(isinstance(spec, dict) for spec in specs):
+        raise ValueError("Matrix manifest contains an invalid combination specification.")
+    matrix_summary = _run_matrix_with_specs(
+        suite,
+        [dict(spec) for spec in specs],
+        tasks_dir,
+        Path(manifest["runs_dir"]),
+        matrix_run_dir=matrix_run_dir,
+    )
+    print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _run_matrix_with_specs(
+    suite: object,
+    combination_specs: list[dict[str, object]],
+    tasks_dir: Path,
+    runs_dir: Path,
+    matrix_run_dir: Path | None = None,
+) -> dict[str, object]:
+    _validate_matrix_specs(combination_specs)
+    if matrix_run_dir is None:
+        matrix_run_id = f"matrix-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
+        matrix_run_dir = runs_dir / matrix_run_id
+        matrix_run_dir.mkdir(parents=True, exist_ok=True)
+        _write_matrix_manifest(matrix_run_dir, matrix_run_id, suite, combination_specs, tasks_dir, runs_dir, "in_progress")
+    else:
+        manifest = _load_matrix_manifest(matrix_run_dir)
+        matrix_run_id = str(manifest["matrix_run_id"])
+        if manifest.get("suite_id") != suite.suite_id:
+            raise ValueError(f"Resume manifest suite_id does not match '{suite.suite_id}'.")
+        if manifest.get("task_ids") != list(suite.tasks):
+            raise ValueError("Resume manifest task list does not match the current suite definition.")
+        if manifest.get("combination_specs") != combination_specs:
+            raise ValueError("Resume manifest combinations do not match the requested matrix.")
+
+    summaries_dir = matrix_run_dir / "combination_summaries"
+    suite_runs_dir = matrix_run_dir / "suite_runs"
+    summaries_dir.mkdir(parents=True, exist_ok=True)
+    suite_runs_dir.mkdir(parents=True, exist_ok=True)
+    combinations: list[dict[str, object]] = []
+    for index, spec in enumerate(combination_specs, start=1):
+        stem = _matrix_spec_stem(index, spec)
+        summary_path = summaries_dir / f"{stem}.json"
+        if summary_path.is_file():
+            combinations.append(json.loads(summary_path.read_text(encoding="utf-8")))
+            continue
+        config = ExperimentConfig(
+            adapter=str(spec["adapter"]),
+            model=str(spec["model"]),
+            budget_profile=str(spec["budget_profile"]),
+            label=str(spec.get("label", "")),
+            repetitions=int(spec["repetitions"]),
+            runs_dir=runs_dir,
+        )
+        config.validate()
+        suite_summary = _run_suite_with_config(
+            suite,
+            config,
+            tasks_dir,
+            suite_run_dir=suite_runs_dir / f"suite-{stem}",
+        )
+        summary_path.write_text(json.dumps(suite_summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        combinations.append(suite_summary)
+        _write_matrix_checkpoint(matrix_run_dir, combination_specs)
 
     matrix_summary = {
-        "matrix_run_id": f"matrix-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}",
+        "matrix_run_id": matrix_run_id,
         "suite_id": suite.suite_id,
         "combination_count": len(combinations),
         "combinations": combinations,
+        "leaderboard": build_matrix_leaderboard(combinations),
+        "matrix_run_dir": str(matrix_run_dir),
     }
-    matrix_run_dir = Path(args.runs_dir) / matrix_summary["matrix_run_id"]
-    matrix_summary["matrix_run_dir"] = str(matrix_run_dir)
     write_matrix_summary(matrix_run_dir, matrix_summary)
-    print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
-    return 0
+    _write_matrix_manifest(matrix_run_dir, matrix_run_id, suite, combination_specs, tasks_dir, runs_dir, "complete")
+    _write_matrix_checkpoint(matrix_run_dir, combination_specs, complete=True)
+    return matrix_summary
+
+
+def _validate_matrix_specs(specs: list[dict[str, object]]) -> None:
+    if not specs:
+        raise ValueError("Matrix requires at least one combination.")
+    required = {"adapter", "model", "budget_profile", "repetitions"}
+    for index, spec in enumerate(specs):
+        missing = sorted(required - spec.keys())
+        if missing:
+            raise ValueError(f"Matrix combination {index} is missing {', '.join(missing)}.")
+
+
+def _matrix_spec_stem(index: int, spec: dict[str, object]) -> str:
+    encoded = json.dumps(spec, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:10]
+    return f"{index:03d}-{digest}"
+
+
+def _write_matrix_manifest(
+    matrix_run_dir: Path,
+    matrix_run_id: str,
+    suite: object,
+    combination_specs: list[dict[str, object]],
+    tasks_dir: Path,
+    runs_dir: Path,
+    status: str,
+) -> None:
+    payload = {
+        "matrix_run_id": matrix_run_id,
+        "suite_id": suite.suite_id,
+        "task_ids": list(suite.tasks),
+        "tasks_dir": str(tasks_dir.resolve()),
+        "runs_dir": str(runs_dir.resolve()),
+        "combination_specs": combination_specs,
+        "status": status,
+    }
+    (matrix_run_dir / "matrix_manifest.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _load_matrix_manifest(matrix_run_dir: Path) -> dict[str, object]:
+    path = matrix_run_dir / "matrix_manifest.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"Cannot resume matrix: missing matrix manifest at {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Invalid matrix manifest at {path}")
+    return payload
+
+
+def _write_matrix_checkpoint(
+    matrix_run_dir: Path,
+    combination_specs: list[dict[str, object]],
+    complete: bool = False,
+) -> None:
+    summaries_dir = matrix_run_dir / "combination_summaries"
+    completed = [
+        _matrix_spec_stem(index, spec)
+        for index, spec in enumerate(combination_specs, start=1)
+        if (summaries_dir / f"{_matrix_spec_stem(index, spec)}.json").is_file()
+    ]
+    expected = [_matrix_spec_stem(index, spec) for index, spec in enumerate(combination_specs, start=1)]
+    payload = {
+        "completed_combinations": completed,
+        "remaining_combinations": [stem for stem in expected if stem not in completed],
+        "status": "complete" if complete else "in_progress",
+    }
+    (matrix_run_dir / "checkpoint.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _run_suite_with_config(
@@ -411,6 +570,10 @@ def _run_suite_with_config(
     if suite_run_dir is None:
         suite_run_id = f"suite-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
         suite_run_dir = config.runs_dir / suite_run_id
+        suite_run_dir.mkdir(parents=True, exist_ok=True)
+        _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "in_progress")
+    elif not (suite_run_dir / "suite_manifest.json").is_file():
+        suite_run_id = suite_run_dir.name
         suite_run_dir.mkdir(parents=True, exist_ok=True)
         _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "in_progress")
     else:

@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、86 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、89 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -36,7 +36,8 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。首次本机运行仍需要可用的 Docker daemon。
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
-- 矩阵运行（adapter × model × budget_profile）
+- 矩阵运行与恢复（adapter × model × budget_profile）；每个组合与内部 suite 都有 checkpoint，`resume-matrix` 可补跑未完成组合
+- 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名
 - 公开测试 + 隐藏测试 + SHA-256 完整性检查
 - 静态 HTML 视觉检查
 - 过程检查（plan.md、文件变更、测试质量、指令匹配）
@@ -68,6 +69,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>
+PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-dir runs/<matrix-run-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite calibration --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
