@@ -125,8 +125,17 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Docker daemon activation (OrbStack downloading).
-- Real harness matrix preparation (model registry + calibration script ready).
+- Docker daemon activation (colima downloading Ubuntu cloud image: 424MB, slow but progressing).
+- Real harness c-bugfix comparison (sub-agent running claude-code+DSv4).
+- Cross-harness matrix building (3 tasks with meaningful real data from both harnesses).
+
+## Latest Real Harness Results
+
+| Task | opencode+LC2.0 | claude-code+DSv4 | Key Finding |
+|------|---------------|-----------------|-------------|
+| python-bugfix | 62.05, var=0 | 63.75, var=0.002 | Both 100% pass; DSv4 has cost data |
+| process-planning | 54.25, var=1.0 | 53.94, var=0.0012 | Same mean, DSv4 800× more stable |
+| c-bugfix | 42.0, var=0 | TBD | Sub-agent in progress |
 
 ## Not Yet Implemented
 
