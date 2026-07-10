@@ -7,7 +7,7 @@ This file answers: what has actually been built, what is only partially built, a
 The project now has a usable early benchmark framework:
 
 - Task manifests.
-- Suites (foundation: 11 local tasks, calibration: 9 tasks, advanced: 3 tasks).
+- Suites (foundation: 11 local tasks, calibration: 8 tasks, advanced: 3 tasks).
 - Single-task runs.
 - Suite runs.
 - Matrix runs across adapter/model/budget-profile labels.
