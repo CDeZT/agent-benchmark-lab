@@ -3,7 +3,7 @@
   "updated_at": "2026-07-10",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 6 suites, validated difficulty/provenance metadata, a local easy-to-expert calibration suite, reports, matrix runs, evidence-backed scoring, hidden tests, test timeouts, doctor diagnostics, real opencode/Claude Code smoke tests, an audit command, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, Docker isolation, browser screenshots, external benchmark evaluator bridges, and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
+    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 6 suites, validated difficulty/provenance metadata, a local easy-to-expert calibration suite, reports, matrix runs, evidence-backed scoring, hidden tests, test timeouts, Docker evaluator code, doctor diagnostics, real opencode/Claude Code smoke tests, an audit command, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because larger real harness matrices, a working local Docker daemon and container-task smoke, browser screenshots, external benchmark evaluator bridges, and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
   },
   "items": [
     {
@@ -52,7 +52,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "83 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "85 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
     },
     {
@@ -150,8 +150,8 @@
       "id": "isolation",
       "title": "Clean isolated environment per run",
       "status": "partial",
-      "evidence": ["Each repetition copies task workspace into a run directory"],
-      "remaining": ["Add Docker isolation", "Add network policy", "Add dependency caching strategy"]
+      "evidence": ["Each repetition copies task workspace into a run directory", "container_required tasks generate a Dockerfile with exact package versions and persist image/build evidence", "container test commands use no network, CPU/memory limits, a writable workspace mount, and a read-only hidden-test mount"],
+      "remaining": ["Start a ready Docker daemon and run a real container task", "Pin base-image digests before authoritative comparisons", "Add dependency cache lifecycle and cleanup policy"]
     },
     {
       "id": "logs_and_replay",
@@ -178,8 +178,8 @@
       "id": "doctor_command",
       "title": "Local environment and harness diagnostics",
       "status": "implemented",
-      "evidence": ["agent-benchmark doctor checks python3, cc, opencode, claude, and adapter command env vars"],
-      "remaining": ["Add provider credential checks without printing secrets"]
+      "evidence": ["agent-benchmark doctor checks python3, cc, opencode, claude, Docker daemon readiness, and adapter command env vars"],
+      "remaining": ["Add provider credential checks without printing secrets", "Report active container runtime name when Docker is ready"]
     },
     {
       "id": "next_agent_handoff_prompt",
@@ -192,8 +192,8 @@
       "id": "external_benchmark_imports",
       "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
       "status": "planned",
-      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "roadmap specifies Docker-backed upstream evaluator bridges"],
-      "remaining": ["Implement Docker isolation and deterministic dependency provisioning", "Bridge a fixed SWE-bench Verified pilot to its upstream evaluator", "Bridge a fixed Terminal-Bench pilot to its upstream verifier"]
+      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "roadmap specifies Docker-backed upstream evaluator bridges", "project-owned Docker evaluator v1 is implemented"],
+      "remaining": ["Start and validate a local Docker daemon", "Bridge a fixed SWE-bench Verified pilot to its upstream evaluator", "Bridge a fixed Terminal-Bench pilot to its upstream verifier"]
     },
     {
       "id": "dashboard",

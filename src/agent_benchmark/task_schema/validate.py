@@ -107,6 +107,15 @@ def _validate_catalog_metadata(task: TaskSpec, result: ValidationResult) -> None
         result.errors.append(
             f"{task.task_id}: metadata.environment must be local or container_required"
         )
+    if environment == "container_required":
+        packages = task.metadata.get("required_python_packages")
+        if not isinstance(packages, list) or not packages:
+            result.errors.append(f"{task.task_id}: container_required tasks need required_python_packages")
+        elif any(not isinstance(package, str) or "==" not in package for package in packages):
+            result.errors.append(f"{task.task_id}: container packages must be exact-version strings")
+        container = task.metadata.get("container", {})
+        if container and not isinstance(container, dict):
+            result.errors.append(f"{task.task_id}: metadata.container must be an object")
 
     if not task.provenance:
         result.warnings.append(f"{task.task_id}: missing provenance metadata")

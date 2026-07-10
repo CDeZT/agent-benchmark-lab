@@ -7,7 +7,7 @@
   "difficulty": "hard",
   "difficulty_rationale": "Several coupled numerical imaging operations with edge cases, NaN behavior, and hidden tests.",
   "provenance": {"type": "domain_seed", "source": "agent-benchmark optics engineering seed corpus"},
-  "metadata": {"environment": "container_required", "required_python_packages": ["numpy", "scipy"]},
+  "metadata": {"environment": "container_required", "required_python_packages": ["numpy==2.2.1", "scipy==1.15.1"]},
   "workspace": "workspace",
   "test_command": ["python3", "test_pipeline.py"],
   "hidden_test_command": ["python3", "test_hidden_pipeline.py"],

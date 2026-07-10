@@ -7,7 +7,7 @@
     "difficulty": "expert",
     "difficulty_rationale": "Open-ended multi-file API generation, but it requires an isolated Flask-capable environment before it can be used in comparative scoring.",
     "provenance": {"type": "domain_seed", "source": "agent-benchmark full-stack engineering seed corpus"},
-    "metadata": {"environment": "container_required", "required_python_packages": ["flask"]},
+    "metadata": {"environment": "container_required", "required_python_packages": ["flask==3.1.0"]},
     "workspace": "workspace",
     "test_command": ["python3", "test_app.py"],
     "protected_paths": ["README.md"],

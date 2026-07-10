@@ -26,9 +26,9 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 83 unittest test functions, all expected to pass in the current tree.
+- 85 unittest test functions, all expected to pass in the current tree.
 
-It is not yet a finished real Claude Code versus opencode benchmark. Docker isolation, browser screenshots, and external benchmark importers still need to be implemented and tested.
+It is not yet a finished real Claude Code versus opencode benchmark. The Docker evaluator contract is implemented but still needs a working local daemon and a real container-task smoke run; browser screenshots and external benchmark importers remain unfinished.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
 
 ## Status Table
@@ -42,7 +42,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
 | Interrupted-run resume | Implemented | Each experiment has an immutable manifest and repetition checkpoint; `resume` reuses completed result files and rebuilds reports. | Add suite/matrix-level resumability. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 83 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 85 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 13 of 19 tasks currently have hidden tests. | Add independent hidden tests to every comparable task. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
@@ -56,11 +56,11 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
 | Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; both passed `python-bugfix` real smoke. | Run larger benchmark matrices and parse model/tool/cost evidence. |
 | Real harness smoke | Implemented | `opencode` and `claude-code` both passed `python-bugfix`; `real-smoke` suite exists; `audit --include-real-harness` exists. | Expand beyond smoke tasks. |
-| Isolation | Partial | Per-run workspace copies exist. | Add Docker and network policy. |
+| Isolation | Partial | Per-run workspace copies plus Docker evaluator v1: pinned dependency packages, image ID/build evidence, no-network verifier execution, CPU/memory limits, and read-only hidden-test mount. | Start a local daemon and run/record container task smoke; pin base-image digests before authoritative runs. |
 | Logs and evidence | Partial | trace/result/diff/stdout/stderr are saved. | Add replay UI and richer tool traces. |
 | Handoff/journal | Implemented | Handoff and project journal exist and are updated. | Keep updating every phase. |
 | Self-audit command | Implemented | `agent-benchmark audit` runs validation, unit tests, compileall, and smoke suite. | Add lint/Docker/browser/real-harness audit levels later. |
-| Doctor command | Implemented | `agent-benchmark doctor` checks local tools and adapter command env vars. | Add credential checks without exposing secrets. |
+| Doctor command | Implemented | `agent-benchmark doctor` checks local tools, Docker daemon readiness, and adapter command env vars. | Add credential checks without exposing secrets. |
 | Next-agent handoff prompt | Implemented | `docs/next_agent_prompt.md`; `agent-benchmark next-agent-prompt`. | Keep updated when workflow rules change. |
 | External benchmark imports | Planned | Source-aware manifests, catalog command, and import plan now exist. | Implement Docker isolation, then official-evaluator bridges for SWE-bench Verified and Terminal-Bench. |
 | Dashboard | Planned | Roadmap exists. | Build dashboard. |
@@ -98,7 +98,7 @@ No dimension should be assigned a non-zero score without execution evidence. Som
 
 ## Next Best Iterations
 
-1. Add Docker isolation and task dependency provisioning.
+1. Start a Docker daemon and smoke-test the implemented container evaluator on the four dependency tasks.
 2. Run real harness matrix on the `calibration` suite (opencode vs claude-code × multiple models).
 3. Add browser screenshot/pixel visual checks.
 4. Import a stratified SWE-bench Verified pilot, then a Terminal-Bench pilot.

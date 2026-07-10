@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
@@ -15,6 +16,7 @@ from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
+from agent_benchmark.runner.container import DockerTaskEnvironment, DockerUnavailableError, container_spec_for_task
 from agent_benchmark.runner.run import _summarize
 from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.recorders.jsonl import JsonlRecorder
@@ -84,13 +86,38 @@ class FrameworkTests(unittest.TestCase):
         self.assertFalse(invalid_result.ok)
         self.assertIn("source_benchmark", invalid_result.errors[0])
 
-    def test_container_required_task_cannot_silently_run_locally(self) -> None:
+    def test_container_required_task_requires_a_ready_docker_daemon(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "project-generation")
 
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaisesRegex(RuntimeError, "requires a containerized environment"):
-                run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
+        with patch("agent_benchmark.runner.container.docker_ready", return_value=(False, "test daemon unavailable")):
+            with tempfile.TemporaryDirectory() as tmp:
+                with self.assertRaisesRegex(DockerUnavailableError, "test daemon unavailable"):
+                    run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
 
+    def test_container_task_contract_uses_pinned_dependencies_and_limits(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "optics-imaging-pipeline")
+        spec = container_spec_for_task(task)
+
+        self.assertEqual(spec.base_image, "python:3.12.8-slim-bookworm")
+        self.assertEqual(spec.packages, ("numpy==2.2.1", "scipy==1.15.1"))
+        self.assertEqual(spec.cpus, 2.0)
+        self.assertEqual(spec.memory, "2g")
+        self.assertIn("numpy==2.2.1", spec.dockerfile)
+        self.assertTrue(spec.image_tag.startswith("agent-benchmark/optics-imaging-pipeline:"))
+
+    def test_container_test_commands_isolate_network_and_hidden_tests(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "optics-imaging-pipeline")
+        spec = container_spec_for_task(task)
+        environment = DockerTaskEnvironment(task, Path("/tmp/workspace"), Path("/tmp/run"), spec, "sha256:test", False)
+
+        public = environment._docker_command("public", task.test_command)
+        hidden = environment._docker_command("hidden", task.hidden_test_command)
+
+        self.assertIn("--network", public)
+        self.assertEqual(public[public.index("--network") + 1], "none")
+        self.assertIn(f"type=bind,src={environment.workspace.resolve()},dst=/workspace,rw", public)
+        self.assertNotIn("/hidden,readonly", " ".join(public))
+        self.assertIn("type=bind,src=" + str((task.root / "hidden").resolve()) + ",dst=/hidden,readonly", hidden)
     def test_difficulty_calibration_requires_multiple_real_combinations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

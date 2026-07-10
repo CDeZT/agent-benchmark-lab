@@ -4,7 +4,7 @@ Read this after `docs/handoff.md`, `docs/corpus_strategy.md`, and `docs/next_age
 
 ## Current Gate
 
-The local corpus is now usable for preliminary comparisons: `audit-corpus` reports 15 local tasks with a failing baseline and passing reference solution; four dependency-heavy tasks are correctly `container_required`. `python-bugfix` is `smoke_only`, so it checks adapter wiring but must not influence rankings.
+The local corpus is now usable for preliminary comparisons: `audit-corpus` reports 15 local tasks with a failing baseline and passing reference solution; four dependency-heavy tasks are correctly `container_required`. `python-bugfix` is `smoke_only`, so it checks adapter wiring but must not influence rankings. Docker evaluator v1 is implemented; it needs a ready daemon before those four tasks can be exercised.
 
 Before every change run:
 
@@ -41,10 +41,12 @@ This produces a preliminary personal answer to the harness question. It is not a
 
 ## V1 Infrastructure: Docker Then External Benchmarks
 
-Implement a Docker runner before attempting the four `container_required` tasks or any external benchmark.
+Activate and validate the Docker runner before attempting external benchmarks. The four `container_required` tasks now use it automatically once `docker` is ready.
 
-- Task environment contract: immutable image/Dockerfile reference, setup steps, dependency lock, timeout, network policy, CPU/memory limits, and mounted workspace boundaries.
-- Runner evidence: image digest, command, exit status, stdout/stderr, test output, and cleanup outcome saved per repetition.
+- Task environment contract: generated Dockerfile, exact Python dependency versions, image ID, timeout, no-network verifier policy, CPU/memory limits, and mounted workspace boundaries.
+- Runner evidence: image tag/ID, Dockerfile, build log, command, exit status, stdout/stderr, and test output saved per repetition.
+- The harness CLI remains on the host so it can use the user's existing login/provider configuration; its prompt includes a prebuilt public container-test helper. Do not mount credentials into images.
+- Before a comparative claim, run a real container task and preserve its run directory. The current machine installed `docker` and Colima, but Colima VM image download timed out twice on 2026-07-10; `doctor` must be green before this gate is considered passed.
 - Keep hidden tests outside the agent workspace and keep task fixtures read-only where appropriate.
 - First validate Docker with project-owned Flask/NumPy tasks. Only then import a fixed, stratified SWE-bench Verified pilot; preserve upstream instance id, base commit, source version, license note, evaluator output, and upstream Fail-to-Pass/Pass-to-Pass result.
 - Add Terminal-Bench after the SWE-bench bridge. Keep it as a separate terminal-agent axis rather than mixing its result into software-engineering resolution rate.

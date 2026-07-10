@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import difflib
 import fnmatch
@@ -19,6 +19,7 @@ from agent_benchmark.recorders import JsonlRecorder
 from agent_benchmark.reports.html import write_html_report
 from agent_benchmark.reports.markdown import write_markdown_report
 from agent_benchmark.runner.config import ExperimentConfig
+from agent_benchmark.runner.container import DockerTaskEnvironment, ensure_docker_ready, prepare_docker_environment
 from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.task_schema import TaskSpec
 
@@ -97,7 +98,14 @@ def run_task(
         _copy_workspace(task.workspace_path, baseline)
         (run_dir / "instruction.txt").write_text(task.instruction, encoding="utf-8")
 
-        adapter_result = _run_adapter_with_env(adapter, task, workspace, recorder, config)
+        container_environment: DockerTaskEnvironment | None = None
+        runtime_task = task
+        if task.metadata.get("environment", "local") == "container_required":
+            container_environment = prepare_docker_environment(task, workspace, run_dir)
+            runtime_task = replace(task, instruction=task.instruction + container_environment.agent_instruction())
+            (run_dir / "instruction.txt").write_text(runtime_task.instruction, encoding="utf-8")
+
+        adapter_result = _run_adapter_with_env(adapter, runtime_task, workspace, recorder, config)
         (run_dir / "stdout.log").write_text(adapter_result.stdout, encoding="utf-8")
         (run_dir / "stderr.log").write_text(adapter_result.stderr, encoding="utf-8")
         changed_files = _changed_files(baseline, workspace, task)
@@ -112,7 +120,15 @@ def run_task(
                 "tools": [t["type"] for t in harness_evidence.tool_calls],
             })
 
-        score = score_run(task, baseline, workspace, recorder, harness_evidence=harness_evidence)
+        score = score_run(
+            task,
+            baseline,
+            workspace,
+            recorder,
+            harness_evidence=harness_evidence,
+            test_runner=container_environment.run_test if container_environment else None,
+            environment_evidence=container_environment.evidence if container_environment else None,
+        )
         duration_seconds = time.monotonic() - run_start
         result = RunResult(
             run_id=run_id,
@@ -149,15 +165,10 @@ def run_task(
 
 
 def ensure_task_environment_supported(task: TaskSpec) -> None:
-    """Fail closed until the Docker runner can reproduce isolated task dependencies."""
+    """Fail closed when a task's declared environment cannot be reproduced."""
     environment = task.metadata.get("environment", "local")
     if environment == "container_required":
-        packages = task.metadata.get("required_python_packages", [])
-        package_hint = f" Required packages: {', '.join(packages)}." if packages else ""
-        raise RuntimeError(
-            f"Task '{task.task_id}' requires a containerized environment and cannot run with the local runner."
-            f"{package_hint} Implement or use the Docker runner before comparing this task."
-        )
+        ensure_docker_ready()
 
 
 def _copy_workspace(source: Path, target: Path) -> None:

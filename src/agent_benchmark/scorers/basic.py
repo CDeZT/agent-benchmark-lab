@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
-from typing import Any
+from typing import Any, Callable
 
 from agent_benchmark.parsers.harness_output import HarnessEvidence
 from agent_benchmark.recorders import JsonlRecorder
@@ -125,12 +125,15 @@ def score_run(
     workspace: Path,
     recorder: JsonlRecorder,
     harness_evidence: HarnessEvidence | None = None,
+    test_runner: Callable[[str, list[str], Path, Path, float, JsonlRecorder], dict[str, object]] | None = None,
+    environment_evidence: dict[str, object] | None = None,
 ) -> ScoreResult:
     dimensions: dict[str, float] = {}
     evidence: dict[str, object] = {}
 
-    public_test = _run_test_command("public", task.test_command, workspace, workspace, task.test_timeout_seconds, recorder)
-    hidden_test = _run_test_command(
+    execute_test = test_runner or _run_test_command
+    public_test = execute_test("public", task.test_command, workspace, workspace, task.test_timeout_seconds, recorder)
+    hidden_test = execute_test(
         "hidden",
         task.hidden_test_command,
         task.root / "hidden",
@@ -144,6 +147,8 @@ def score_run(
     else:
         dimensions["task_completion"] = 0.0
     evidence["test"] = {"public": public_test, "hidden": hidden_test}
+    if environment_evidence:
+        evidence["environment"] = environment_evidence
 
     integrity = score_protected_paths(task, baseline, workspace)
     dimensions["safety_boundary"] = integrity.score

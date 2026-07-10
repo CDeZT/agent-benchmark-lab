@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、83 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、85 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -33,6 +33,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 机器可读题库目录：难度分层为 easy=3、medium=9、hard=4、expert=3；每题都有难度依据和来源类型
 - 当前任务是项目自定义 seed/inspired tasks，部分受 SWE-bench、Terminal-Bench 等思路启发；尚未真正导入权威外部题库。详见 `docs/task_provenance.md`。
 - `calibration` suite 从易到专家级覆盖本机可运行任务；依赖 Flask、NumPy、SciPy 或 pandas 的任务明确标记为 `container_required`，不会混进默认本机比较。
+- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、无网络测试执行、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。首次本机运行仍需要可用的 Docker daemon。
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 矩阵运行（adapter × model × budget_profile）

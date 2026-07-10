@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 83 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 85 unittest test functions, real harness smoke support, Docker evaluator v1 code, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -113,6 +113,8 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
 - Added `audit-corpus`, which proves baseline/reference contrast, and made it a mandatory default `audit` check. Fixed `code-review`, `repo-understanding`, and `python-test-writing`; the current corpus result is 15 local tasks passing and 4 container-required tasks skipped.
 - Added interruption-safe experiment persistence: manifests are written before a run, checkpoints are updated after each repetition, and `resume --experiment-dir` reuses completed result files and runs only missing repetitions.
+- Implemented Docker evaluator v1 for `container_required` tasks: exact-version Python dependencies, generated Dockerfile/image evidence, no-network test containers, CPU/memory limits, read-write workspace mount, read-only hidden tests, and a public test helper injected into the real harness prompt. The host harness keeps its local credentials instead of putting them in the container.
+- Installed the `docker` CLI and Colima without sudo. Docker Desktop installation required an interactive administrator password and was therefore not completed. Colima VM image download timed out twice from GitHub, so no daemon-backed container task has been claimed as tested; `doctor` reports this honestly.
 
 ## In Progress
 
@@ -121,7 +123,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 ## Not Yet Implemented
 
 - Larger real Claude Code/opencode benchmark runs beyond smoke tests.
-- Docker isolation.
+- Docker daemon activation and a real container-task smoke run (Docker evaluator code exists).
 - Docker-backed external evaluator bridges (SWE-bench Verified, Terminal-Bench).
 - Visual browser automation.
 - Optional LLM judge adjudication.
@@ -154,7 +156,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 83 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 85 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -172,11 +174,11 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation
 PYTHONPATH=src python3 -m compileall -q src tests
 ```
 
-The local `foundation` suite has 11 tasks. Do not claim any container-required dependency task has passed locally until Docker dependency provisioning exists.
+The local `foundation` suite has 11 tasks. Do not claim any container-required dependency task has passed locally until `doctor` reports a ready Docker daemon and a saved container run exists.
 
 ## Recommended Next Phase
 
-1. Add Docker isolation and deterministic task dependency provisioning.
+1. Restore network access for Colima (or start another Docker daemon), then smoke-test the implemented Docker evaluator on project-owned Flask/NumPy tasks.
 2. Run real harness matrix on `calibration` (opencode vs claude-code × multiple models).
 3. Add browser screenshot and pixel-based visual verification for `frontend-visual`.
 4. Bridge to a fixed SWE-bench Verified pilot, then Terminal-Bench, preserving upstream evaluators.

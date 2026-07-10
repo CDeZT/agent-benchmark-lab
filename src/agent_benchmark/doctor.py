@@ -28,6 +28,7 @@ def run_doctor() -> dict[str, Any]:
         _command_check("cc", ["cc", "--version"]),
         _command_check("opencode", ["opencode", "--version"]),
         _command_check("claude", ["claude", "--version"]),
+        _docker_check(),
         _env_check("AGENT_BENCH_COMMAND"),
         _env_check("AGENT_BENCH_OPENCODE_COMMAND", recommended=RECOMMENDED_COMMANDS["opencode"]),
         _env_check("AGENT_BENCH_CLAUDE_CODE_COMMAND", recommended=RECOMMENDED_COMMANDS["claude-code"]),
@@ -95,7 +96,34 @@ def _env_check(name: str, recommended: str | None = None) -> DoctorCheck:
     return DoctorCheck(name=f"env:{name}", status="warning", details=details)
 
 
+def _docker_check() -> DoctorCheck:
+    path = shutil.which("docker")
+    if not path:
+        return DoctorCheck(name="docker", status="error", details={"reason": "docker command not found"})
+    try:
+        completed = subprocess.run(
+            ["docker", "version", "--format", "{{.Server.Version}}"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return DoctorCheck(name="docker", status="error", details={"path": path, "reason": str(exc)})
+    if completed.returncode:
+        output = (completed.stderr or completed.stdout).strip().splitlines()
+        return DoctorCheck(
+            name="docker",
+            status="error",
+            details={"path": path, "reason": output[-1] if output else "daemon unavailable"},
+        )
+    return DoctorCheck(name="docker", status="ok", details={"path": path, "server_version": completed.stdout.strip()})
+
+
 def _short_details(details: dict[str, Any]) -> str:
+    if "server_version" in details:
+        return f"{details.get('path', '')} server={details['server_version']}".strip()
     if "version" in details:
         return f"{details.get('path', '')} {details.get('version', '')}".strip()
     if "configured" in details:
