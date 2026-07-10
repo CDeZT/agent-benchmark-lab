@@ -44,10 +44,18 @@ def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, di
 
     Returns (score, evidence) where score is 0-100.
     """
-    # Priority 1: Real token/cost data
+    # Priority 1: Real token/cost data.
+    # Guard: zero cost/tokens when nothing happened is not "perfect efficiency".
     if harness_evidence.cost_usd is not None:
-        # Score based on cost: $0 = 100, $0.10 = 50, $0.20+ = 0
         cost = harness_evidence.cost_usd
+        if cost <= 0:
+            return 0.0, {
+                "method": "cost_usd",
+                "cost_usd": cost,
+                "score": 0.0,
+                "reason": "zero cost is not evidence of efficiency",
+            }
+        # Score based on cost: lower cost = higher score
         score = max(0.0, min(100.0, 100.0 - (cost * 500.0)))
         return round(score, 2), {
             "method": "cost_usd",
@@ -56,8 +64,17 @@ def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, di
         }
 
     if harness_evidence.input_tokens is not None or harness_evidence.output_tokens is not None:
-        # Score based on token count: 0 tokens = 100, 10k tokens = 50, 20k+ = 0
         total_tokens = (harness_evidence.input_tokens or 0) + (harness_evidence.output_tokens or 0)
+        if total_tokens <= 0:
+            return 0.0, {
+                "method": "token_count",
+                "input_tokens": harness_evidence.input_tokens,
+                "output_tokens": harness_evidence.output_tokens,
+                "total_tokens": total_tokens,
+                "score": 0.0,
+                "reason": "zero tokens is not evidence of efficiency",
+            }
+        # Score based on token count: fewer tokens = more efficient
         score = max(0.0, min(100.0, 100.0 - (total_tokens / 200.0)))
         return round(score, 2), {
             "method": "token_count",
