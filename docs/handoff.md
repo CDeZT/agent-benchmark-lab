@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 80 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 81 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -110,6 +110,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added strict-score measurement coverage: every result now distinguishes the all-dimension strict total from verified evidence coverage and a verified-only normalized score. Do not present either number without the other.
 - Added `calibrate-difficulty`, which requires real non-dummy results across at least 3 combinations and 9 runs before a task can be called a discriminative candidate.
 - Applied the first live calibration result: `python-bugfix` is 100% successful across four non-dummy combinations and twelve recorded runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
+- Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
 
 ## In Progress
 
@@ -151,10 +152,11 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 80 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 81 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
+PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate

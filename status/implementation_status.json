@@ -52,7 +52,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "80 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "81 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
     },
     {
@@ -110,6 +110,13 @@
       "status": "partial",
       "evidence": ["embedded-c, embedded-protocol-parser, optics-python, and optics-imaging-pipeline seed tasks exist"],
       "remaining": ["Add deeper domain tasks: protocols, memory safety, timing, calibration, imaging simulation"]
+    },
+    {
+      "id": "outcome_capability_scorecard",
+      "title": "Outcome capability scorecard",
+      "status": "implemented",
+      "evidence": ["taxonomy command maps tasks to outcome axes", "suite summaries aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability", "smoke_only tasks are excluded from comparative axis scores"],
+      "remaining": ["Add authoritative external benchmark tracks to each applicable axis"]
     },
     {
       "id": "budget_profiles",

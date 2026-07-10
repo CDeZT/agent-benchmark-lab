@@ -32,6 +32,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
     PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
     PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
     PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
+    PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
     PYTHONPATH=src python3 -m unittest discover -s tests -v
 
@@ -67,7 +68,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 80 个 unittest 测试函数，应该全部通过。
+- 81 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 增加 Docker isolation 和任务依赖 provisioning。

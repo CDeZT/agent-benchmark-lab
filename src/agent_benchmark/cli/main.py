@@ -17,6 +17,7 @@ from agent_benchmark.reports.suite import write_suite_summary
 from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_supported, run_task
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
+from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
 
 
 DEFAULT_TASKS_DIR = Path("benchmarks/tasks")
@@ -44,6 +45,10 @@ def main(argv: list[str] | None = None) -> int:
     difficulty_parser.add_argument("--min-combinations", type=int, default=3)
     difficulty_parser.add_argument("--min-runs", type=int, default=9)
     difficulty_parser.add_argument("--json", action="store_true")
+
+    taxonomy_parser = subparsers.add_parser("taxonomy", help="Show outcome capability axes and task mappings.")
+    taxonomy_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    taxonomy_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -116,6 +121,8 @@ def main(argv: list[str] | None = None) -> int:
         return _catalog(args)
     if args.command == "calibrate-difficulty":
         return _calibrate_difficulty(args)
+    if args.command == "taxonomy":
+        return _taxonomy(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -197,6 +204,23 @@ def _calibrate_difficulty(args: argparse.Namespace) -> int:
             f"{task['task_id']}\t{task['classification']}\tcombinations={task['combination_count']}"
             f"\truns={task['run_count']}\trate_range={task['success_rate_range']}"
         )
+    return 0
+
+
+def _taxonomy(args: argparse.Namespace) -> int:
+    tasks = [load_task(path) for path in sorted(Path(args.tasks_dir).iterdir()) if path.is_dir()]
+    payload = {
+        "axes": {
+            axis: {"title": definition["title"], "capabilities": sorted(definition["capabilities"])}
+            for axis, definition in EVALUATION_AXES.items()
+        },
+        "tasks": [{"task_id": task.task_id, "axes": axes_for_task(task.capabilities)} for task in tasks],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    for task in payload["tasks"]:
+        print(f"{task['task_id']}\taxes=[{', '.join(task['axes']) or 'unmapped'}]")
     return 0
 
 
@@ -355,6 +379,7 @@ def _run_suite_with_config(suite: object, config: ExperimentConfig, tasks_dir: P
         ),
         "tasks": summaries,
     }
+    suite_summary["evaluation_axis_scorecard"] = build_scorecard(summaries)
     suite_run_dir = config.runs_dir / suite_summary["suite_run_id"]
     suite_summary["suite_run_dir"] = str(suite_run_dir)
     write_suite_summary(suite_run_dir, suite_summary)

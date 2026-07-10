@@ -6,6 +6,7 @@
 - Added `calibrate-difficulty`: declared task tiers now remain hypotheses until real non-dummy results contain at least three combinations and nine runs; only materially separated pass rates become a discriminative candidate.
 - Ran it on existing saved real-harness evidence: `python-bugfix` was 100% across four combinations and twelve runs, so it was correctly reclassified as `smoke_only` instead of a differentiating benchmark task.
 - Confirmed the remaining weak dimensions are explicitly tracked rather than claimed complete: visual checks are static only, self-repair and tool-use trace interpretation are heuristic, subagent allocation has no direct evidence yet, and cost needs provider telemetry.
+- Added an outcome capability scorecard so task-domain results are separate from process scores: software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability. Smoke-only tasks are automatically excluded.
 - Re-audited the long-term user requirements: the benchmark needs both authoritative external tracks and project-owned embedded/optics tasks, with a deliberate easy-to-expert progression rather than a flat pile of examples.
 - Added task-level `difficulty`, `difficulty_rationale`, and provenance metadata to all 19 manifests; validation now rejects invalid tiers and incomplete external-import provenance.
 - Added `agent-benchmark catalog` and an 8-task local `calibration` suite; current distribution is easy=3, medium=9, hard=4, expert=3.

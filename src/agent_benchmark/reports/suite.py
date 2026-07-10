@@ -37,4 +37,13 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
             f"{task.get('mean_verified_coverage_percent')}% | {task['mean_duration_seconds']} | "
             f"{task['variance']} | `{task['experiment_dir']}` |"
         )
+    scorecard = suite_summary.get("evaluation_axis_scorecard", {})
+    axes = scorecard.get("axes", {}) if isinstance(scorecard, dict) else {}
+    if axes:
+        lines.extend(["", "## Outcome Capability Scorecard", "", "| Axis | Tasks | Strict | Verified | Coverage |", "| --- | ---: | ---: | ---: | ---: |"])
+        for axis, values in axes.items():
+            lines.append(
+                f"| {values['title']} (`{axis}`) | {values['task_count']} | {values['mean_strict_score']} | "
+                f"{values['mean_verified_normalized_score']} | {values['mean_verified_coverage_percent']}% |"
+            )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

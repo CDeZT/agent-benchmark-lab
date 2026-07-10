@@ -19,6 +19,7 @@ from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
+from agent_benchmark.taxonomy import axes_for_task, build_scorecard
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +51,15 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(fullstack["environment"], "container_required")
         imaging = next(task for task in catalog["tasks"] if task["id"] == "optics-imaging-pipeline")
         self.assertEqual(imaging["environment"], "container_required")
+
+    def test_outcome_taxonomy_aggregates_capability_axes(self) -> None:
+        self.assertIn("systems_embedded", axes_for_task(["c_engineering", "embedded_engineering"]))
+        scorecard = build_scorecard([
+            {"task_id": "embedded", "task_capabilities": ["embedded_engineering", "c_engineering"], "mean_score": 40, "mean_verified_normalized_score": 80, "mean_verified_coverage_percent": 50},
+            {"task_id": "smoke", "task_capabilities": ["bugfix"], "benchmark_role": "smoke_only", "mean_score": 100, "mean_verified_normalized_score": 100, "mean_verified_coverage_percent": 100},
+        ])
+        self.assertEqual(scorecard["axes"]["systems_embedded"]["mean_strict_score"], 40.0)
+        self.assertEqual(scorecard["excluded_smoke_only_tasks"], ["smoke"])
 
     def test_external_imported_provenance_requires_reproducibility_fields(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
