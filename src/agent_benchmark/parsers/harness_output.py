@@ -206,6 +206,13 @@ def _parse_claude_json(stdout: str) -> HarnessEvidence | None:
                 if isinstance(count, int) and count > 0:
                     evidence.tool_calls.extend({"type": f"server_{tool_name}"} for _ in range(count))
 
+    # num_turns: each turn beyond the first involves at least one tool interaction.
+    num_turns = payload.get("num_turns")
+    if isinstance(num_turns, int) and num_turns > 1:
+        agent_turns = num_turns - 1
+        evidence.tool_calls.append({"type": "interaction", "turns": num_turns})
+        evidence.tool_calls.extend({"type": "agent_turn"} for _ in range(agent_turns))
+
     # The final text can still mention files, which is only heuristic tool use.
     result = payload.get("result")
     if isinstance(result, str):
