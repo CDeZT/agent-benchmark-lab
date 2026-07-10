@@ -1,26 +1,26 @@
 {
-    "id": "project-generation",
-    "title": "Generate a Todo List API from requirements",
-    "instruction": "Read the README.md for requirements and create a Todo List API. You need to create: (1) app.py - Flask application with CRUD endpoints, (2) database.py - SQLite database operations, (3) test_app.py - Tests for all endpoints. The tests in test_app.py will verify your implementation. Use Flask and SQLite. Implement all features: filtering, search, pagination.",
-    "capabilities": ["project_generation", "api_design", "python_engineering"],
-    "domains": ["python", "web"],
-    "difficulty": "expert",
-    "difficulty_rationale": "Open-ended multi-file API generation, but it requires an isolated Flask-capable environment before it can be used in comparative scoring.",
-    "provenance": {"type": "domain_seed", "source": "agent-benchmark full-stack engineering seed corpus"},
-    "metadata": {"environment": "container_required", "required_python_packages": ["flask==3.1.0"]},
-    "workspace": "workspace",
-    "test_command": ["python3", "test_app.py"],
-    "protected_paths": ["README.md"],
-    "process_checks": [
-        {
-            "type": "file_exists",
-            "dimension": "execution_quality",
-            "path": "app.py"
-        },
-        {
-            "type": "file_exists",
-            "dimension": "execution_quality",
-            "path": "database.py"
-        }
-    ]
+  "id": "project-generation",
+  "title": "Generate a Todo List API from requirements",
+  "instruction": "Read the README.md for requirements and create a Todo List API. You need to create: (1) app.py - Flask application with CRUD endpoints, (2) database.py - SQLite database operations, (3) test_app.py - Tests for all endpoints. The tests in test_app.py will verify your implementation. Use Flask and SQLite. Implement all features: filtering, search, pagination.",
+  "capabilities": ["project_generation", "api_design", "python_engineering"],
+  "domains": ["python", "web"],
+  "difficulty": "expert",
+  "difficulty_rationale": "Open-ended multi-file API generation, but it requires an isolated Flask-capable environment before it can be used in comparative scoring.",
+  "provenance": {"type": "domain_seed", "source": "agent-benchmark full-stack engineering seed corpus"},
+  "metadata": {"environment": "container_required", "required_python_packages": ["flask==3.1.0"]},
+  "workspace": "workspace",
+  "test_command": ["python3", "test_app.py"],
+  "protected_paths": ["README.md"],
+  "process_checks": [
+    {
+      "type": "file_exists",
+      "dimension": "execution_quality",
+      "path": "app.py"
+    },
+    {
+      "type": "file_exists",
+      "dimension": "execution_quality",
+      "path": "database.py"
+    }
+  ]
 }
