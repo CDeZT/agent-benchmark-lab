@@ -17,7 +17,7 @@ class DoctorCheck:
 
 
 RECOMMENDED_COMMANDS = {
-    "opencode": "built-in default uses opencode run --auto, adding --model only when AGENT_BENCH_MODEL is not unspecified",
+    "opencode": "built-in default uses opencode run --auto (--model intentionally omitted: opencode 1.17.15 crashes with any --model value)",
     "claude-code": "built-in default uses claude -p --dangerously-skip-permissions --no-session-persistence, adding --model only when AGENT_BENCH_MODEL is not unspecified",
 }
 
