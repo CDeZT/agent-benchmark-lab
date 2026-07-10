@@ -24,9 +24,19 @@ Do not describe current tasks as "authoritative imported tasks." The accurate wo
 
 This matters because the user wants reliable quantitative results. Inflating task provenance would make reports look more scientific than the evidence supports.
 
+## Manifest Schema
+
+Every current task now carries these top-level fields:
+
+- `difficulty`: `easy`, `medium`, `hard`, or `expert`.
+- `difficulty_rationale`: why that tier is appropriate; it must not be inferred from an agent's score.
+- `provenance.type`: `custom_seed`, `domain_seed`, `inspired_by_external`, or `external_imported`.
+
+The `agent-benchmark catalog` command exposes this data to humans and automation. Validation rejects invalid tiers and rejects imported tasks that omit reproducibility metadata.
+
 ## Minimum Metadata For Future Imported Tasks
 
-When external benchmark importers are added, each imported task should record:
+When external benchmark importers are added, each imported task must record these fields inside `provenance`:
 
 - `source_benchmark`: for example `SWE-bench`, `Terminal-Bench`, `WebArena`, or `OSWorld`.
 - `source_id`: the upstream task or issue identifier.
@@ -34,11 +44,10 @@ When external benchmark importers are added, each imported task should record:
 - `source_version`: dataset release, commit SHA, or snapshot date.
 - `license_note`: short note confirming the task can be redistributed or how it was transformed.
 - `importer_version`: local importer version or commit.
-- `difficulty`: one of `easy`, `medium`, `hard`, `expert`, or a benchmark-native difficulty label.
-- `provenance_type`: `external_imported`.
+- `type`: `external_imported`.
 
-For custom seed tasks, use `provenance_type: custom_seed`, `domain_seed`, or `inspired_by_external`.
+For custom seed tasks, use `provenance.type: custom_seed`, `domain_seed`, or `inspired_by_external` plus a project source description.
 
 ## Next Iteration Recommendation
 
-Add non-failing validation warnings for task manifests that omit provenance metadata, then gradually annotate all current tasks. After that, build real importers instead of hand-labeling tasks as external.
+The metadata layer and validation are now implemented. The next step is a real Docker-backed importer/evaluator bridge, not hand-labeling local tasks as external.

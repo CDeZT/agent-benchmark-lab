@@ -2,6 +2,11 @@
 
 ## 2026-07-10
 
+- Re-audited the long-term user requirements: the benchmark needs both authoritative external tracks and project-owned embedded/optics tasks, with a deliberate easy-to-expert progression rather than a flat pile of examples.
+- Added task-level `difficulty`, `difficulty_rationale`, and provenance metadata to all 19 manifests; validation now rejects invalid tiers and incomplete external-import provenance.
+- Added `agent-benchmark catalog` and an 8-task local `calibration` suite; current distribution is easy=3, medium=9, hard=4, expert=3.
+- Found that Docker, Flask, NumPy, SciPy, and pandas are unavailable on this Mac. Marked dependency-bound tasks `container_required`; the runner now refuses them locally and `project-generation` was removed from the default foundation suite so a dependency failure cannot look like a valid benchmark pass.
+- Added `docs/corpus_strategy.md` and revised roadmap/handoff/status: Docker isolation is the prerequisite for a fixed SWE-bench Verified pilot, followed by a Terminal-Bench pilot; WebArena/OSWorld belong to separate later tracks.
 - Audited the post-handoff repository state and git history from another coding agent's iterations.
 - Found documentation drift: README/handoff/status claimed 15 tasks and 75 tests while the repository actually had 19 task definitions and, after this iteration, 76 unittest test functions.
 - Found an evidence-integrity issue in `cost_efficiency`: tool-call count was being used as a cost proxy. Tightened scoring so only parsed token/cost data can produce a non-zero cost score.

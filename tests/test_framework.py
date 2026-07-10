@@ -17,7 +17,7 @@ from agent_benchmark.runner.run import _summarize
 from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.status import format_status, load_status
-from agent_benchmark.task_schema import load_suite, load_task, validate_all
+from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +38,38 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("embedded-c", suite.tasks)
         self.assertIn("optics_engineering", suite.capability_focus)
         self.assertIn("process-planning", suite.tasks)
+
+    def test_catalog_exposes_difficulty_and_provenance(self) -> None:
+        catalog = build_catalog(ROOT / "benchmarks" / "tasks")
+
+        self.assertEqual(catalog["task_count"], 19)
+        self.assertEqual(catalog["difficulty_distribution"], {"easy": 3, "medium": 9, "hard": 4, "expert": 3})
+        self.assertEqual(catalog["provenance_distribution"]["inspired_by_external"], 1)
+        fullstack = next(task for task in catalog["tasks"] if task["id"] == "python-fullstack")
+        self.assertEqual(fullstack["environment"], "container_required")
+        imaging = next(task for task in catalog["tasks"] if task["id"] == "optics-imaging-pipeline")
+        self.assertEqual(imaging["environment"], "container_required")
+
+    def test_external_imported_provenance_requires_reproducibility_fields(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        incomplete = task.__class__(
+            **{**task.__dict__, "provenance": {"type": "external_imported"}}
+        )
+
+        result = validate_all(ROOT / "benchmarks" / "tasks", ROOT / "benchmarks" / "suites")
+        self.assertTrue(result.ok)
+        from agent_benchmark.task_schema.validate import validate_task
+
+        invalid_result = validate_task(incomplete)
+        self.assertFalse(invalid_result.ok)
+        self.assertIn("source_benchmark", invalid_result.errors[0])
+
+    def test_container_required_task_cannot_silently_run_locally(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "project-generation")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(RuntimeError, "requires a containerized environment"):
+                run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
 
     def test_dummy_run_writes_evidence(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")

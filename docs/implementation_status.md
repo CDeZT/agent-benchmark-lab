@@ -4,10 +4,10 @@ This file answers: what has actually been built, what is only partially built, a
 
 ## Short Answer
 
-The project now has a fully functional benchmark framework:
+The project now has a usable early benchmark framework:
 
 - Task manifests.
-- Suites (foundation: 12 tasks, advanced: 3 tasks).
+- Suites (foundation: 11 local tasks, calibration: 9 tasks, advanced: 3 tasks).
 - Single-task runs.
 - Suite runs.
 - Matrix runs across adapter/model/budget-profile labels.
@@ -26,7 +26,7 @@ The project now has a fully functional benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 76 unittest test functions, all expected to pass in the current tree.
+- 79 unittest test functions, all expected to pass in the current tree.
 
 It is not yet a finished real Claude Code versus opencode benchmark. Docker isolation, browser screenshots, and external benchmark importers still need to be implemented and tested.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
@@ -41,14 +41,14 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Total and dimension scores | Implemented | `ScoreResult` has total and dimension scores. Dimensions without evidence stay at 0. | Keep refining weak heuristic dimensions. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Implemented | Every non-zero score must come from saved execution evidence. `cost_efficiency` now scores only from parsed token/cost usage, not tool-call proxies. 76 unittest tests cover scoring integrity. | Keep strengthening heuristic dimensions and provenance checks. |
+| Evidence-backed scoring | Implemented | Every non-zero score must come from saved execution evidence. `cost_efficiency` now scores only from parsed token/cost usage, not tool-call proxies. 79 unittest tests cover framework and scoring behavior. | Keep strengthening heuristic dimensions and process evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
-| Public and hidden tests | Implemented | `test_command` and `hidden_test_command`; all seed tasks have hidden tests. | Keep adding hidden tests to new tasks. |
+| Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 13 of 19 tasks currently have hidden tests. | Add independent hidden tests to every comparable task. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
 | Prevent test tampering | Implemented | Protected files checked with SHA-256 hashes. | Add stricter invalid-run policy levels. |
 | Visual verification | Partial | Static HTML checks exist. | Add browser screenshots and pixel checks. |
 | Cost and duration | Partial | Duration is measured; parsed token/cost fields are carried into run summaries when harness output exposes them. | Improve provider-specific usage parsing and reporting. |
-| Python/C/frontend seed tasks | Implemented | Repository contains 19 task definitions; foundation suite contains 12 tasks. | Expand difficulty and task types. |
+| Task corpus and difficulty ladder | Implemented | 19 manifests carry validated difficulty/provenance fields; easy=3, medium=9, hard=4, expert=3; the 8-task local `calibration` suite spans all four tiers. | Add task-quality negative controls and more domain tasks. |
 | Embedded and optics domains | Partial | Seed tasks exist. | Add deeper domain-specific tasks. |
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
 | Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; both passed `python-bugfix` real smoke. | Run larger benchmark matrices and parse model/tool/cost evidence. |
@@ -59,7 +59,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Self-audit command | Implemented | `agent-benchmark audit` runs validation, unit tests, compileall, and smoke suite. | Add lint/Docker/browser/real-harness audit levels later. |
 | Doctor command | Implemented | `agent-benchmark doctor` checks local tools and adapter command env vars. | Add credential checks without exposing secrets. |
 | Next-agent handoff prompt | Implemented | `docs/next_agent_prompt.md`; `agent-benchmark next-agent-prompt`. | Keep updated when workflow rules change. |
-| External benchmark imports | Planned | Research notes, roadmap, and task provenance document exist. | Implement importers and annotate task provenance metadata. |
+| External benchmark imports | Planned | Source-aware manifests, catalog command, and import plan now exist. | Implement Docker isolation, then official-evaluator bridges for SWE-bench Verified and Terminal-Bench. |
 | Dashboard | Planned | Roadmap exists. | Build dashboard. |
 
 ## Current Foundation Suite
@@ -77,7 +77,6 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | `ci-debugging` | CI/Python | Yes | No | No |
 | `code-review` | Security/Python | Yes | No | No |
 | `repo-understanding` | Python | Yes | No | No |
-| `project-generation` | Python/Web | Yes | No | No |
 
 另有 `test-writing` suite 包含 `python-test-writing`（需真实 harness）。
 另有 `advanced` suite 包含 `python-swebench-style`、`c-systems-programming`、`python-fullstack`。
@@ -90,22 +89,23 @@ With the dummy adapter and current evidence-backed scoring:
 - `frontend-visual` scores `50.0`: task_completion(100) + safety_boundary(100) + visual_verification(100) + intent_understanding(100).
 - `process-planning` scores `54.0`: task_completion(100) + safety_boundary(100) + planning(100) + intent_understanding(100).
 - `python-refactor` currently scores `36.0` with the dummy adapter because the dummy solution preserves behavior but does not satisfy the configured process checks.
-- The full `foundation` suite averages across 12 tasks.
+- The full `foundation` suite averages across 11 locally runnable tasks. Container-required tasks are refused by the local runner until deterministic dependency provisioning exists.
 
 No dimension should be assigned a non-zero score without execution evidence. Some process dimensions are still heuristic and should be treated as early evidence, not final scientific measurement.
 
 ## Next Best Iterations
 
-1. Run real harness matrix (opencode vs claude-code × multiple models).
-2. Add browser screenshot/pixel visual checks.
-3. Add Docker isolation.
-4. Import external benchmark tasks (SWE-bench, Terminal-Bench).
+1. Add Docker isolation and task dependency provisioning.
+2. Run real harness matrix on the `calibration` suite (opencode vs claude-code × multiple models).
+3. Add browser screenshot/pixel visual checks.
+4. Import a stratified SWE-bench Verified pilot, then a Terminal-Bench pilot.
 5. Build dashboard for historical results.
 
 ## How To Check This From CLI
 
 ```bash
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
+PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status --json
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit

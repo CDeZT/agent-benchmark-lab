@@ -108,10 +108,16 @@ Goals:
 
 Goals:
 
-- Import SWE-bench-style tasks.
-- Import Terminal-Bench-style tasks.
-- Add browser task support inspired by WebArena.
-- Add desktop task support inspired by OSWorld.
+- Build a Docker-backed external evaluator bridge before importing any task.
+- Import a fixed, stratified SWE-bench Verified pilot with upstream instance, release, commit, license, and evaluator evidence preserved.
+- Add a small Terminal-Bench pilot through its upstream Docker environment and verifier.
+- Keep external coding, terminal, web, and desktop tracks separate in reports.
+- Add browser task support inspired by WebArena only after browser isolation exists.
+- Add desktop task support inspired by OSWorld only after VM/desktop isolation exists.
+
+Prerequisite:
+
+- Docker must be available and the runner must record immutable environment/image identifiers. The current Mac has no `docker` command, so this phase cannot produce trustworthy local results yet.
 
 ## Phase 6: Dashboard
 

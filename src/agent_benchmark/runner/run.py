@@ -41,10 +41,13 @@ class RunResult:
     cost_usd: float | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    task_difficulty: str = "unspecified"
+    task_provenance_type: str = "unspecified"
 
 
 def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
     config.validate()
+    ensure_task_environment_supported(task)
     adapter = adapter_by_name(config.adapter)
     experiment_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
     experiment_dir = config.runs_dir / experiment_id
@@ -111,6 +114,8 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
             cost_usd=harness_evidence.cost_usd,
             input_tokens=harness_evidence.input_tokens,
             output_tokens=harness_evidence.output_tokens,
+            task_difficulty=task.difficulty,
+            task_provenance_type=str(task.provenance.get("type", "unspecified")),
         )
         results.append(result)
         (run_dir / "result.json").write_text(_result_json(result), encoding="utf-8")
@@ -121,6 +126,18 @@ def run_task(task: TaskSpec, config: ExperimentConfig) -> dict[str, object]:
     write_markdown_report(experiment_dir / "report.md", summary, results)
     write_html_report(experiment_dir / "report.html", summary)
     return summary
+
+
+def ensure_task_environment_supported(task: TaskSpec) -> None:
+    """Fail closed until the Docker runner can reproduce isolated task dependencies."""
+    environment = task.metadata.get("environment", "local")
+    if environment == "container_required":
+        packages = task.metadata.get("required_python_packages", [])
+        package_hint = f" Required packages: {', '.join(packages)}." if packages else ""
+        raise RuntimeError(
+            f"Task '{task.task_id}' requires a containerized environment and cannot run with the local runner."
+            f"{package_hint} Implement or use the Docker runner before comparing this task."
+        )
 
 
 def _copy_workspace(source: Path, target: Path) -> None:
@@ -233,6 +250,9 @@ def _summarize(
         "experiment_id": experiment_id,
         "task_id": task.task_id,
         "task_title": task.title,
+        "task_difficulty": task.difficulty,
+        "task_difficulty_rationale": task.difficulty_rationale,
+        "task_provenance": task.provenance,
         "adapter": config.adapter,
         "model": config.model,
         "budget_profile": config.budget_profile,
@@ -268,6 +288,8 @@ def _summarize(
                 "output_tokens": result.output_tokens,
                 "detected_model": result.detected_model,
                 "tool_call_count": result.tool_call_count,
+                "task_difficulty": result.task_difficulty,
+                "task_provenance_type": result.task_provenance_type,
                 "run_dir": result.run_dir,
             }
             for result in results

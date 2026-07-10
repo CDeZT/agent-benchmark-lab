@@ -1,7 +1,7 @@
 {
   "id": "advanced",
   "title": "Advanced engineering tasks",
-  "description": "Complex, real-world engineering tasks inspired by SWE-bench. These require 10+ tool calls, multi-file modifications, and deep codebase understanding.",
+  "description": "Complex project-owned engineering seed tasks. One task is SWE-bench-inspired but none are imported SWE-bench instances.",
   "tasks": [
     "python-swebench-style",
     "c-systems-programming",

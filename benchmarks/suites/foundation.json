@@ -13,8 +13,7 @@
     "python-refactor",
     "ci-debugging",
     "code-review",
-    "repo-understanding",
-    "project-generation"
+    "repo-understanding"
   ],
   "capability_focus": [
     "bugfix",

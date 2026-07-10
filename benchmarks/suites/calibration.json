@@ -1,0 +1,24 @@
+{
+  "id": "calibration",
+  "title": "Local difficulty calibration suite",
+  "description": "Runnable local tasks spanning easy, medium, hard, and expert levels. Use this before larger real-harness comparisons.",
+  "tasks": [
+    "python-bugfix",
+    "c-bugfix",
+    "process-planning",
+    "frontend-visual",
+    "embedded-c",
+    "embedded-protocol-parser",
+    "python-swebench-style",
+    "c-systems-programming"
+  ],
+  "capability_focus": [
+    "bugfix",
+    "planning",
+    "visual_verification",
+    "embedded_engineering",
+    "optics_engineering",
+    "cross_module_reasoning",
+    "systems_programming"
+  ]
+}

@@ -13,9 +13,9 @@ from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
 from agent_benchmark.reports.matrix import write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
-from agent_benchmark.runner import ExperimentConfig, run_task
+from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_supported, run_task
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
-from agent_benchmark.task_schema import load_suite, load_task, validate_all
+from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 
 
 DEFAULT_TASKS_DIR = Path("benchmarks/tasks")
@@ -29,6 +29,10 @@ def main(argv: list[str] | None = None) -> int:
 
     list_parser = subparsers.add_parser("list-tasks", help="List available benchmark tasks.")
     list_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+
+    catalog_parser = subparsers.add_parser("catalog", help="Show task difficulty and provenance coverage.")
+    catalog_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    catalog_parser.add_argument("--json", action="store_true", help="Print the machine-readable catalog.")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -97,6 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "list-tasks":
         return _list_tasks(Path(args.tasks_dir))
+    if args.command == "catalog":
+        return _catalog(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -130,7 +136,30 @@ def _list_tasks(tasks_dir: Path) -> int:
             continue
         capabilities = ", ".join(task.capabilities) or "none"
         domains = ", ".join(task.domains) or "none"
-        print(f"{task.task_id}\t{task.title}\tcapabilities=[{capabilities}]\tdomains=[{domains}]")
+        provenance_type = task.provenance.get("type", "unspecified")
+        print(
+            f"{task.task_id}\t{task.title}\tdifficulty={task.difficulty}\tprovenance={provenance_type}"
+            f"\tcapabilities=[{capabilities}]\tdomains=[{domains}]"
+        )
+    return 0
+
+
+def _catalog(args: argparse.Namespace) -> int:
+    catalog = build_catalog(Path(args.tasks_dir))
+    if args.json:
+        print(json.dumps(catalog, ensure_ascii=False, indent=2))
+        return 0
+
+    distribution = ", ".join(f"{name}={count}" for name, count in catalog["difficulty_distribution"].items())
+    provenance = ", ".join(f"{name}={count}" for name, count in catalog["provenance_distribution"].items())
+    print(f"Tasks: {catalog['task_count']} ({distribution})")
+    print(f"Provenance: {provenance}")
+    for task in catalog["tasks"]:
+        tests = f"public={'yes' if task['has_public_tests'] else 'no'}, hidden={'yes' if task['has_hidden_tests'] else 'no'}"
+        print(
+            f"{task['difficulty']}\t{task['id']}\t{task['provenance_type']}\t"
+            f"environment={task['environment']}\t{tests}\t{task['title']}"
+        )
     return 0
 
 
@@ -259,10 +288,14 @@ def _run_matrix(args: argparse.Namespace) -> int:
 
 
 def _run_suite_with_config(suite: object, config: ExperimentConfig, tasks_dir: Path) -> dict[str, object]:
-    summaries = []
+    suite_tasks = []
     for task_id in suite.tasks:
-        task_dir = _resolve_task(Path(task_id), tasks_dir)
-        task = load_task(task_dir)
+        task = load_task(_resolve_task(Path(task_id), tasks_dir))
+        ensure_task_environment_supported(task)
+        suite_tasks.append(task)
+
+    summaries = []
+    for task in suite_tasks:
         summaries.append(run_task(task, config))
     suite_summary = {
         "suite_run_id": f"suite-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}",

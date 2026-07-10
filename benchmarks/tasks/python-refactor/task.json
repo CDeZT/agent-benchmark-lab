@@ -4,6 +4,9 @@
     "instruction": "Refactor data_processor.py to be cleaner and more readable. The code has deeply nested conditionals, an inefficient bubble sort, and duplicated logic. Extract helper functions, use list comprehensions where appropriate, and replace bubble sort with Python's built-in sorted(). All existing tests must continue to pass — behavior must be preserved exactly.",
     "capabilities": ["refactoring", "python_engineering", "test_discipline"],
     "domains": ["python"],
+    "difficulty": "medium",
+    "difficulty_rationale": "Behavior-preserving refactor across several code-quality concerns with regression tests.",
+    "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
     "workspace": "workspace",
     "test_command": ["python3", "test_data_processor.py"],
     "protected_paths": ["test_data_processor.py"]

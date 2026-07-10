@@ -13,6 +13,9 @@ class TaskSpec:
     instruction: str
     capabilities: list[str]
     domains: list[str]
+    difficulty: str = "unspecified"
+    difficulty_rationale: str = ""
+    provenance: dict[str, Any] = field(default_factory=dict)
     workspace: str = "workspace"
     test_command: list[str] = field(default_factory=list)
     hidden_test_command: list[str] = field(default_factory=list)
@@ -47,6 +50,9 @@ def load_task(task_dir: Path) -> TaskSpec:
         instruction=data["instruction"],
         capabilities=list(data.get("capabilities", [])),
         domains=list(data.get("domains", [])),
+        difficulty=str(data.get("difficulty", "unspecified")),
+        difficulty_rationale=str(data.get("difficulty_rationale", "")),
+        provenance=dict(data.get("provenance", {})),
         workspace=data.get("workspace", "workspace"),
         test_command=list(data.get("test_command", [])),
         hidden_test_command=list(data.get("hidden_test_command", [])),

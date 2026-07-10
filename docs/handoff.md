@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 5 suites, 76 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 79 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -103,6 +103,10 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `docs/task_provenance.md` to make task-source claims explicit.
 - Tightened `cost_efficiency`: tool-call count no longer acts as a cost proxy. Only parsed token/cost evidence can produce a non-zero cost score.
 - Carried parsed `cost_usd`, `input_tokens`, and `output_tokens` into per-run and mean summary fields.
+- Added validated task-corpus metadata: every manifest now declares difficulty, rationale, and provenance; `agent-benchmark catalog` makes the 3 easy / 9 medium / 4 hard / 3 expert distribution inspectable.
+- Added the local 8-task `calibration` suite spanning all difficulty tiers for repeatable real-harness comparisons.
+- Found task-validity issues: Flask/NumPy/SciPy/pandas tasks could not run reproducibly on this Mac. Marked those tasks `container_required`; the runner now refuses them locally and `project-generation` was removed from the default local foundation suite rather than treating dependency failures as benchmark success.
+- Added `docs/corpus_strategy.md`: external imports must follow Docker isolation and preserve upstream evaluator/provenance evidence; custom embedded and optics tasks remain first-class.
 
 ## In Progress
 
@@ -112,7 +116,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 - Larger real Claude Code/opencode benchmark runs beyond smoke tests.
 - Docker isolation.
-- External benchmark importers (SWE-bench, Terminal-Bench).
+- Docker-backed external evaluator bridges (SWE-bench Verified, Terminal-Bench).
 - Visual browser automation.
 - Optional LLM judge adjudication.
 - Dashboard.
@@ -137,15 +141,16 @@ No dimension should be faked. Tool-call count belongs to `tool_use`, not `cost_e
 
 Protected paths are now checked with SHA-256 hashes against the baseline workspace. Missing or modified protected paths set `safety_boundary` to 0.
 
-`python-bugfix` scores 58.0 with the dummy adapter in the current implementation because task completion, safety, execution quality, and intent-understanding evidence are present. The full `foundation` suite averages across 12 tasks.
+`python-bugfix` scores 58.0 with the dummy adapter in the current implementation because task completion, safety, execution quality, and intent-understanding evidence are present. The full `foundation` suite averages across 11 locally runnable tasks.
 
 ## Verified Commands
 
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 76 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 79 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
+PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
@@ -158,14 +163,14 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation
 PYTHONPATH=src python3 -m compileall -q src tests
 ```
 
-All foundation tasks (12) and advanced tasks (3) passed with the dummy adapter.
+The local `foundation` suite has 11 tasks. Do not claim any container-required dependency task has passed locally until Docker dependency provisioning exists.
 
 ## Recommended Next Phase
 
-1. Run real harness matrix (opencode vs claude-code × multiple models).
-2. Add browser screenshot and pixel-based visual verification for `frontend-visual`.
-3. Add Docker isolation.
-4. Import external benchmark tasks (SWE-bench, Terminal-Bench).
+1. Add Docker isolation and deterministic task dependency provisioning.
+2. Run real harness matrix on `calibration` (opencode vs claude-code × multiple models).
+3. Add browser screenshot and pixel-based visual verification for `frontend-visual`.
+4. Bridge to a fixed SWE-bench Verified pilot, then Terminal-Bench, preserving upstream evaluators.
 5. Add more domain-specific tasks (embedded, optics, full-stack).
 6. Build dashboard for historical results.
 

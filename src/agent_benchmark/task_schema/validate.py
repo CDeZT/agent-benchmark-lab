@@ -7,6 +7,10 @@ from agent_benchmark.task_schema.manifest import TaskSpec, load_task
 from agent_benchmark.task_schema.suite import load_suite
 
 
+DIFFICULTY_LEVELS = ("easy", "medium", "hard", "expert")
+PROVENANCE_TYPES = ("custom_seed", "domain_seed", "inspired_by_external", "external_imported")
+
+
 @dataclass
 class ValidationResult:
     errors: list[str] = field(default_factory=list)
@@ -56,6 +60,7 @@ def validate_task(task: TaskSpec) -> ValidationResult:
         result.warnings.append(f"{task.task_id}: no public test_command configured")
     if task.test_timeout_seconds <= 0:
         result.errors.append(f"{task.task_id}: test_timeout_seconds must be positive")
+    _validate_catalog_metadata(task, result)
     if task.hidden_test_command and not (task.root / "hidden").exists():
         result.errors.append(f"{task.task_id}: hidden_test_command configured but hidden/ directory is missing")
     for protected_path in task.protected_paths:
@@ -84,3 +89,42 @@ def validate_task(task: TaskSpec) -> ValidationResult:
         if "dimension" not in check:
             result.errors.append(f"{task.task_id}: process_checks[{index}] is missing dimension")
     return result
+
+
+def _validate_catalog_metadata(task: TaskSpec, result: ValidationResult) -> None:
+    """Validate fields that make corpus composition and source claims auditable."""
+    if task.difficulty == "unspecified":
+        result.warnings.append(f"{task.task_id}: missing difficulty metadata")
+    elif task.difficulty not in DIFFICULTY_LEVELS:
+        result.errors.append(
+            f"{task.task_id}: difficulty must be one of {', '.join(DIFFICULTY_LEVELS)}"
+        )
+    elif not task.difficulty_rationale.strip():
+        result.warnings.append(f"{task.task_id}: missing difficulty_rationale")
+
+    environment = task.metadata.get("environment", "local")
+    if environment not in {"local", "container_required"}:
+        result.errors.append(
+            f"{task.task_id}: metadata.environment must be local or container_required"
+        )
+
+    if not task.provenance:
+        result.warnings.append(f"{task.task_id}: missing provenance metadata")
+        return
+
+    provenance_type = task.provenance.get("type")
+    if provenance_type not in PROVENANCE_TYPES:
+        result.errors.append(
+            f"{task.task_id}: provenance.type must be one of {', '.join(PROVENANCE_TYPES)}"
+        )
+        return
+
+    if provenance_type == "external_imported":
+        required = ("source_benchmark", "source_id", "source_url", "source_version", "license_note", "importer_version")
+        missing = [field for field in required if not str(task.provenance.get(field, "")).strip()]
+        if missing:
+            result.errors.append(
+                f"{task.task_id}: external_imported provenance is missing {', '.join(missing)}"
+            )
+    elif not str(task.provenance.get("source", "")).strip():
+        result.warnings.append(f"{task.task_id}: custom provenance should include source")
