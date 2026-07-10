@@ -125,9 +125,14 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Docker daemon activation (colima downloading Ubuntu cloud image: 424MB, slow but progressing).
-- Real harness c-bugfix comparison (sub-agent running claude-code+DSv4).
-- Cross-harness matrix building (3 tasks with meaningful real data from both harnesses).
+- Running full calibration suite matrix across both harnesses.
+- Testing all 4 container_required tasks with Docker.
+
+## Docker Status
+
+- **Docker daemon: RUNNING** via colima --vm-type vz (macOS Virtualization.framework)
+- Container tasks verified: python-fullstack passes (score=58.0)
+- Use `colima start` to restart if stopped (no re-download needed)
 
 ## Latest Real Harness Results
 
