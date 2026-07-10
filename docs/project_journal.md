@@ -1,5 +1,16 @@
 # Project Journal
 
+## 2026-07-10 (iteration 16)
+
+- Comprehensive code audit via3 parallel sub-agents (scoring integrity, code style, requirements alignment).
+- Fixed2 real scoring bugs: assertion double-counting in test_discipline (inflated scores) and metadata status overwrite for self_repair/tool_use.
+- Fixed code style inconsistencies: JSON arg ordering, long lines, future import placement.
+- Updated project memory files (project-overview, scoring-system, iteration-workflow) to reflect current19-task/92-test state.
+- Verified all10 dimensions have real evidence; no fake scoring paths found.
+- Attempted fixing container_required task dependencies; venv packages installed but Docker daemon still unavailable.
+- 92 tests pass,5 audit checks pass.
+- Requirements alignment:13/15 task types covered,5/5 budget modes stored as labels (no enforcement yet), documented gaps in handoff.md.
+
 ## 2026-07-10 (iteration 15)
 
 - Added hidden tests to ci-debugging, code-review, python-refactor, python-test-writing, and repo-understanding.
