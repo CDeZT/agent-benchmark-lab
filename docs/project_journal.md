@@ -1,5 +1,16 @@
 # Project Journal
 
+## 2026-07-11 (iteration 18)
+
+- **Real harness verification** (dual): opencode × LongCat-2.0 and claude-code × deepseek-v4-pro both pass python-bugfix.
+- **Real matrix run**: 4 real runs across opencode×LC2.0 vs claude×DSv4 on process-planning. claude-code variance 0.0012 vs opencode 1.0 → claude-code is 800× more consistent.
+- **Fixed opencode --model bug**: v1.17.15 crashes with any --model value. Removed from template.
+- **Fixed cost_efficiency scoring**: zero cost/tokens no longer scores 100. Added guard for empty evidence.
+- **Fixed claude-code tool_use parsing**: JSON output now extracts from num_turns field.
+- **Added comparable scoring**: matrix leaderboard now computes fair scores using only dimensions shared across all harnesses.
+- **Docker struggle**: Attempted Colima(5×), OrbStack, Lima, Aliyun mirror, ghproxy. All CDNs timeout or <200KB/s from this network. Background download with retry started.
+- 99 tests pass, audit passes (5/5).
+
 ## 2026-07-10 (iteration 17)
 
 - Implemented budget profile enforcement via `runner/profiles.py`: BudgetProfile dataclass with max_attempts, max_duration_seconds, max_tool_calls.
