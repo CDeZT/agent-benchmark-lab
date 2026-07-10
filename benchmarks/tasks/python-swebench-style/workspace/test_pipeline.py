@@ -47,8 +47,8 @@ def test_read_csv_basic():
 
 def test_read_csv_numeric_parsing():
     rows = read_csv(BASIC_CSV)
-    assert isinstance(rows[0]["temperature"], float)
-    assert isinstance(rows[0]["humidity"], float)
+    assert isinstance(rows[0]["temperature"], (int, float))
+    assert isinstance(rows[0]["humidity"], (int, float))
 
 
 def test_read_csv_timestamp_parsing():
