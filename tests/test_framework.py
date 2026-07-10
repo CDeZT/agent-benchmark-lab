@@ -119,9 +119,9 @@ class FrameworkTests(unittest.TestCase):
         hidden = environment._docker_command("hidden", task.hidden_test_command)
 
         self.assertNotIn("--network", public)
-        self.assertIn(f"type=bind,src={environment.workspace.resolve()},dst=/workspace,rw", public)
+        self.assertIn(f"type=bind,source={environment.workspace.resolve()},target=/workspace,readonly=false", public)
         self.assertNotIn("/hidden,readonly", " ".join(public))
-        self.assertIn("type=bind,src=" + str((task.root / "hidden").resolve()) + ",dst=/hidden,readonly", hidden)
+        self.assertIn("type=bind,source=" + str((task.root / "hidden").resolve()) + ",target=/hidden,readonly=true", hidden)
 
     def test_difficulty_calibration_requires_multiple_real_combinations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

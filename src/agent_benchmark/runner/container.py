@@ -209,11 +209,11 @@ class DockerTaskEnvironment:
         docker_command = [
             "docker", "run", "--rm",
             "--cpus", str(self.spec.cpus), "--memory", self.spec.memory,
-            "--mount", f"type=bind,src={self.workspace.resolve()},dst=/workspace,rw",
+            "--mount", f"type=bind,source={self.workspace.resolve()},target=/workspace,readonly=false",
             "--env", "AGENT_BENCH_WORKSPACE=/workspace",
         ]
         if kind == "hidden":
-            docker_command.extend(["--mount", f"type=bind,src={hidden_dir.resolve()},dst=/hidden,readonly"])
+            docker_command.extend(["--mount", f"type=bind,source={hidden_dir.resolve()},target=/hidden,readonly=true"])
         docker_command.extend(["--workdir", target_cwd, self.spec.image_tag, *command])
         return docker_command
 
@@ -278,7 +278,7 @@ def _ensure_image(spec: ContainerSpec, dockerfile_path: Path, build_log_path: Pa
 
 def _write_agent_helper(environment: DockerTaskEnvironment) -> None:
     helper = environment.run_dir / "container-test.sh"
-    workspace_mount = shlex.quote(f"type=bind,src={environment.workspace.resolve()},dst=/workspace,rw")
+    workspace_mount = shlex.quote(f"type=bind,source={environment.workspace.resolve()},target=/workspace,readonly=false")
     script = "\n".join(
         [
             "#!/bin/sh",
