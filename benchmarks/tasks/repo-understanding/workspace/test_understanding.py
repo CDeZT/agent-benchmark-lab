@@ -4,7 +4,12 @@ These tests verify that the agent understood the codebase structure.
 """
 import sys
 import os
+from pathlib import Path
 sys.path.insert(0, os.path.dirname(__file__))
+
+
+def test_src_is_explicit_package():
+    assert Path(__file__).parent.joinpath("src", "__init__.py").is_file()
 
 
 def test_config_classes_exist():
@@ -85,3 +90,10 @@ def test_database_pool():
     pool.close_all()
     assert len(pool.in_use) == 0
     assert len(pool.pool) == 0
+
+
+if __name__ == "__main__":
+    tests = [value for name, value in sorted(globals().items()) if name.startswith("test_") and callable(value)]
+    for test in tests:
+        test()
+    print(f"PASS: {len(tests)} repository understanding checks")

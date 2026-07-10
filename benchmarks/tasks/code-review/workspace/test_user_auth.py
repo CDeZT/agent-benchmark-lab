@@ -111,3 +111,10 @@ def test_no_hardcoded_secrets():
     # BUG: Should not have hardcoded secret key
     assert "SECRET_KEY = " not in content or "os.environ" in content, \
         "Should not have hardcoded secrets"
+
+
+if __name__ == "__main__":
+    tests = [value for name, value in sorted(globals().items()) if name.startswith("test_") and callable(value)]
+    for test in tests:
+        test()
+    print(f"PASS: {len(tests)} authentication security checks")

@@ -111,7 +111,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `calibrate-difficulty`, which requires real non-dummy results across at least 3 combinations and 9 runs before a task can be called a discriminative candidate.
 - Applied the first live calibration result: `python-bugfix` is 100% successful across four non-dummy combinations and twelve recorded runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
 - Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
-- Added `audit-corpus`, which proves baseline/reference contrast. Its first run found `code-review`, `repo-understanding`, and `python-test-writing` are not yet suitable for comparison; they are marked `needs_rework` and excluded from scorecards.
+- Added `audit-corpus`, which proves baseline/reference contrast, and made it a mandatory default `audit` check. Fixed `code-review`, `repo-understanding`, and `python-test-writing`; the current corpus result is 15 local tasks passing and 4 container-required tasks skipped.
 
 ## In Progress
 
@@ -163,7 +163,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
-PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 4 checks, all pass
+PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 5 checks, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
@@ -180,6 +180,8 @@ The local `foundation` suite has 11 tasks. Do not claim any container-required d
 4. Bridge to a fixed SWE-bench Verified pilot, then Terminal-Bench, preserving upstream evaluators.
 5. Add more domain-specific tasks (embedded, optics, full-stack).
 6. Build dashboard for historical results.
+
+For the exact Claude Code continuation route, read `docs/claude_code_handoff.md`. It defines the comparative local-matrix gate, Docker/external-benchmark ordering, and non-negotiable evidence rules.
 
 ## Implementation Guidance
 

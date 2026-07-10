@@ -59,4 +59,4 @@ This is intentionally conservative. It does not claim that one small pilot estab
 
 The first live calibration result already changed the corpus: `python-bugfix` achieved 100% completion in four non-dummy combinations over twelve recorded runs, so it is now `smoke_only`. It remains useful for checking adapter wiring, but must not contribute to a serious harness/model ranking.
 
-`audit-corpus` is a second mandatory gate: a locally runnable comparative task needs a failing baseline and a passing reference solution against its configured acceptance checks. Current corpus audit found `code-review` and `repo-understanding` have weak baseline contrast, while `python-test-writing` lacks a reference artifact. They are marked `needs_rework` and excluded from comparative scorecards until repaired.
+`audit-corpus` is a mandatory gate: a locally runnable comparative task needs a failing baseline and a passing reference solution against its configured acceptance checks. It is part of the default project audit. The current corpus has 15 local tasks passing this gate and four explicitly skipped container-required tasks.

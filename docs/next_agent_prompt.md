@@ -24,6 +24,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - docs/project_journal.md
 - docs/task_provenance.md
 - docs/corpus_strategy.md
+- docs/claude_code_handoff.md
 - README.md
 
 开始工作前先运行：
@@ -78,7 +79,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 通过上游 evaluator 导入固定分层的 SWE-bench Verified pilot，再接入 Terminal-Bench。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
 - `python-bugfix` 已经实测为 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。
-- `code-review`、`repo-understanding`、`python-test-writing` 当前为 needs_rework；修复其 baseline/reference 验收对比前不得进入比较分数。
+- `audit-corpus` 已是默认 audit 的质量门禁；任何新增或改动的可比较任务必须保持 baseline 失败、reference 通过。
 - 构建 dashboard 展示历史结果。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。

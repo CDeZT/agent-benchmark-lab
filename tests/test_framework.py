@@ -68,6 +68,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(task["classification"], "passes")
         self.assertTrue(task["baseline_failed"])
         self.assertTrue(task["reference_passed"])
+        self.assertEqual(report["summary"], {"passes": 15, "skipped_environment": 4})
 
     def test_external_imported_provenance_requires_reproducibility_fields(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
@@ -470,7 +471,7 @@ class FrameworkTests(unittest.TestCase):
 
             self.assertTrue(summary["passed"], summary)
             check_names = [check["name"] for check in summary["checks"]]
-            self.assertEqual(check_names, ["validate", "real_harness_smoke"])
+            self.assertEqual(check_names, ["validate", "corpus_quality", "real_harness_smoke"])
 
     def test_public_test_timeout_is_recorded_as_failure(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

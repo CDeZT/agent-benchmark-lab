@@ -115,7 +115,7 @@
       "id": "outcome_capability_scorecard",
       "title": "Outcome capability scorecard",
       "status": "implemented",
-      "evidence": ["taxonomy command maps tasks to outcome axes", "suite summaries aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability", "smoke_only and needs_rework tasks are excluded from comparative axis scores"],
+      "evidence": ["taxonomy command maps tasks to outcome axes", "suite summaries aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability", "smoke_only tasks are excluded from comparative axis scores", "default audit includes baseline/reference corpus quality verification"],
       "remaining": ["Add authoritative external benchmark tracks to each applicable axis"]
     },
     {

@@ -10,6 +10,7 @@ import time
 from typing import Any
 import uuid
 
+from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.runner import ExperimentConfig, run_task
 from agent_benchmark.task_schema import load_suite, load_task, validate_all
 
@@ -44,6 +45,7 @@ def run_audit(options: AuditOptions) -> dict[str, Any]:
 
     checks: list[AuditCheck] = []
     checks.append(_check_validate(options))
+    checks.append(_check_corpus_quality(options))
     if options.include_unit_tests:
         checks.append(_check_command("unit_tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"], options))
     if options.include_compile:
@@ -86,6 +88,21 @@ def _check_validate(options: AuditOptions) -> AuditCheck:
         passed=result.ok,
         duration_seconds=round(time.monotonic() - start, 4),
         details={"errors": result.errors, "warnings": result.warnings},
+    )
+
+
+def _check_corpus_quality(options: AuditOptions) -> AuditCheck:
+    start = time.monotonic()
+    report = audit_corpus(options.tasks_dir)
+    blocking = [
+        task for task in report["tasks"]
+        if task["classification"] in {"reference_failure", "weak_baseline_contrast", "missing_reference_solution"}
+    ]
+    return AuditCheck(
+        name="corpus_quality",
+        passed=not blocking,
+        duration_seconds=round(time.monotonic() - start, 4),
+        details={"summary": report["summary"], "blocking_task_ids": [task["task_id"] for task in blocking]},
     )
 
 
