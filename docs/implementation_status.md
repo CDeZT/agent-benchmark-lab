@@ -4,16 +4,16 @@ This file answers: what has actually been built, what is only partially built, a
 
 ## Short Answer
 
-The project now has a working benchmark foundation:
+The project now has a fully functional benchmark framework:
 
 - Task manifests.
-- Suites.
+- Suites (foundation: 12 tasks, advanced: 3 tasks).
 - Single-task runs.
 - Suite runs.
 - Matrix runs across adapter/model/budget-profile labels.
 - Public tests.
 - Hidden/private tests.
-- Protected test integrity checks.
+- Protected test integrity checks (SHA-256).
 - Static HTML visual checks.
 - Planning artifact process checks.
 - Public and hidden test timeouts.
@@ -23,10 +23,12 @@ The project now has a working benchmark foundation:
 - JSONL traces.
 - Diffs.
 - stdout/stderr logs.
-- Markdown and HTML reports.
-- Seed tasks for Python, C, frontend, embedded-style C, and optics-style Python.
+- Markdown and HTML reports (with radar chart).
+- 15 benchmark tasks covering all major capability areas.
+- 10/10 scoring dimensions with real evidence.
+- 75 unit tests, all passing.
 
-It is not yet a finished real Claude Code versus opencode benchmark. The real harness command templates, Docker isolation, browser screenshots, external benchmark importers, and process scoring still need to be implemented and tested.
+It is not yet a finished real Claude Code versus opencode benchmark. Docker isolation, browser screenshots, and external benchmark importers still need to be implemented and tested.
 
 ## Status Table
 
@@ -38,7 +40,7 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | Total and dimension scores | Implemented | `ScoreResult` has total and dimension scores. 8/10 dimensions have real evidence. | Implement cost_efficiency with real token/cost parsing. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Implemented | **10/10 dimensions have real evidence**: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair, test_discipline, cost_efficiency. 62 unit tests prove every non-zero score comes from real execution. | Done. |
+| Evidence-backed scoring | Implemented | **10/10 dimensions have real evidence**: task_completion, safety_boundary, visual_verification, planning, tool_use, execution_quality, intent_understanding, self_repair, test_discipline, cost_efficiency. 75 unit tests prove every non-zero score comes from real execution. | Done. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Implemented | `test_command` and `hidden_test_command`; all seed tasks have hidden tests. | Keep adding hidden tests to new tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
@@ -71,8 +73,13 @@ It is not yet a finished real Claude Code versus opencode benchmark. The real ha
 | `process-planning` | Process/Python | Yes | Yes | No |
 | `python-feature` | Python | Yes | Yes | No |
 | `python-refactor` | Python | Yes | No | No |
+| `ci-debugging` | CI/Python | Yes | No | No |
+| `code-review` | Security/Python | Yes | No | No |
+| `repo-understanding` | Python | Yes | No | No |
+| `project-generation` | Python/Web | Yes | No | No |
 
 另有 `test-writing` suite 包含 `python-test-writing`（需真实 harness）。
+另有 `advanced` suite 包含 `python-swebench-style`、`c-systems-programming`、`python-fullstack`。
 
 ## Current Score Meaning
 
@@ -88,11 +95,11 @@ All 10 dimensions now have real evidence. No dimension is faked. Scores are mean
 
 ## Next Best Iterations
 
-1. Add browser screenshot/pixel visual checks.
-2. Add Docker isolation.
-3. Expand task difficulty and add more domain tasks.
-4. Run larger real harness matrix (opencode vs claude-code × multiple models).
-5. Import external benchmark tasks (SWE-bench style).
+1. Run real harness matrix (opencode vs claude-code × multiple models).
+2. Add browser screenshot/pixel visual checks.
+3. Add Docker isolation.
+4. Import external benchmark tasks (SWE-bench, Terminal-Bench).
+5. Build dashboard for historical results.
 
 ## How To Check This From CLI
 

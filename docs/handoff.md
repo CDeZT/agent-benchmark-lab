@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 0 foundation is complete. The project has entered early Phase 1: minimal working benchmark.
+Phase 1 is complete. The project has a fully functional benchmark framework with 15 tasks, 10/10 dimensions with real evidence, and75 passing tests.
 
 ## User Intent Summary
 
@@ -101,19 +101,17 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Framework hardening.
-- Real harness adapter planning.
+- Running real harness matrix (opencode vs claude-code × multiple models).
 
 ## Not Yet Implemented
 
 - Larger real Claude Code/opencode benchmark runs beyond smoke tests.
 - Docker isolation.
-- External benchmark importers.
+- External benchmark importers (SWE-bench, Terminal-Bench).
 - Visual browser automation.
 - Optional LLM judge adjudication.
 - Dashboard.
 - Browser screenshot and pixel-based visual verification.
-- External benchmark importers for SWE-bench/Terminal-Bench-style private tests.
 
 ## Known Scoring Limitation
 
@@ -141,7 +139,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands passed on 2026-07-09:
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests/ -q                    # 43 tests, all pass
+PYTHONPATH=src python3 -m pytest tests/ -q                    # 75 tests, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
@@ -155,15 +153,16 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation
 PYTHONPATH=src python3 -m compileall -q src tests
 ```
 
-All foundation seed tasks also passed with the dummy adapter for three repetitions earlier in this phase.
+All foundation tasks (12) and advanced tasks (3) passed with the dummy adapter.
 
 ## Recommended Next Phase
 
-1. Add a larger real harness matrix suite beyond `real-smoke`.
+1. Run real harness matrix (opencode vs claude-code × multiple models).
 2. Add browser screenshot and pixel-based visual verification for `frontend-visual`.
 3. Add Docker isolation.
-4. Import external benchmark tasks (SWE-bench style).
+4. Import external benchmark tasks (SWE-bench, Terminal-Bench).
 5. Add more domain-specific tasks (embedded, optics, full-stack).
+6. Build dashboard for historical results.
 
 ## Implementation Guidance
 

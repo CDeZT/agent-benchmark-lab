@@ -47,25 +47,24 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 
 当前已实现的大方向：
 - CLI benchmark lab。
-- task/suite/matrix runner（9 个任务，2 个套件）。
+- task/suite/matrix runner（15 个任务，3 个套件）。
 - public tests + hidden tests。
 - SHA-256 protected path integrity。
 - static HTML visual checks。
 - process planning evidence checks。
-- 10 维度评分体系，8/10 有真实证据。
+- 10 维度评分体系，10/10 有真实证据。
 - dummy/generic/opencode/claude-code adapters。
-- 真实 harness 输出解析（模型名、工具调用）。
+- 真实 harness 输出解析（模型名、工具调用、token、cost）。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
+- 75 个单元测试，全部通过。
 
 仍然重要的下一步：
-- 实现 cost_efficiency 评分（解析 token/cost）。
+- 运行 real harness matrix（opencode vs claude-code × 多个模型）。
 - 增加 browser screenshot/pixel visual verification。
 - 增加 Docker isolation。
-- 扩展任务难度和领域深度。
-- 增加更大的 real harness matrix，但要注意成本。
-- 导入外部基准任务（SWE-bench 风格）。
-- 后续再做 dashboard。
+- 导入外部基准任务（SWE-bench、Terminal-Bench）。
+- 构建 dashboard 展示历史结果。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。
 ```

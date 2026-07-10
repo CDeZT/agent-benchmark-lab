@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-**10/10 评分维度有真实证据**，62 个单元测试全绿，审计全绿。
+**10/10 评分维度有真实证据**，75 个单元测试全绿，审计全绿。
 
 已实现：
 - 10 维度加权评分体系，全部有真实证据：
