@@ -37,7 +37,7 @@ def build_matrix_leaderboard(combinations: list[dict[str, Any]]) -> dict[str, An
     for row in rows:
         row.setdefault("rank", None)
     return {
-        "ranking_basis": "comparative-task strict score, then evidence coverage and verified score; equal evidence scores share rank while variance, duration, and cost remain separate evidence",
+        "ranking_basis": "comparative-task strict score, then evidence coverage and verified score; equal evidence scores share rank while variance, duration, and cost remain separate evidence. Model identity status must be checked before making same-model claims.",
         "rows": rows,
         "ranked_combination_count": len(ranked),
     }
@@ -63,9 +63,11 @@ def _leaderboard_row(combination: dict[str, Any]) -> dict[str, Any]:
     return {
         "adapter": combination.get("adapter"),
         "model": combination.get("model"),
+        "adapter_model": combination.get("adapter_model", combination.get("model")),
         "budget_profile": combination.get("budget_profile"),
         "suite_run_dir": combination.get("suite_run_dir"),
         "comparative_task_count": len(comparable),
+        "model_identity_status": _aggregate_model_identity(comparable),
         "excluded_noncomparative_task_ids": [
             task.get("task_id") for task in tasks if task.get("benchmark_role", "comparative_candidate") != "comparative_candidate"
         ],
@@ -78,6 +80,25 @@ def _leaderboard_row(combination: dict[str, Any]) -> dict[str, Any]:
         "mean_duration_seconds": _mean([task.get("mean_duration_seconds") for task in comparable]),
         "mean_cost_usd": _mean([task.get("mean_cost_usd") for task in comparable]),
     }
+
+
+def _aggregate_model_identity(tasks: list[dict[str, Any]]) -> str:
+    statuses = {
+        str(task.get("model_identity", {}).get("status", "not-recorded"))
+        for task in tasks
+        if isinstance(task.get("model_identity"), dict)
+    }
+    if not statuses:
+        return "not-recorded"
+    if statuses == {"verified_match"}:
+        return "verified_match"
+    if "mismatch" in statuses:
+        return "mismatch"
+    if "requested_unverified" in statuses:
+        return "requested_unverified"
+    if statuses == {"not_requested"}:
+        return "not_requested"
+    return "mixed"
 
 
 def _run_success(run: dict[str, Any]) -> bool | None:
@@ -100,12 +121,12 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
         "",
         "## Raw Suite Aggregations",
         "",
-        "| Adapter | Model | Budget Profile | Strict Score | Verified Score | Coverage | Mean Duration | Suite Run |",
-        "| --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+        "| Adapter | Canonical Model | Adapter Model | Budget Profile | Strict Score | Verified Score | Coverage | Mean Duration | Suite Run |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
     ]
     for item in matrix_summary["combinations"]:
         lines.append(
-            f"| `{item['adapter']}` | `{item['model']}` | `{item['budget_profile']}` | "
+            f"| `{item['adapter']}` | `{item['model']}` | `{item.get('adapter_model', item['model'])}` | `{item['budget_profile']}` | "
             f"{item['mean_score']} | {item.get('mean_verified_normalized_score')} | "
             f"{item.get('mean_verified_coverage_percent')}% | {item['mean_duration_seconds']} | "
             f"`{item['suite_run_dir']}` |"
@@ -120,16 +141,16 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
                 f"- Basis: {leaderboard.get('ranking_basis')}",
                 "- `smoke_only` and other non-comparative tasks are excluded from this table.",
                 "",
-                "| Rank | Adapter | Model | Profile | Comparative Tasks | Strict | Verified | Coverage | Pass Rate | Stdev | Duration | Cost USD |",
-                "| ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+                "| Rank | Adapter | Canonical Model | Adapter Model | Model Evidence | Profile | Comparative Tasks | Strict | Verified | Coverage | Pass Rate | Stdev | Duration | Cost USD |",
+                "| ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for row in leaderboard.get("rows", []):
             if not row.get("comparative_task_count"):
                 continue
             lines.append(
-                f"| {row.get('rank') or 'n/a'} | `{row.get('adapter')}` | `{row.get('model')}` | "
-                f"`{row.get('budget_profile')}` | {row.get('comparative_task_count')} | "
+                f"| {row.get('rank') or 'n/a'} | `{row.get('adapter')}` | `{row.get('model')}` | `{row.get('adapter_model')}` | "
+                f"`{row.get('model_identity_status')}` | `{row.get('budget_profile')}` | {row.get('comparative_task_count')} | "
                 f"{row.get('mean_strict_score')} | {row.get('mean_verified_normalized_score')} | "
                 f"{row.get('mean_verified_coverage_percent')}% | {row.get('task_pass_rate_percent')}% | "
                 f"{row.get('mean_task_stdev')} | {row.get('mean_duration_seconds')} | {row.get('mean_cost_usd')} |"

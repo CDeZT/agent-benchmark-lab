@@ -30,6 +30,8 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
     )
     detected = summary.get("detected_model")
     model_display = html.escape(summary['model']) + (f" (detected: {html.escape(detected)})" if detected and detected != summary["model"] else "")
+    model_identity = summary.get("model_identity")
+    model_status = model_identity.get("status", "not-recorded") if isinstance(model_identity, dict) else "not-recorded"
     total_tools = summary.get("total_tool_calls", 0)
     document = f"""<!doctype html>
 <html lang="en">
@@ -56,6 +58,7 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
   <h1>{html.escape(summary['task_title'])}</h1>
   <p><code>{html.escape(summary['task_id'])}</code> with adapter <code>{html.escape(summary['adapter'])}</code>, model <code>{model_display}</code>, profile <code>{html.escape(summary['budget_profile'])}</code></p>
   <section class="summary">
+    <div class="metric"><span>Model identity</span><b>{html.escape(str(model_status))}</b></div>
     <div class="metric"><span>Mean</span><b>{summary['mean_score']}</b></div>
     <div class="metric"><span>Verified normalized</span><b>{summary.get('mean_verified_normalized_score')}</b></div>
     <div class="metric"><span>Verified coverage</span><b>{summary.get('mean_verified_coverage_percent')}%</b></div>

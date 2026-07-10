@@ -48,6 +48,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 新任务必须声明 `difficulty`、`difficulty_rationale` 和 `provenance`；外部导入任务必须保留上游来源、版本、许可和 evaluator 证据。
 - 依赖无法在当前环境复现的任务必须标记 `container_required`，不得混进默认本机比较或把跳过测试当作成功。
 - `container_required` 任务已有 Docker evaluator v1；只有 `doctor` 显示 Docker daemon ready 后才能运行。保留每次 run 的 `environment.Dockerfile`、`environment.json` 和 `environment-build.log` 作为环境证据。
+- 同模型跨 harness 比较必须使用 canonical model + adapter-specific model registry；检查报告 `model_identity.status`，只有 `verified_match` 才能做同模型结论。不要把 CLI 参数标签当作模型身份事实。
 - `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
 - 每次新增功能后，必须补测试或可验证命令。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
@@ -74,7 +75,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 89 个 unittest 测试函数，应该全部通过。
+- 92 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 激活并实测 Docker evaluator：当前 Docker CLI 和 Colima 已安装，但 Colima VM 镜像下载曾因网络超时失败；不要把未实际运行的容器任务算入比较。

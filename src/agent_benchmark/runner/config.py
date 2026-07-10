@@ -10,6 +10,7 @@ class ExperimentConfig:
     repetitions: int
     runs_dir: Path
     model: str = "unspecified"
+    adapter_model: str | None = None
     budget_profile: str = "open_ended"
     label: str = ""
 
@@ -20,3 +21,9 @@ class ExperimentConfig:
             raise ValueError("adapter is required")
         if not self.budget_profile:
             raise ValueError("budget_profile is required")
+        if self.adapter_model is not None and not self.adapter_model.strip():
+            raise ValueError("adapter_model must be non-empty when supplied")
+
+    @property
+    def invocation_model(self) -> str:
+        return self.adapter_model or self.model

@@ -17,6 +17,8 @@ from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_con
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
+from agent_benchmark.model_identity import summarize_model_identity
+from agent_benchmark.model_registry import adapter_model_for, load_model_registry
 from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
 from agent_benchmark.runner.container import DockerTaskEnvironment, DockerUnavailableError, container_spec_for_task
 from agent_benchmark.runner.run import _summarize
@@ -374,6 +376,24 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(summary["total_tool_calls"], 10)
         self.assertEqual(summary["runs"][0]["cost_usd"], 0.01)
         self.assertEqual(summary["runs"][1]["input_tokens"], 300)
+        self.assertEqual(summary["model_identity"]["status"], "mismatch")
+
+    def test_model_identity_accepts_provider_prefixed_requested_name(self) -> None:
+        identity = summarize_model_identity("provider/LongCat-2.0", ["LongCat-2.0"])
+
+        self.assertEqual(identity["status"], "verified_match")
+
+    def test_model_registry_resolves_adapter_specific_identifier(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.json"
+            path.write_text(
+                json.dumps({"canonical": {"claude-code": "claude-id", "opencode": "provider/open-id"}}),
+                encoding="utf-8",
+            )
+            registry = load_model_registry(path)
+
+        self.assertEqual(adapter_model_for(registry, "canonical", "claude-code"), "claude-id")
+        self.assertEqual(adapter_model_for(registry, "canonical", "opencode"), "provider/open-id")
 
     def test_generic_command_adapter_can_modify_workspace(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
@@ -424,13 +444,16 @@ class FrameworkTests(unittest.TestCase):
                     task,
                     ExperimentConfig(
                         adapter="generic-command",
-                        model="env-model",
+                        model="canonical-model",
+                        adapter_model="adapter-model",
                         repetitions=1,
                         runs_dir=Path(tmp),
                     ),
                 )
                 run_dir = Path(summary["runs"][0]["run_dir"])
-                self.assertEqual((run_dir / "workspace" / "model.txt").read_text(encoding="utf-8"), "env-model")
+                self.assertEqual((run_dir / "workspace" / "model.txt").read_text(encoding="utf-8"), "adapter-model")
+                self.assertEqual(summary["model"], "canonical-model")
+                self.assertEqual(summary["adapter_model"], "adapter-model")
         finally:
             _restore_env("AGENT_BENCH_COMMAND", old_command)
             _restore_env("AGENT_BENCH_TIMEOUT_SECONDS", old_timeout)
@@ -591,6 +614,7 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertIn("opencode run", OpencodeAdapter().command_template() or "")
         self.assertIn("claude -p", ClaudeCodeAdapter().command_template() or "")
+        self.assertIn("--output-format json", ClaudeCodeAdapter().command_template() or "")
 
     def test_next_agent_prompt_contains_required_handoff_rules(self) -> None:
         prompt = load_next_agent_prompt(ROOT / "docs" / "next_agent_prompt.md")
@@ -872,6 +896,29 @@ class FrameworkTests(unittest.TestCase):
         evidence = parse_harness_output("claude-code", "Fixed the bug.", "")
         self.assertIsNone(evidence.model)
         self.assertIsInstance(evidence.tool_calls, list)
+
+    def test_claude_code_json_parser_extracts_model_usage_and_cost(self) -> None:
+        from agent_benchmark.parsers import parse_harness_output
+
+        stdout = json.dumps(
+            {
+                "total_cost_usd": 0.0125,
+                "usage": {
+                    "input_tokens": 1200,
+                    "output_tokens": 300,
+                    "server_tool_use": {"web_search_requests": 2},
+                },
+                "modelUsage": {"claude-fable-5": {"costUSD": 0.0125}},
+                "result": "Updated `stats.py`.",
+            }
+        )
+        evidence = parse_harness_output("claude-code", stdout, "")
+
+        self.assertEqual(evidence.model, "claude-fable-5")
+        self.assertEqual(evidence.input_tokens, 1200)
+        self.assertEqual(evidence.output_tokens, 300)
+        self.assertEqual(evidence.cost_usd, 0.0125)
+        self.assertEqual(len([call for call in evidence.tool_calls if call["type"] == "server_web_search_requests"]), 2)
 
     def test_unknown_adapter_parser_returns_empty(self) -> None:
         """Prove parser returns empty evidence for unknown adapters."""

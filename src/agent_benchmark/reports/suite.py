@@ -20,6 +20,7 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
         "",
         f"- Adapter: `{suite_summary['adapter']}`",
         f"- Model: `{suite_summary['model']}`",
+        f"- Adapter model: `{suite_summary.get('adapter_model', suite_summary['model'])}`",
         f"- Budget profile: `{suite_summary['budget_profile']}`",
         f"- Repetitions per task: {suite_summary['repetitions_per_task']}",
         f"- Task count: {suite_summary['task_count']}",

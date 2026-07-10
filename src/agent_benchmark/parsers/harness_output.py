@@ -6,6 +6,7 @@ so the scorer can populate dimensions like tool_use and cost_efficiency.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 
@@ -146,9 +147,11 @@ def _parse_claude_code(stdout: str, stderr: str) -> HarnessEvidence:
     """
     evidence = HarnessEvidence()
 
-    # claude-code in -p mode outputs the summary to stdout
-    # Model name is not reliably in stdout/stderr; try to detect from patterns
-    # The model is usually set via --model flag or defaults to the account default
+    structured = _parse_claude_json(stdout)
+    if structured is not None:
+        return structured
+
+    # Fall back to the plain-text mode used by custom adapter templates.
 
     # Count tool-like patterns in the output as rough evidence
     # claude-code sometimes mentions what it did in the summary
@@ -162,6 +165,84 @@ def _parse_claude_code(stdout: str, stderr: str) -> HarnessEvidence:
             evidence.tool_calls.append({"type": "reference", "path": path})
 
     return evidence
+
+
+def _parse_claude_json(stdout: str) -> HarnessEvidence | None:
+    """Parse Claude Code's documented ``--output-format json`` result object."""
+    try:
+        payload = json.loads(stdout)
+    except (TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    evidence = HarnessEvidence()
+    evidence.model = _first_string(payload, ("model", "model_name", "modelName"))
+    usage = payload.get("usage")
+    if isinstance(usage, dict):
+        evidence.model = evidence.model or _first_string(usage, ("model", "model_name", "modelName"))
+        evidence.input_tokens = _first_int(usage, ("input_tokens", "inputTokens", "input"))
+        evidence.output_tokens = _first_int(usage, ("output_tokens", "outputTokens", "output"))
+    evidence.input_tokens = evidence.input_tokens or _first_int(payload, ("input_tokens", "inputTokens"))
+    evidence.output_tokens = evidence.output_tokens or _first_int(payload, ("output_tokens", "outputTokens"))
+    evidence.cost_usd = _first_float(payload, ("total_cost_usd", "cost_usd", "totalCostUsd", "costUsd"))
+    if evidence.cost_usd is None and isinstance(usage, dict):
+        evidence.cost_usd = _first_float(usage, ("total_cost_usd", "cost_usd", "totalCostUsd", "costUsd"))
+
+    model_usage = payload.get("modelUsage")
+    if isinstance(model_usage, dict) and model_usage:
+        model_names = [str(name).strip() for name in model_usage if str(name).strip()]
+        if evidence.model is None and len(model_names) == 1:
+            evidence.model = model_names[0]
+        if evidence.cost_usd is None and len(model_names) == 1:
+            usage_details = model_usage.get(model_names[0])
+            if isinstance(usage_details, dict):
+                evidence.cost_usd = _first_float(usage_details, ("costUSD", "cost_usd"))
+
+    if isinstance(usage, dict):
+        server_tool_use = usage.get("server_tool_use")
+        if isinstance(server_tool_use, dict):
+            for tool_name, count in server_tool_use.items():
+                if isinstance(count, int) and count > 0:
+                    evidence.tool_calls.extend({"type": f"server_{tool_name}"} for _ in range(count))
+
+    # The final text can still mention files, which is only heuristic tool use.
+    result = payload.get("result")
+    if isinstance(result, str):
+        for match in re.findall(r"(`[^`]+\.(?:py|c|js|ts|html)`)", result):
+            evidence.tool_calls.append({"type": "reference", "path": match.strip("`")})
+    return evidence
+
+
+def _first_string(payload: dict[str, object], keys: tuple[str, ...]) -> str | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _first_int(payload: dict[str, object], keys: tuple[str, ...]) -> int | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value.replace(",", "").isdigit():
+            return int(value.replace(",", ""))
+    return None
+
+
+def _first_float(payload: dict[str, object], keys: tuple[str, ...]) -> float | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value.removeprefix("$"))
+            except ValueError:
+                continue
+    return None
 
 
 def _extract_path(line: str, keyword: str) -> str | None:

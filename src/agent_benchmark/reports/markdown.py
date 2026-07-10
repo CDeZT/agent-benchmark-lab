@@ -7,11 +7,14 @@ from typing import Any
 def write_markdown_report(path: Path, summary: dict[str, Any], results: list[object]) -> None:
     detected = summary.get("detected_model")
     model_display = f"{summary['model']}" + (f" (detected: {detected})" if detected and detected != summary["model"] else "")
+    model_identity = summary.get("model_identity")
+    model_status = model_identity.get("status", "not-recorded") if isinstance(model_identity, dict) else "not-recorded"
     lines = [
         f"# Benchmark Report: {summary['task_id']}",
         "",
         f"- Adapter: `{summary['adapter']}`",
         f"- Model: `{model_display}`",
+        f"- Model identity: `{model_status}`",
         f"- Budget profile: `{summary['budget_profile']}`",
         f"- Repetitions: {summary['repetitions']}",
         f"- Mean score: {summary['mean_score']}",
@@ -32,6 +35,8 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
         "| Rep | Score | Public | Hidden | Tools | Duration | Changed Files |",
         "| ---: | ---: | --- | --- | ---: | ---: | --- |",
     ]
+    if isinstance(model_identity, dict) and model_identity.get("reason"):
+        lines.insert(7, f"- Model identity note: {model_identity['reason']}")
     for run in summary["runs"]:
         changed = ", ".join(run["changed_files"]) if run["changed_files"] else "none"
         tools = run.get("tool_call_count", 0)

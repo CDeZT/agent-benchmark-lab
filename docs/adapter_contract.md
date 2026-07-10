@@ -54,8 +54,11 @@ Command templates support these shell-quoted placeholders:
 The runner also injects these environment variables while the adapter command is built and executed:
 
 - `AGENT_BENCH_MODEL`
+- `AGENT_BENCH_CANONICAL_MODEL`
 - `AGENT_BENCH_BUDGET_PROFILE`
 - `AGENT_BENCH_LABEL`
+
+`AGENT_BENCH_MODEL` is the adapter-specific invocation identifier. `AGENT_BENCH_CANONICAL_MODEL` is the user-facing comparison identifier retained in reports; it is not necessarily valid CLI syntax for every harness.
 
 Built-in default templates:
 
@@ -66,6 +69,8 @@ You can still override them with:
 
 - `AGENT_BENCH_OPENCODE_COMMAND`
 - `AGENT_BENCH_CLAUDE_CODE_COMMAND`
+
+Claude Code's default template now uses `--output-format json`, so the runner can collect structured result metadata such as actual model identity, token usage, and cost when the configured provider exposes it.
 
 ## Evidence Events
 

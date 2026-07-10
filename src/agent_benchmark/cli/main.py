@@ -13,6 +13,7 @@ from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
+from agent_benchmark.model_registry import adapter_model_for, load_model_registry
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
 from agent_benchmark.reports.matrix import build_matrix_leaderboard, write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
@@ -92,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--task", required=True, help="Task id or path.")
     run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
     run_parser.add_argument("--model", default="unspecified", help="Model name to record for this experiment.")
+    run_parser.add_argument("--adapter-model", help="Adapter-specific CLI model identifier; defaults to --model.")
     run_parser.add_argument("--budget-profile", default="open_ended", help="Budget profile label.")
     run_parser.add_argument("--label", default="", help="Optional experiment label.")
     run_parser.add_argument("--repetitions", type=int, default=3)
@@ -105,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     suite_run_parser.add_argument("--suite", required=True, help="Suite id or path.")
     suite_run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
     suite_run_parser.add_argument("--model", default="unspecified", help="Model name to record for this suite run.")
+    suite_run_parser.add_argument("--adapter-model", help="Adapter-specific CLI model identifier; defaults to --model.")
     suite_run_parser.add_argument("--budget-profile", default="open_ended", help="Budget profile label.")
     suite_run_parser.add_argument("--label", default="", help="Optional experiment label.")
     suite_run_parser.add_argument("--repetitions", type=int, default=3)
@@ -121,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     matrix_parser.add_argument("--suite", required=True, help="Suite id or path.")
     matrix_parser.add_argument("--adapters", default="dummy", help="Comma-separated adapter names.")
     matrix_parser.add_argument("--models", default="unspecified", help="Comma-separated model names to record.")
+    matrix_parser.add_argument("--model-registry", help="JSON registry mapping canonical model names to adapter-specific CLI identifiers.")
     matrix_parser.add_argument("--budget-profiles", default="open_ended", help="Comma-separated budget profiles.")
     matrix_parser.add_argument("--label", default="", help="Optional experiment label.")
     matrix_parser.add_argument("--repetitions", type=int, default=3)
@@ -382,6 +386,7 @@ def _run_matrix(args: argparse.Namespace) -> int:
     adapters = _split_csv(args.adapters)
     models = _split_csv(args.models)
     budget_profiles = _split_csv(args.budget_profiles)
+    registry = load_model_registry(Path(args.model_registry)) if args.model_registry else None
     combination_specs = []
     for adapter in adapters:
         for model in models:
@@ -390,6 +395,7 @@ def _run_matrix(args: argparse.Namespace) -> int:
                     {
                         "adapter": adapter,
                         "model": model,
+                        "adapter_model": adapter_model_for(registry, model, adapter) if registry else model,
                         "budget_profile": budget_profile,
                         "label": args.label,
                         "repetitions": args.repetitions,
@@ -464,6 +470,7 @@ def _run_matrix_with_specs(
         config = ExperimentConfig(
             adapter=str(spec["adapter"]),
             model=str(spec["model"]),
+            adapter_model=str(spec.get("adapter_model") or spec["model"]),
             budget_profile=str(spec["budget_profile"]),
             label=str(spec.get("label", "")),
             repetitions=int(spec["repetitions"]),
@@ -604,6 +611,7 @@ def _run_suite_with_config(
         "suite_id": suite.suite_id,
         "adapter": config.adapter,
         "model": config.model,
+        "adapter_model": config.invocation_model,
         "budget_profile": config.budget_profile,
         "label": config.label,
         "repetitions_per_task": config.repetitions,
@@ -632,6 +640,7 @@ def _config_from_saved_data(config_data: dict[str, object], runs_dir: Path) -> E
     config = ExperimentConfig(
         adapter=str(config_data["adapter"]),
         model=str(config_data["model"]),
+        adapter_model=str(config_data.get("adapter_model") or config_data["model"]),
         budget_profile=str(config_data["budget_profile"]),
         label=str(config_data["label"]),
         repetitions=int(config_data["repetitions"]),
@@ -658,6 +667,7 @@ def _write_suite_manifest(
         "config": {
             "adapter": config.adapter,
             "model": config.model,
+            "adapter_model": config.invocation_model,
             "budget_profile": config.budget_profile,
             "label": config.label,
             "repetitions": config.repetitions,
@@ -701,6 +711,7 @@ def _config_from_args(args: argparse.Namespace) -> ExperimentConfig:
     config = ExperimentConfig(
         adapter=args.adapter,
         model=args.model,
+        adapter_model=getattr(args, "adapter_model", None),
         budget_profile=args.budget_profile,
         label=args.label,
         repetitions=args.repetitions,

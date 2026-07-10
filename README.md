@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、89 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、92 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -36,6 +36,8 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。首次本机运行仍需要可用的 Docker daemon。
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
+- 模型身份证据：报告区分规范模型名、adapter 实际调用名、harness 检测名和匹配状态。跨 harness 的“同模型”结论必须是 `verified_match`，不能只看用户标签。
+- `config/model_registry.example.json`：支持把同一规范模型名映射为 Claude Code / opencode 各自需要的 CLI 参数，避免不同 CLI 命名导致伪同模型比较。
 - 矩阵运行与恢复（adapter × model × budget_profile）；每个组合与内部 suite 都有 checkpoint，`resume-matrix` 可补跑未完成组合
 - 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名
 - 公开测试 + 隐藏测试 + SHA-256 完整性检查
@@ -67,6 +69,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit --include-real-harness
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter claude-code --model mimo-v2.5-pro --adapter-model 'mimo-v2.5-pro[1m]' --repetitions 1
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-dir runs/<matrix-run-id>
@@ -75,6 +78,8 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite calibration
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
+
+For a real cross-harness matrix, copy and adapt `config/model_registry.example.json`, then pass `--model-registry <your-registry.json>` to `run-matrix`. The registry records a canonical comparison name while sending each harness its required model identifier.
 
 Run outputs are written under `runs/` by default.
 

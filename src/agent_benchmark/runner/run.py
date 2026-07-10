@@ -14,6 +14,7 @@ import uuid
 
 from agent_benchmark.adapters import adapter_by_name
 from agent_benchmark.adapters.base import AdapterResult
+from agent_benchmark.model_identity import summarize_model_identity
 from agent_benchmark.parsers import parse_harness_output
 from agent_benchmark.recorders import JsonlRecorder
 from agent_benchmark.reports.html import write_html_report
@@ -37,6 +38,7 @@ class RunResult:
     changed_files: list[str]
     run_dir: str
     duration_seconds: float
+    adapter_model: str = "unspecified"
     detected_model: str | None = None
     tool_call_count: int = 0
     cost_usd: float | None = None
@@ -88,6 +90,7 @@ def run_task(
                 "task_id": task.task_id,
                 "adapter": config.adapter,
                 "model": config.model,
+                "adapter_model": config.invocation_model,
                 "budget_profile": config.budget_profile,
                 "label": config.label,
                 "repetition": repetition,
@@ -135,6 +138,7 @@ def run_task(
             task_id=task.task_id,
             adapter=config.adapter,
             model=config.model,
+            adapter_model=config.invocation_model,
             budget_profile=config.budget_profile,
             repetition=repetition,
             score=score,
@@ -181,7 +185,8 @@ def _copy_workspace(source: Path, target: Path) -> None:
 
 def _run_adapter_with_env(adapter: object, task: TaskSpec, workspace: Path, recorder: JsonlRecorder, config: ExperimentConfig) -> AdapterResult:
     injected = {
-        "AGENT_BENCH_MODEL": config.model,
+        "AGENT_BENCH_MODEL": config.invocation_model,
+        "AGENT_BENCH_CANONICAL_MODEL": config.model,
         "AGENT_BENCH_BUDGET_PROFILE": config.budget_profile,
         "AGENT_BENCH_LABEL": config.label,
     }
@@ -276,6 +281,7 @@ def _write_experiment_manifest(
         "config": {
             "adapter": config.adapter,
             "model": config.model,
+            "adapter_model": config.invocation_model,
             "budget_profile": config.budget_profile,
             "label": config.label,
             "repetitions": config.repetitions,
@@ -332,6 +338,7 @@ def _summarize(
     verified_scores = [float(score) for score in verified_scores if score is not None]
     coverage = [float(result.score.measurement.get("verified_coverage_percent", 0.0)) for result in results]
     detected_models = [r.detected_model for r in results if r.detected_model]
+    model_identity = summarize_model_identity(config.invocation_model, detected_models)
     total_tool_calls = sum(r.tool_call_count for r in results)
     costs = [r.cost_usd for r in results if r.cost_usd is not None]
     input_tokens = [r.input_tokens for r in results if r.input_tokens is not None]
@@ -348,6 +355,7 @@ def _summarize(
         "benchmark_role": task.metadata.get("benchmark_role", "comparative_candidate"),
         "adapter": config.adapter,
         "model": config.model,
+        "adapter_model": config.invocation_model,
         "budget_profile": config.budget_profile,
         "label": config.label,
         "experiment_dir": str(experiment_dir),
@@ -366,6 +374,8 @@ def _summarize(
         "mean_input_tokens": round(statistics.mean(input_tokens), 2) if input_tokens else None,
         "mean_output_tokens": round(statistics.mean(output_tokens), 2) if output_tokens else None,
         "detected_model": detected_models[0] if detected_models else None,
+        "detected_models": sorted(set(detected_models)),
+        "model_identity": model_identity,
         "total_tool_calls": total_tool_calls,
         "runs": [
             {
@@ -383,6 +393,7 @@ def _summarize(
                 "input_tokens": result.input_tokens,
                 "output_tokens": result.output_tokens,
                 "detected_model": result.detected_model,
+                "adapter_model": result.adapter_model,
                 "tool_call_count": result.tool_call_count,
                 "task_difficulty": result.task_difficulty,
                 "task_provenance_type": result.task_provenance_type,

@@ -10,15 +10,15 @@
       "id": "compare_harness_same_model",
       "title": "Compare different harnesses with the same model",
       "status": "partial",
-      "evidence": ["run-matrix supports adapter x model x budget profile combinations", "adapter shells exist for claude-code and opencode"],
-      "remaining": ["Test and refine real Claude Code and opencode commands", "Run real harnesses with the same model"]
+      "evidence": ["run-matrix supports adapter x canonical model x budget profile combinations", "model registry maps canonical models to harness-specific CLI identifiers", "model_identity records verified_match, requested_unverified, or mismatch"],
+      "remaining": ["Run three-repeat real harnesses with a registry-backed verified same model"]
     },
     {
       "id": "compare_models_same_harness",
       "title": "Compare different models under the same harness",
       "status": "partial",
-      "evidence": ["ExperimentConfig records model", "run-matrix accepts multiple model labels"],
-      "remaining": ["Connect model configuration to real harness adapters", "Parse provider cost/token output where available"]
+      "evidence": ["ExperimentConfig records canonical model and adapter invocation model", "run-matrix accepts a model registry", "Claude JSON smoke parsed actual model, token usage, and cost"],
+      "remaining": ["Create user's local mappings and run real comparison matrix"]
     },
     {
       "id": "combination_ranking",
@@ -52,7 +52,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "89 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "92 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
     },
     {
@@ -136,8 +136,8 @@
       "id": "real_harness_adapters",
       "title": "Real Claude Code and opencode adapters",
       "status": "partial",
-      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, and model env", "Both opencode and Claude Code passed real python-bugfix smoke tests", "Parser extracts model name (LongCat-2.0) and tool calls from opencode stderr", "detected_model and tool_call_count now in summary output"],
-      "remaining": ["Run larger benchmark matrices", "Parse cost/token data from provider outputs", "Handle provider-specific permissions and interaction behavior"]
+      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Both opencode and Claude Code passed real python-bugfix smoke tests", "Parser extracts LongCat-2.0 from opencode stderr", "Claude JSON parsed mimo-v2.5-pro[1m], tokens, and cost", "detected_model and model_identity are in summaries"],
+      "remaining": ["Run larger registry-backed benchmark matrices", "Improve provider-specific tool trace parsing", "Handle provider-specific permissions and interaction behavior"]
     },
     {
       "id": "real_harness_smoke",
