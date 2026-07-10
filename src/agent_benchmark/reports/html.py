@@ -9,6 +9,8 @@ from typing import Any
 def write_html_report(path: Path, summary: dict[str, Any]) -> None:
     first_run = summary["runs"][0] if summary["runs"] else {"dimensions": {}}
     dimensions = first_run.get("dimensions", {})
+    measurement = first_run.get("measurement", {})
+    statuses = measurement.get("dimension_status", {}) if isinstance(measurement, dict) else {}
     radar = _radar_svg(dimensions)
     weights = {
         "task_completion": 30, "intent_understanding": 10, "planning": 8,
@@ -17,7 +19,7 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
         "cost_efficiency": 4,
     }
     bars = "\n".join(
-        f"<div class='bar'><span>{html.escape(name)} ({weights.get(name, 0)}%)</span><meter min='0' max='100' value='{value}'></meter><b>{value:.1f}</b></div>"
+        f"<div class='bar'><span>{html.escape(name)} ({weights.get(name, 0)}%, {html.escape(str(statuses.get(name, 'unavailable')))})</span><meter min='0' max='100' value='{value}'></meter><b>{value:.1f}</b></div>"
         for name, value in dimensions.items()
     )
     run_rows = "\n".join(
@@ -55,6 +57,8 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
   <p><code>{html.escape(summary['task_id'])}</code> with adapter <code>{html.escape(summary['adapter'])}</code>, model <code>{model_display}</code>, profile <code>{html.escape(summary['budget_profile'])}</code></p>
   <section class="summary">
     <div class="metric"><span>Mean</span><b>{summary['mean_score']}</b></div>
+    <div class="metric"><span>Verified normalized</span><b>{summary.get('mean_verified_normalized_score')}</b></div>
+    <div class="metric"><span>Verified coverage</span><b>{summary.get('mean_verified_coverage_percent')}%</b></div>
     <div class="metric"><span>Variance</span><b>{summary['variance']}</b></div>
     <div class="metric"><span>Best</span><b>{summary['best_score']}</b></div>
     <div class="metric"><span>Worst</span><b>{summary['worst_score']}</b></div>

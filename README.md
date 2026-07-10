@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、79 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、80 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -41,6 +41,8 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 过程检查（plan.md、文件变更、测试质量、指令匹配）
 - Markdown + HTML 报告（含 SVG 雷达图）
 - 自动计算均值、方差、标准差
+- 严格总分 + 已验证证据覆盖率 + 已验证维度归一化分，防止将“暂未测到的维度为 0”误读为能力失败
+- `calibrate-difficulty`：依据真实 harness/model 多组合、多次运行的通过率与差异，判断题目是否有区分度；不把 dummy 结果当作难度结论
 - 一键审计、环境诊断、交接提示
 
 See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
@@ -50,6 +52,7 @@ See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
 ```bash
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
+PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status

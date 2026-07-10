@@ -9,6 +9,18 @@ The scoring system must be evidence-backed. A score without an observable eviden
 3. Aggregate score: weighted score for one run.
 4. Experiment score: mean, variance, and confidence summaries across repetitions.
 
+## Strict Total And Measurement Coverage
+
+The strict weighted total keeps unavailable dimensions at zero. This prevents missing telemetry from improving a score, but it must not be read as a direct task-success percentage.
+
+Every run also records:
+
+- `verified_coverage_percent`: how much of the weight has deterministic, task-specific evidence.
+- `verified_normalized_score`: the weighted result normalized over only verified dimensions.
+- Per-dimension status: `verified`, `heuristic`, or `unavailable`.
+
+Reports must display the strict total and coverage together. Heuristic trace signals such as keyword-based self-repair and tool-call patterns remain visible, but are excluded from the verified normalized score.
+
 ## Default Capability Weights
 
 These weights are an initial default and should be versioned when changed.

@@ -10,6 +10,7 @@ import uuid
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.doctor import format_doctor, run_doctor
+from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
 from agent_benchmark.reports.matrix import write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
@@ -33,6 +34,16 @@ def main(argv: list[str] | None = None) -> int:
     catalog_parser = subparsers.add_parser("catalog", help="Show task difficulty and provenance coverage.")
     catalog_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     catalog_parser.add_argument("--json", action="store_true", help="Print the machine-readable catalog.")
+
+    difficulty_parser = subparsers.add_parser(
+        "calibrate-difficulty",
+        help="Assess task discriminability from saved real harness outcomes.",
+    )
+    difficulty_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    difficulty_parser.add_argument("--include-dummy", action="store_true")
+    difficulty_parser.add_argument("--min-combinations", type=int, default=3)
+    difficulty_parser.add_argument("--min-runs", type=int, default=9)
+    difficulty_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -103,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         return _list_tasks(Path(args.tasks_dir))
     if args.command == "catalog":
         return _catalog(args)
+    if args.command == "calibrate-difficulty":
+        return _calibrate_difficulty(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -158,7 +171,31 @@ def _catalog(args: argparse.Namespace) -> int:
         tests = f"public={'yes' if task['has_public_tests'] else 'no'}, hidden={'yes' if task['has_hidden_tests'] else 'no'}"
         print(
             f"{task['difficulty']}\t{task['id']}\t{task['provenance_type']}\t"
-            f"environment={task['environment']}\t{tests}\t{task['title']}"
+            f"role={task['benchmark_role']}\tenvironment={task['environment']}\t{tests}\t{task['title']}"
+        )
+    return 0
+
+
+def _calibrate_difficulty(args: argparse.Namespace) -> int:
+    report = analyze_difficulty(
+        Path(args.runs_dir),
+        include_dummy=args.include_dummy,
+        min_combinations=args.min_combinations,
+        min_runs=args.min_runs,
+    )
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    policy = report["policy"]
+    print(
+        f"Difficulty calibration: {report['task_count']} observed tasks; "
+        f"min_combinations={policy['min_combinations']}, min_runs={policy['min_runs']}, "
+        f"include_dummy={policy['dummy_runs_included']}"
+    )
+    for task in report["tasks"]:
+        print(
+            f"{task['task_id']}\t{task['classification']}\tcombinations={task['combination_count']}"
+            f"\truns={task['run_count']}\trate_range={task['success_rate_range']}"
         )
     return 0
 
@@ -307,6 +344,12 @@ def _run_suite_with_config(suite: object, config: ExperimentConfig, tasks_dir: P
         "repetitions_per_task": config.repetitions,
         "task_count": len(summaries),
         "mean_score": round(sum(item["mean_score"] for item in summaries) / len(summaries), 2) if summaries else 0.0,
+        "mean_verified_normalized_score": _mean_optional(
+            [item.get("mean_verified_normalized_score") for item in summaries]
+        ),
+        "mean_verified_coverage_percent": _mean_optional(
+            [item.get("mean_verified_coverage_percent") for item in summaries]
+        ),
         "mean_duration_seconds": (
             round(sum(item["mean_duration_seconds"] for item in summaries) / len(summaries), 4) if summaries else 0.0
         ),
@@ -316,6 +359,11 @@ def _run_suite_with_config(suite: object, config: ExperimentConfig, tasks_dir: P
     suite_summary["suite_run_dir"] = str(suite_run_dir)
     write_suite_summary(suite_run_dir, suite_summary)
     return suite_summary
+
+
+def _mean_optional(values: list[object]) -> float | None:
+    numeric = [float(value) for value in values if value is not None]
+    return round(sum(numeric) / len(numeric), 2) if numeric else None
 
 
 def _config_from_args(args: argparse.Namespace) -> ExperimentConfig:

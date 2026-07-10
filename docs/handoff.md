@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 79 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 80 unittest test functions, real harness smoke support, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -107,6 +107,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added the local 8-task `calibration` suite spanning all difficulty tiers for repeatable real-harness comparisons.
 - Found task-validity issues: Flask/NumPy/SciPy/pandas tasks could not run reproducibly on this Mac. Marked those tasks `container_required`; the runner now refuses them locally and `project-generation` was removed from the default local foundation suite rather than treating dependency failures as benchmark success.
 - Added `docs/corpus_strategy.md`: external imports must follow Docker isolation and preserve upstream evaluator/provenance evidence; custom embedded and optics tasks remain first-class.
+- Added strict-score measurement coverage: every result now distinguishes the all-dimension strict total from verified evidence coverage and a verified-only normalized score. Do not present either number without the other.
+- Added `calibrate-difficulty`, which requires real non-dummy results across at least 3 combinations and 9 runs before a task can be called a discriminative candidate.
+- Applied the first live calibration result: `python-bugfix` is 100% successful across four non-dummy combinations and twelve recorded runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
 
 ## In Progress
 
@@ -133,7 +136,7 @@ All non-zero scores must have saved evidence. Several dimensions are still early
 - `tool_use`: 100 when parsed harness output shows diverse tool calls.
 - `execution_quality`: 100 when the agent's workspace file differs from baseline.
 - `intent_understanding`: 100 when the agent modified the correct files.
-- `self_repair`: 100 when stdout/stderr shows retry/fix/correct patterns (3+ indicators).
+- `self_repair`: currently heuristic; it uses stdout/stderr retry/fix/correct patterns and is not causal proof of a repair loop.
 - `test_discipline`: 100 when agent-created test files have sufficient test functions and assertions.
 - `cost_efficiency`: scored only from token/cost data when available; otherwise 0.
 
@@ -148,9 +151,10 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 79 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 80 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
+PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate

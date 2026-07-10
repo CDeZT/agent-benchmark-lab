@@ -15,6 +15,8 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
         f"- Budget profile: `{summary['budget_profile']}`",
         f"- Repetitions: {summary['repetitions']}",
         f"- Mean score: {summary['mean_score']}",
+        f"- Mean verified normalized score: {summary.get('mean_verified_normalized_score')}",
+        f"- Mean verified evidence coverage: {summary.get('mean_verified_coverage_percent')}%",
         f"- Variance: {summary['variance']}",
         f"- Standard deviation: {summary['stdev']}",
         f"- Best score: {summary['best_score']}",
@@ -44,8 +46,10 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
         last_run = summary["runs"][-1]
         if "dimensions" in last_run:
             lines.extend(["", "## Dimension Scores (last run)", ""])
-            lines.append("| Dimension | Score | Weight |")
-            lines.append("| --- | ---: | ---: |")
+            measurement = last_run.get("measurement", {})
+            statuses = measurement.get("dimension_status", {}) if isinstance(measurement, dict) else {}
+            lines.append("| Dimension | Score | Weight | Evidence Status |")
+            lines.append("| --- | ---: | ---: | --- |")
             weights = {
                 "task_completion": 30, "intent_understanding": 10, "planning": 8,
                 "execution_quality": 12, "self_repair": 10, "test_discipline": 10,
@@ -54,7 +58,7 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
             }
             for dim, score in sorted(last_run["dimensions"].items()):
                 weight = weights.get(dim, 0)
-                lines.append(f"| {dim} | {score} | {weight} |")
+                lines.append(f"| {dim} | {score} | {weight} | {statuses.get(dim, 'unavailable')} |")
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

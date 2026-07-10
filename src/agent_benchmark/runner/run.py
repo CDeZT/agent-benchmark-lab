@@ -241,6 +241,9 @@ def _summarize(
     durations = [result.duration_seconds for result in results]
     adapter_durations = [result.adapter_result.duration_seconds for result in results]
     test_durations = [_test_duration(result.score.evidence.get("test")) for result in results]
+    verified_scores = [result.score.measurement.get("verified_normalized_score") for result in results]
+    verified_scores = [float(score) for score in verified_scores if score is not None]
+    coverage = [float(result.score.measurement.get("verified_coverage_percent", 0.0)) for result in results]
     detected_models = [r.detected_model for r in results if r.detected_model]
     total_tool_calls = sum(r.tool_call_count for r in results)
     costs = [r.cost_usd for r in results if r.cost_usd is not None]
@@ -264,6 +267,8 @@ def _summarize(
         "stdev": round(statistics.pstdev(scores), 4) if len(scores) > 1 else 0.0,
         "best_score": max(scores) if scores else 0.0,
         "worst_score": min(scores) if scores else 0.0,
+        "mean_verified_normalized_score": round(statistics.mean(verified_scores), 2) if verified_scores else None,
+        "mean_verified_coverage_percent": round(statistics.mean(coverage), 2) if coverage else 0.0,
         "mean_duration_seconds": round(statistics.mean(durations), 4) if durations else 0.0,
         "mean_adapter_duration_seconds": round(statistics.mean(adapter_durations), 4) if adapter_durations else 0.0,
         "mean_test_duration_seconds": round(statistics.mean(test_durations), 4) if test_durations else 0.0,
@@ -278,6 +283,7 @@ def _summarize(
                 "repetition": result.repetition,
                 "score": result.score.total,
                 "dimensions": result.score.dimensions,
+                "measurement": result.score.measurement,
                 "changed_files": result.changed_files,
                 "duration_seconds": round(result.duration_seconds, 4),
                 "adapter_duration_seconds": round(result.adapter_result.duration_seconds, 4),

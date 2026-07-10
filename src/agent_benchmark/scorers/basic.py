@@ -116,6 +116,7 @@ class ScoreResult:
     total: float
     dimensions: dict[str, float]
     evidence: dict[str, object] = field(default_factory=dict)
+    measurement: dict[str, object] = field(default_factory=dict)
 
 
 def score_run(
@@ -236,8 +237,18 @@ def score_run(
     weights = _weights(task)
     total_weight = sum(weights.values())
     total = sum(dimensions.get(name, 0.0) * weight for name, weight in weights.items()) / total_weight
-    recorder.event("score.computed", {"total": total, "dimensions": dimensions})
-    return ScoreResult(total=round(total, 2), dimensions=dimensions, evidence=evidence)
+    measurement = _measurement_summary(task, weights, dimensions, evidence)
+    measurement["strict_weighted_score"] = round(total, 2)
+    recorder.event(
+        "score.computed",
+        {"total": total, "dimensions": dimensions, "measurement": measurement},
+    )
+    return ScoreResult(
+        total=round(total, 2),
+        dimensions=dimensions,
+        evidence=evidence,
+        measurement=measurement,
+    )
 
 
 def _weights(task: TaskSpec) -> dict[str, float]:
@@ -255,6 +266,69 @@ def _weights(task: TaskSpec) -> dict[str, float]:
     }
     defaults.update(task.scoring_weights)
     return defaults
+
+
+def _measurement_summary(
+    task: TaskSpec,
+    weights: dict[str, float],
+    dimensions: dict[str, float],
+    evidence: dict[str, object],
+) -> dict[str, object]:
+    """Separate verified measurement coverage from the strict all-dimension score.
+
+    `total` deliberately keeps unavailable dimensions at zero, so a harness
+    cannot obtain a high total through missing telemetry. This companion view
+    shows how much of that total is backed by task-specific, executable
+    evidence. Heuristic trace interpretation remains visible but is not folded
+    into the verified normalized score.
+    """
+    statuses = {name: "unavailable" for name in weights}
+
+    test_evidence = evidence.get("test")
+    if isinstance(test_evidence, dict) and any(
+        isinstance(value, dict) and value.get("configured") for value in test_evidence.values()
+    ):
+        statuses["task_completion"] = "verified"
+
+    if task.protected_paths:
+        statuses["safety_boundary"] = "verified"
+    if task.visual_checks:
+        statuses["visual_verification"] = "verified"
+
+    process_evidence = evidence.get("process")
+    if isinstance(process_evidence, dict):
+        process_dimensions = process_evidence.get("dimensions")
+        if isinstance(process_dimensions, dict):
+            for name in process_dimensions:
+                if name in statuses:
+                    statuses[name] = "verified"
+
+    self_repair_evidence = evidence.get("self_repair")
+    if isinstance(self_repair_evidence, dict) and "error" not in self_repair_evidence:
+        statuses["self_repair"] = "heuristic"
+
+    tool_evidence = evidence.get("tool_use")
+    if isinstance(tool_evidence, dict) and tool_evidence.get("tool_count") is not None:
+        statuses["tool_use"] = "heuristic"
+
+    cost_evidence = evidence.get("cost_efficiency")
+    if isinstance(cost_evidence, dict) and cost_evidence.get("method") not in {None, "no_token_or_cost_evidence"}:
+        statuses["cost_efficiency"] = "verified"
+
+    verified_dimensions = [name for name, status in statuses.items() if status == "verified"]
+    heuristic_dimensions = [name for name, status in statuses.items() if status == "heuristic"]
+    verified_weight = sum(weights[name] for name in verified_dimensions)
+    weighted_verified_score = sum(dimensions.get(name, 0.0) * weights[name] for name in verified_dimensions)
+    normalized = weighted_verified_score / verified_weight if verified_weight else None
+    return {
+        "dimension_status": statuses,
+        "verified_dimensions": verified_dimensions,
+        "heuristic_dimensions": heuristic_dimensions,
+        "verified_weight": round(verified_weight, 2),
+        "total_weight": round(sum(weights.values()), 2),
+        "verified_coverage_percent": round(100.0 * verified_weight / sum(weights.values()), 2) if weights else 0.0,
+        "verified_normalized_score": round(normalized, 2) if normalized is not None else None,
+    }
 
 
 def _run_test_command(

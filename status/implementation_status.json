@@ -30,9 +30,9 @@
     {
       "id": "total_and_dimension_scores",
       "title": "Total score and per-dimension scores",
-      "status": "implemented",
-      "evidence": ["ScoreResult contains total and dimensions", "HTML and Markdown reports show scores"],
-      "remaining": ["Keep strengthening weak heuristic dimensions"]
+      "status": "partial",
+      "evidence": ["ScoreResult contains strict total, dimensions, verified coverage, and verified-only normalized score", "HTML and Markdown reports show evidence status per dimension"],
+      "remaining": ["Add causal self-repair, browser, and subagent evidence"]
     },
     {
       "id": "radar_chart",
@@ -51,9 +51,9 @@
     {
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
-      "status": "implemented",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Unimplemented or unevidenced dimensions remain 0", "Scoring integrity tests prove non-zero scores come from execution evidence", "tool_use scored from parsed harness output (tool variety + count)", "execution_quality scored from file_changed process check (SHA-256 diff from baseline)", "test_discipline scored from test_file_quality process check (test function count + assertions)", "intent_understanding scored from instruction_match process check (agent modified correct files)", "self_repair scored from stdout/stderr log analysis (retry/fix/correct patterns)", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "79 unittest test functions cover framework and scoring behavior"],
-      "remaining": ["Improve heuristic dimensions and add stronger process evidence"]
+      "status": "partial",
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "80 unittest test functions cover framework and scoring behavior"],
+      "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
     },
     {
       "id": "process_planning_scoring",
@@ -101,8 +101,8 @@
       "id": "task_coverage_seed",
       "title": "Task corpus, difficulty ladder, and domain coverage",
       "status": "implemented",
-      "evidence": ["Repository contains 19 task definitions", "all manifests declare validated difficulty and provenance", "catalog reports easy=3, medium=9, hard=4, expert=3", "calibration suite spans all four tiers", "embedded and optics have domain_seed tasks"],
-      "remaining": ["Add negative controls and imported benchmark tasks with preserved provenance"]
+      "evidence": ["Repository contains 19 task definitions", "all manifests declare validated difficulty and provenance", "catalog reports easy=3, medium=9, hard=4, expert=3", "python-bugfix is marked smoke_only after real calibration showed 100% success across four combinations and twelve runs", "embedded and optics have domain_seed tasks"],
+      "remaining": ["Run empirical calibration for every comparative task", "Add negative controls and imported benchmark tasks with preserved provenance"]
     },
     {
       "id": "embedded_and_optics_domains",

@@ -24,14 +24,17 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
         f"- Repetitions per task: {suite_summary['repetitions_per_task']}",
         f"- Task count: {suite_summary['task_count']}",
         f"- Mean score: {suite_summary['mean_score']}",
+        f"- Mean verified normalized score: {suite_summary.get('mean_verified_normalized_score')}",
+        f"- Mean verified evidence coverage: {suite_summary.get('mean_verified_coverage_percent')}%",
         f"- Mean duration seconds: {suite_summary['mean_duration_seconds']}",
         "",
-        "| Task | Mean Score | Mean Duration | Variance | Experiment |",
-        "| --- | ---: | ---: | ---: | --- |",
+        "| Task | Strict Score | Verified Score | Coverage | Mean Duration | Variance | Experiment |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
     for task in suite_summary["tasks"]:
         lines.append(
-            f"| `{task['task_id']}` | {task['mean_score']} | {task['mean_duration_seconds']} | "
+            f"| `{task['task_id']}` | {task['mean_score']} | {task.get('mean_verified_normalized_score')} | "
+            f"{task.get('mean_verified_coverage_percent')}% | {task['mean_duration_seconds']} | "
             f"{task['variance']} | `{task['experiment_dir']}` |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

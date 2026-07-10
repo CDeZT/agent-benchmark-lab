@@ -11,6 +11,7 @@ from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.doctor import format_doctor, run_doctor
+from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
 from agent_benchmark.runner.run import _summarize
@@ -71,6 +72,31 @@ class FrameworkTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "requires a containerized environment"):
                 run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
 
+    def test_difficulty_calibration_requires_multiple_real_combinations(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for index, successes in enumerate(([True, True, False], [True, False, False], [True, True, True])):
+                summary_dir = root / f"run-{index}"
+                summary_dir.mkdir()
+                summary_dir.joinpath("summary.json").write_text(
+                    json.dumps(
+                        {
+                            "task_id": "synthetic-hard-task",
+                            "adapter": "opencode" if index < 2 else "claude-code",
+                            "model": f"model-{index}",
+                            "budget_profile": "open_ended",
+                            "runs": [{"public_test_passed": value, "hidden_test_passed": value} for value in successes],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            report = analyze_difficulty(root)
+
+        task = report["tasks"][0]
+        self.assertEqual(task["combination_count"], 3)
+        self.assertEqual(task["run_count"], 9)
+        self.assertEqual(task["classification"], "discriminative_candidate")
+
     def test_dummy_run_writes_evidence(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
 
@@ -81,6 +107,8 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["model"], "unspecified")
             self.assertEqual(summary["budget_profile"], "open_ended")
             self.assertEqual(summary["mean_score"], 58.0)
+            self.assertEqual(summary["mean_verified_normalized_score"], 100.0)
+            self.assertEqual(summary["mean_verified_coverage_percent"], 58.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
             for run in summary["runs"]:
@@ -95,6 +123,8 @@ class FrameworkTests(unittest.TestCase):
                 result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
                 self.assertEqual(result["score"]["dimensions"]["task_completion"], 100.0)
                 self.assertEqual(result["score"]["dimensions"]["visual_verification"], 0.0)
+                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 58.0)
+                self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 100.0)
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
                 self.assertTrue(result["score"]["evidence"]["test"]["hidden"]["passed"])
 

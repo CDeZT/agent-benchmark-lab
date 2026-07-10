@@ -31,11 +31,13 @@ Copy this prompt into the next coding agent if this thread cannot continue.
     PYTHONPATH=src python3 -m agent_benchmark.cli.main status
     PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
     PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
+    PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
     PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 重要规则：
 - 不要假打分。没有证据的维度保持 0 或 partial，不要为了好看填分。
+- 报告严格总分时，必须同时报告 verified evidence coverage 和 verified normalized score；不要把未测维度导致的低严格分误读为任务失败。
 - 不要把当前自定义 seed/inspired 任务说成已导入的权威题库；外部导入还没实现。
 - 新任务必须声明 `difficulty`、`difficulty_rationale` 和 `provenance`；外部导入任务必须保留上游来源、版本、许可和 evaluator 证据。
 - 依赖无法在当前环境复现的任务必须标记 `container_required`，不得混进默认本机比较或把跳过测试当作成功。
@@ -65,13 +67,15 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 79 个 unittest 测试函数，应该全部通过。
+- 80 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 增加 Docker isolation 和任务依赖 provisioning。
 - 运行 real harness matrix（opencode vs claude-code × 多个模型），优先使用 `calibration`。
 - 增加 browser screenshot/pixel visual verification。
 - 通过上游 evaluator 导入固定分层的 SWE-bench Verified pilot，再接入 Terminal-Bench。
+- 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
+- `python-bugfix` 已经实测为 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。
 - 构建 dashboard 展示历史结果。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。

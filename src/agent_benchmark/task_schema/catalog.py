@@ -37,6 +37,7 @@ def _task_record(task: TaskSpec) -> dict[str, Any]:
         "has_public_tests": bool(task.test_command),
         "has_hidden_tests": bool(task.hidden_test_command),
         "environment": task.metadata.get("environment", "local"),
+        "benchmark_role": task.metadata.get("benchmark_role", "comparative_candidate"),
     }
 
 

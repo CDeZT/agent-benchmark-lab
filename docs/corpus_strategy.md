@@ -50,3 +50,11 @@ Tasks whose dependencies cannot be reproduced locally must be marked `container_
 ## Scoring and Reporting Rule
 
 Do not report one global number across custom, SWE-bench, Terminal-Bench, web, and desktop tasks without a published weighting policy. First report per-corpus, per-tier success rates, mean score, variance, duration, and actual cost/token evidence. A future composite score may be added only after its weights, exclusions, and confidence intervals are documented.
+
+## Difficulty Calibration Rule
+
+`easy` through `expert` are initially authoring hypotheses, not empirical facts. Before a task contributes to a comparative harness/model leaderboard, run `agent-benchmark calibrate-difficulty` on real (non-dummy) results. The current policy requires at least three distinct adapter/model/profile combinations and nine total runs. It labels a task a `discriminative_candidate` only when observed success rates avoid universal-easy/universal-impossible extremes and differ by at least 20 percentage points across combinations. Otherwise it remains insufficient, too easy, too hard, or in need of more diverse evidence.
+
+This is intentionally conservative. It does not claim that one small pilot establishes benchmark difficulty; it prevents the common mistake of calling a hand-authored task "hard" without checking whether every candidate solves it immediately.
+
+The first live calibration result already changed the corpus: `python-bugfix` achieved 100% completion in four non-dummy combinations over twelve recorded runs, so it is now `smoke_only`. It remains useful for checking adapter wiring, but must not contribute to a serious harness/model ranking.
