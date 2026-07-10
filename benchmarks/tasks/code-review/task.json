@@ -7,6 +7,7 @@
   "difficulty": "medium",
   "difficulty_rationale": "Requires finding and correcting security and correctness issues in an unfamiliar module.",
   "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
+  "metadata": {"benchmark_role": "needs_rework"},
   "workspace": "workspace",
     "test_command": ["python3", "test_user_auth.py"],
     "protected_paths": ["test_user_auth.py"],

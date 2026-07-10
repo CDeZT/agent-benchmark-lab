@@ -9,6 +9,7 @@ import uuid
 
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
+from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
@@ -49,6 +50,10 @@ def main(argv: list[str] | None = None) -> int:
     taxonomy_parser = subparsers.add_parser("taxonomy", help="Show outcome capability axes and task mappings.")
     taxonomy_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     taxonomy_parser.add_argument("--json", action="store_true")
+
+    corpus_audit_parser = subparsers.add_parser("audit-corpus", help="Audit baseline/reference contrast for benchmark tasks.")
+    corpus_audit_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    corpus_audit_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -123,6 +128,8 @@ def main(argv: list[str] | None = None) -> int:
         return _calibrate_difficulty(args)
     if args.command == "taxonomy":
         return _taxonomy(args)
+    if args.command == "audit-corpus":
+        return _audit_corpus(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -221,6 +228,17 @@ def _taxonomy(args: argparse.Namespace) -> int:
         return 0
     for task in payload["tasks"]:
         print(f"{task['task_id']}\taxes=[{', '.join(task['axes']) or 'unmapped'}]")
+    return 0
+
+
+def _audit_corpus(args: argparse.Namespace) -> int:
+    report = audit_corpus(Path(args.tasks_dir))
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    print(f"Corpus audit: {report['summary']}")
+    for task in report["tasks"]:
+        print(f"{task['task_id']}\t{task['classification']}")
     return 0
 
 

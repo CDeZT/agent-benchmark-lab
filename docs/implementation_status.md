@@ -26,7 +26,7 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 81 unittest test functions, all expected to pass in the current tree.
+- 82 unittest test functions, all expected to pass in the current tree.
 
 It is not yet a finished real Claude Code versus opencode benchmark. Docker isolation, browser screenshots, and external benchmark importers still need to be implemented and tested.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
@@ -41,7 +41,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Total and dimension scores | Partial | `ScoreResult` has strict weighted total, per-dimension scores, verified evidence coverage, and verified-only normalized score. | Browser/subagent/causal self-repair evidence is still incomplete. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 81 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only. 82 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 13 of 19 tasks currently have hidden tests. | Add independent hidden tests to every comparable task. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
@@ -50,7 +50,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Cost and duration | Partial | Duration is measured; parsed token/cost fields are carried into run summaries when harness output exposes them. | Improve provider-specific usage parsing and reporting. |
 | Task corpus and difficulty ladder | Implemented | 19 manifests carry validated difficulty/provenance fields; easy=3, medium=9, hard=4, expert=3; the 8-task local `calibration` suite spans all four tiers. | Add task-quality negative controls and more domain tasks. |
 | Empirical difficulty calibration | Partial | `calibrate-difficulty` analyzes saved non-dummy results across combinations and refuses to call a task discriminative without 3 combinations and 9 runs. `python-bugfix` has already been identified as too easy and marked smoke-only. | Run real matrices, then revise tasks that are too easy, too hard, or non-discriminative. |
-| Outcome capability scorecard | Implemented | Suite reports aggregate separate software engineering, agent workflow, systems/embedded, scientific, web/UI, and security/reliability axes; smoke-only tasks are excluded. | Add authoritative external tracks to each axis. |
+| Outcome capability scorecard | Implemented | Suite reports aggregate separate software engineering, agent workflow, systems/embedded, scientific, web/UI, and security/reliability axes; all non-comparative tasks are excluded. | Add authoritative external tracks to each axis. |
 | Embedded and optics domains | Partial | Seed tasks exist. | Add deeper domain-specific tasks. |
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
 | Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; both passed `python-bugfix` real smoke. | Run larger benchmark matrices and parse model/tool/cost evidence. |

@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、81 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、82 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -55,6 +55,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
 PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
+PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status

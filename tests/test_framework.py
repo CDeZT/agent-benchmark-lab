@@ -10,6 +10,7 @@ import unittest
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.audit import AuditOptions, run_audit
+from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
@@ -59,7 +60,14 @@ class FrameworkTests(unittest.TestCase):
             {"task_id": "smoke", "task_capabilities": ["bugfix"], "benchmark_role": "smoke_only", "mean_score": 100, "mean_verified_normalized_score": 100, "mean_verified_coverage_percent": 100},
         ])
         self.assertEqual(scorecard["axes"]["systems_embedded"]["mean_strict_score"], 40.0)
-        self.assertEqual(scorecard["excluded_smoke_only_tasks"], ["smoke"])
+        self.assertEqual(scorecard["excluded_noncomparative_tasks"], ["smoke"])
+
+    def test_corpus_audit_proves_bugfix_baseline_fails_and_reference_passes(self) -> None:
+        report = audit_corpus(ROOT / "benchmarks" / "tasks")
+        task = next(item for item in report["tasks"] if item["task_id"] == "python-bugfix")
+        self.assertEqual(task["classification"], "passes")
+        self.assertTrue(task["baseline_failed"])
+        self.assertTrue(task["reference_passed"])
 
     def test_external_imported_provenance_requires_reproducibility_fields(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")

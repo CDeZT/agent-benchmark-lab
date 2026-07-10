@@ -7,6 +7,7 @@
     "difficulty": "medium",
     "difficulty_rationale": "Requires tracing configuration, database, and cache modules before making a packaging change.",
     "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
+    "metadata": {"benchmark_role": "needs_rework"},
     "workspace": "workspace",
     "test_command": ["python3", "test_understanding.py"],
     "protected_paths": ["test_understanding.py"],

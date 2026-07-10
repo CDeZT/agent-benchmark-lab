@@ -39,10 +39,10 @@ def axes_for_task(capabilities: list[str]) -> list[str]:
 
 def build_scorecard(task_summaries: list[dict[str, Any]]) -> dict[str, Any]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    excluded_smoke = []
+    excluded_noncomparative = []
     for task in task_summaries:
-        if task.get("benchmark_role", "comparative_candidate") == "smoke_only":
-            excluded_smoke.append(task.get("task_id"))
+        if task.get("benchmark_role", "comparative_candidate") != "comparative_candidate":
+            excluded_noncomparative.append(task.get("task_id"))
             continue
         for axis in axes_for_task(list(task.get("task_capabilities", []))):
             grouped[axis].append(task)
@@ -60,4 +60,4 @@ def build_scorecard(task_summaries: list[dict[str, Any]]) -> dict[str, Any]:
             "mean_verified_coverage_percent": round(sum(coverage) / len(coverage), 2),
             "task_ids": [task["task_id"] for task in tasks],
         }
-    return {"axes": axes, "excluded_smoke_only_tasks": excluded_smoke}
+    return {"axes": axes, "excluded_noncomparative_tasks": excluded_noncomparative}
