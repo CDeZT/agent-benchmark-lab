@@ -116,12 +116,17 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added matrix persistence and `resume-matrix --matrix-run-dir`: each combination gets a stable summary and nested suite checkpoint, so interruption inside a combination or between combinations resumes without redoing completed work. Matrix reports now have a comparative-only ranking that excludes `smoke_only` and reports strict score, verified score, coverage, pass rate, variance, duration, and cost side by side.
 - Re-audited feasibility with a full audit and a real harness smoke: both opencode and Claude Code passed the smoke-only task. Claude's structured JSON output now provides actual model identity (`mimo-v2.5-pro[1m]` in the latest local smoke), token usage, and cost. Added canonical-model to adapter-model registry support plus `verified_match`/`requested_unverified`/`mismatch` identity status so a same-model claim cannot rely on a label alone.
 - Implemented Docker evaluator v1 for `container_required` tasks: exact-version Python dependencies, generated Dockerfile/image evidence, CPU/memory limits, read-write workspace mount, read-only hidden tests, and a public test helper injected into the real harness prompt. The host harness keeps its local credentials instead of putting them in the container. The evaluator does not impose a blanket no-network policy because network/tool use needs its own task-specific measurement.
-- Installed the `docker` CLI and Colima without sudo. Docker Desktop installation required an interactive administrator password and was therefore not completed. Colima VM image download timed out twice from GitHub (and again in iteration 15), so no daemon-backed container task has been claimed as tested; `doctor` reports this honestly.
-- Added hidden tests to ci-debugging, code-review, python-refactor, python-test-writing, and repo-understanding. 16/19 tasks now have hidden tests (was 13/19).
+- Installed the `docker` CLI and Colima without sudo. Colima VM image download timed out multiple times. OrbStack installation initiated as alternative (in progress). No daemon-backed container task has been claimed as tested; `doctor` reports this honestly.
+- Added hidden tests to ci-debugging, code-review, python-refactor, python-test-writing, and repo-understanding. 16/19 tasks now have hidden tests.
+- Implemented budget profile enforcement: BudgetProfile dataclass with max_attempts, max_duration_seconds, max_tool_caps across 5 user-facing profiles (oneshot/bounded/open_ended/human_like/stress) plus audit/real_smoke internal profiles. Profiles now inject instruction suffixes and env vars into adapter execution.
+- Created `config/model_registry.json` with 5 canonical models + adapter-specific mappings. `scripts/run_calibration_matrix.sh` is ready for real harness matrix execution.
+- Standardized all 19 task.json files to consistent formatting. Added missing process_checks and hidden_test_command to python-refactor.
+- 99 unit tests pass. Full audit passes.
 
 ## In Progress
 
-- Running real harness matrix (opencode vs claude-code × multiple models).
+- Docker daemon activation (OrbStack downloading).
+- Real harness matrix preparation (model registry + calibration script ready).
 
 ## Not Yet Implemented
 

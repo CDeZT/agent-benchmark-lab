@@ -1,5 +1,17 @@
 # Project Journal
 
+## 2026-07-10 (iteration 17)
+
+- Implemented budget profile enforcement via `runner/profiles.py`: BudgetProfile dataclass with max_attempts, max_duration_seconds, max_tool_calls.
+- 5 user-facing profiles: oneshot(1 attempt), bounded(3/300s), open_ended(no limits), human_like(5 attempts), stress(3600s).
+- Profiles inject instruction suffixes and env vars (AGENT_BENCH_BUDGET_MAX_ATTEMPTS/MAX_SECONDS) into adapter execution.
+- Created `config/model_registry.json` with5 canonical models (mimo-v2.5-pro, longcat-2.0, deepseek-v3, deepseek-r1, gpt-4o) mapped to adapter-specific identifiers.
+- Created `scripts/run_calibration_matrix.sh` for real harness matrix execution.
+- Standardized all19 task.json files to consistent 2-space indentation.
+- Added missing hidden_test_command and process_checks to python-refactor.
+- Attempted Docker daemon via OrbStack (in progress, downloading).
+- 99 unit tests pass. Full audit passes (5/5).
+
 ## 2026-07-10 (iteration 16)
 
 - Comprehensive code audit via3 parallel sub-agents (scoring integrity, code style, requirements alignment).
