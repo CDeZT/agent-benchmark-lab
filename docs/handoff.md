@@ -138,8 +138,17 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Keep any local model registry out of the normal default-configuration path. Audit and repair its adapter mappings only before an explicit same-model experiment; opencode currently cannot select `--model`, so its saved output must still verify any same-model claim.
-- Test the remaining container-required tasks and pin base-image digests before relying on them in a long comparison.
+- Run more real harness combinations to make tasks selection-ready (currently 0/19 ready, 13 awaiting evidence).
+- The screening report shows python-bugfix and c-bugfix are `warmup_only` (too easy for ranking).
+
+## Screening Status
+
+| Status | Count | Tasks |
+|--------|-------|-------|
+| selection_ready | 0 | - |
+| awaiting_real_evidence | 13 | Most tasks need more harness data |
+| warmup_only | 2 | python-bugfix, c-bugfix (too easy) |
+| corpus_gate_pending | 4 | Container tasks need Docker audit |
 
 ## Docker Status
 
