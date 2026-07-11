@@ -49,9 +49,9 @@ def build_matrix_leaderboard(combinations: list[dict[str, Any]]) -> dict[str, An
         row["verified_rank"] = index if index == 1 or _ranking_key(row) != _ranking_key(verified_rows[index - 2]) else verified_rows[index - 2]["verified_rank"]
     for row in rows:
         row.setdefault("verified_rank", None)
-        row["ranking_evidence_state"] = "verified_model_identity" if row["verified_rank"] else "provisional_model_identity"
+        row["ranking_evidence_state"] = _ranking_evidence_state(row)
     return {
-        "ranking_basis": "task-level comparable score (only dimensions evidenced for every repetition of that task in every combination), then verified coverage and verified score; strict score remains diagnostic. Equal comparison evidence scores share rank. Model identity must be verified before treating a row as a same-model result.",
+        "ranking_basis": "task-level comparable score (only dimensions evidenced for every repetition of that task in every combination), then verified coverage and verified score; strict score remains diagnostic. Equal comparison evidence scores share rank. Explicit same-model claims require verified model identity. CLI-default rows compare observed current configurations and must not be labelled same-model comparisons.",
         "rows": rows,
         "ranked_combination_count": len(ranked),
         "verified_ranked_combination_count": len(verified_rows),
@@ -103,6 +103,7 @@ def _leaderboard_row(
         "suite_run_dir": combination.get("suite_run_dir"),
         "comparative_task_count": len(comparable),
         "model_identity_status": _aggregate_model_identity(comparable),
+        "detected_models": _detected_models(comparable),
         "excluded_noncomparative_task_ids": [
             task.get("task_id") for task in tasks if task.get("benchmark_role", "comparative_candidate") != "comparative_candidate"
         ],
@@ -202,9 +203,32 @@ def _aggregate_model_identity(tasks: list[dict[str, Any]]) -> str:
         return "mismatch"
     if "requested_unverified" in statuses:
         return "requested_unverified"
-    if statuses == {"not_requested"}:
-        return "not_requested"
+    if statuses == {"default_detected"}:
+        return "default_detected"
+    if "default_unverified" in statuses:
+        return "default_unverified"
     return "mixed"
+
+
+def _detected_models(tasks: list[dict[str, Any]]) -> list[str]:
+    detected = {
+        str(model)
+        for task in tasks
+        if isinstance(task.get("model_identity"), dict)
+        for model in task["model_identity"].get("detected_models", [])
+        if model
+    }
+    return sorted(detected)
+
+
+def _ranking_evidence_state(row: dict[str, Any]) -> str:
+    if row.get("verified_rank"):
+        return "verified_model_identity"
+    if row.get("model_identity_status") == "default_detected":
+        return "cli_default_model_observed"
+    if row.get("model_identity_status") == "default_unverified":
+        return "cli_default_model_unobserved"
+    return "provisional_model_identity"
 
 
 def _run_success(run: dict[str, Any]) -> bool | None:
@@ -227,12 +251,12 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
         "",
         "## Raw Suite Aggregations",
         "",
-        "| Adapter | Canonical Model | Adapter Model | Budget Profile | Strict Score | Verified Score | Coverage | Mean Duration | Suite Run |",
-        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+        "| Adapter | Requested Model | Invocation Model | Observed Models | Budget Profile | Strict Score | Verified Score | Coverage | Mean Duration | Suite Run |",
+        "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
     ]
     for item in matrix_summary["combinations"]:
         lines.append(
-            f"| `{item['adapter']}` | `{item['model']}` | `{item.get('adapter_model', item['model'])}` | `{item['budget_profile']}` | "
+            f"| `{item['adapter']}` | `{_display_model(item['model'])}` | `{_display_model(item.get('adapter_model', item['model']))}` | `{_observed_models(item)}` | `{item['budget_profile']}` | "
             f"{item['mean_score']} | {item.get('mean_verified_normalized_score')} | "
             f"{item.get('mean_verified_coverage_percent')}% | {item['mean_duration_seconds']} | "
             f"`{item['suite_run_dir']}` |"
@@ -270,15 +294,15 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
         lines.extend(
             [
                 "",
-                "| Rank | Verified Rank | Evidence State | Adapter | Canonical Model | Adapter Model | Model Evidence | Profile | Comparative Tasks | Strict | Comparable | Verified | Coverage | Pass Rate | Stdev | Duration | Cost USD |",
-                "| ---: | ---: | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+                "| Rank | Verified Rank | Evidence State | Adapter | Requested Model | Invocation Model | Observed Models | Model Evidence | Profile | Comparative Tasks | Strict | Comparable | Verified | Coverage | Pass Rate | Stdev | Duration | Cost USD |",
+                "| ---: | ---: | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for row in leaderboard.get("rows", []):
             if not row.get("comparative_task_count"):
                 continue
             lines.append(
-                f"| {row.get('rank') or 'n/a'} | {row.get('verified_rank') or 'n/a'} | `{row.get('ranking_evidence_state')}` | `{row.get('adapter')}` | `{row.get('model')}` | `{row.get('adapter_model')}` | "
+                f"| {row.get('rank') or 'n/a'} | {row.get('verified_rank') or 'n/a'} | `{row.get('ranking_evidence_state')}` | `{row.get('adapter')}` | `{_display_model(row.get('model'))}` | `{_display_model(row.get('adapter_model'))}` | `{', '.join(row.get('detected_models', [])) or 'not reported'}` | "
                 f"`{row.get('model_identity_status')}` | `{row.get('budget_profile')}` | {row.get('comparative_task_count')} | "
                 f"{row.get('mean_strict_score')} | {row.get('mean_comparable_score')} | "
                 f"{row.get('mean_verified_normalized_score')} | "
@@ -286,3 +310,18 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
                 f"{row.get('mean_task_stdev')} | {row.get('mean_duration_seconds')} | {row.get('mean_cost_usd')} |"
             )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _display_model(value: object) -> str:
+    return "CLI default" if value == "unspecified" else str(value)
+
+
+def _observed_models(summary: dict[str, Any]) -> str:
+    observed = {
+        str(model)
+        for task in summary.get("tasks", [])
+        if isinstance(task.get("model_identity"), dict)
+        for model in task["model_identity"].get("detected_models", [])
+        if model
+    }
+    return ", ".join(sorted(observed)) or "not reported"

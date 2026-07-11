@@ -4,13 +4,15 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 110 unittest test functions, real harness smoke support, model identity evidence, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 114 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
 ## User Intent Summary
 
 The user wants a long-term benchmark system for evaluating real coding-agent combinations, especially harness/model pairs such as Claude Code or opencode with DeepSeek, mimo, longcat, GPT, Gemini, and future models.
+
+The model behind either CLI is not fixed. The user changes CLI defaults over time. The normal benchmark path must therefore run each CLI with its present default (`--models unspecified`) and treat it as a current full-configuration comparison, recording observed model identity rather than assuming a remembered label. Explicit registry-backed mode remains available only for the separate same-model question. See `docs/model_modes.md`.
 
 The benchmark must measure more than final pass/fail. It should quantify intent understanding, planning, execution, subagent or task decomposition, self-testing, visual checking, self-repair, safety, cost, speed, and stability.
 
@@ -131,7 +133,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Repair the local model registry before launching another full calibration matrix. The present registry maps two Claude Code canonical labels to `deepseek-v4-pro`, and opencode currently cannot select `--model`; `preflight-matrix` correctly rejects this for fair same-model ranking.
+- Keep any local model registry out of the normal default-configuration path. Audit and repair its adapter mappings only before an explicit same-model experiment; opencode currently cannot select `--model`, so its saved output must still verify any same-model claim.
 - Test the remaining container-required tasks and pin base-image digests before relying on them in a long comparison.
 
 ## Docker Status
@@ -147,31 +149,11 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Real Harness Results
 
-**Calibration Suite Matrix (8 tasks × 2 harnesses × 2 repetitions)**:
-
-| Task | opencode+mimo-v2.5-pro | claude-code+mimo-v2.5-pro | Winner |
-|------|----------------------|---------------------------|--------|
-| python-bugfix | 62.0 ✓✓ | 64.2 ✓✓ | claude-code |
-| c-bugfix | 41.6 ✓✓ | 27.3 ✗✗ | opencode |
-| process-planning | 53.6 ✓✓ | 56.1 ✓✓ | claude-code |
-| frontend-visual | 39.2 ✓✗ | 47.4 ✓✗ | claude-code |
-| embedded-c | 36.2 ✓✗ | 37.2 ✓✗ | claude-code |
-| embedded-protocol-parser | 35.9 ✓✗ | 35.5 ✓✗ | opencode |
-| python-swebench-style | 63.2 ✓✓ | 63.2 ✓✓ | tie |
-| c-systems-programming | 63.2 ✓✓ | 62.5 ✓✓ | opencode |
-| **Mean** | **49.4** | **49.2** | **tie** |
-| **Pass rate** | **8/8** | **7/8** | **opencode** |
-
-**Key findings**:
-- Both harnesses have nearly identical mean scores (49.4 vs 49.2)
-- opencode has perfect 8/8 pass rate; claude-code fails c-bugfix (27.3)
-- claude-code performs better on frontend-visual (+8.2) and process-planning (+2.5)
-- opencode performs better on c-bugfix (+14.3) and c-systems-programming (+0.7)
-- Model identity verified for both: mimo-v2.5-pro
+An 8-task x 2-harness x 2-repeat matrix exists under the ignored `runs/` directory and is retained as raw evidence only. Its requested canonical label was `mimo-v2.5-pro`, but the saved opencode evidence reports a canonical/adapter identity mismatch while Claude Code reports `verified_match`. It must **not** be described as a verified same-model comparison or used to declare a winner. The next real matrix should use the newly supported `cli_default_configurations` mode for practical tool choice, or use a repaired explicit mapping and require post-run `verified_match` for the narrower same-model question.
 
 ## Not Yet Implemented
 
-- Larger registry-clean real Claude Code/opencode benchmark runs beyond smoke tests.
+- Larger repeated real Claude Code/opencode matrices beyond smoke tests, starting with CLI-default configuration mode.
 - Docker-backed external evaluator bridges (SWE-bench Verified, Terminal-Bench).
 - Optional LLM judge adjudication.
 - Dashboard.
@@ -203,7 +185,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 110 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 114 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -213,7 +195,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
-PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models mimo-v2.5-pro --model-registry config/model_registry.example.json --repetitions 3
+PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models unspecified --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 5 checks, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
@@ -228,7 +210,7 @@ The local `foundation` suite has 11 tasks. Do not claim any container-required d
 
 ## Recommended Next Phase
 
-1. Repair the local model registry, run `preflight-matrix`, then run a three-repeat real harness matrix on `calibration` (opencode vs claude-code × multiple models). Only interpret rows with verified model identity.
+1. Run a three-repeat real `cli_default_configurations` matrix on `calibration` (opencode vs claude-code with `--models unspecified`) and preserve observed identities. It answers the practical tool-selection question but is not a same-model claim. Use the registry only for a separate explicit same-model matrix, and interpret only `verified_match` rows for that claim.
 2. Test the remaining project-owned Flask/NumPy container tasks and pin base-image digests.
 3. Bridge to a fixed SWE-bench Verified pilot, then Terminal-Bench, preserving upstream evaluators.
 5. Add more domain-specific tasks (embedded, optics, full-stack).

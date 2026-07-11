@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     run_parser = subparsers.add_parser("run", help="Run a benchmark task.")
     run_parser.add_argument("--task", required=True, help="Task id or path.")
     run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
-    run_parser.add_argument("--model", default="unspecified", help="Model name to record for this experiment.")
+    run_parser.add_argument("--model", default="unspecified", help="Canonical model label; omit it to use the CLI default and record any observed identity.")
     run_parser.add_argument("--adapter-model", help="Adapter-specific CLI model identifier; defaults to --model.")
     run_parser.add_argument("--budget-profile", default="open_ended", help="Budget profile label.")
     run_parser.add_argument("--label", default="", help="Optional experiment label.")
@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     suite_run_parser = subparsers.add_parser("run-suite", help="Run every task in a benchmark suite.")
     suite_run_parser.add_argument("--suite", required=True, help="Suite id or path.")
     suite_run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
-    suite_run_parser.add_argument("--model", default="unspecified", help="Model name to record for this suite run.")
+    suite_run_parser.add_argument("--model", default="unspecified", help="Canonical model label; omit it to use the CLI default and record any observed identity.")
     suite_run_parser.add_argument("--adapter-model", help="Adapter-specific CLI model identifier; defaults to --model.")
     suite_run_parser.add_argument("--budget-profile", default="open_ended", help="Budget profile label.")
     suite_run_parser.add_argument("--label", default="", help="Optional experiment label.")
@@ -124,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     matrix_parser = subparsers.add_parser("run-matrix", help="Run a suite across adapter/model/profile combinations.")
     matrix_parser.add_argument("--suite", required=True, help="Suite id or path.")
     matrix_parser.add_argument("--adapters", default="dummy", help="Comma-separated adapter names.")
-    matrix_parser.add_argument("--models", default="unspecified", help="Comma-separated model names to record.")
+    matrix_parser.add_argument("--models", default="unspecified", help="Comma-separated canonical model labels; unspecified uses each CLI's current default.")
     matrix_parser.add_argument("--model-registry", help="JSON registry mapping canonical model names to adapter-specific CLI identifiers.")
     matrix_parser.add_argument("--budget-profiles", default="open_ended", help="Comma-separated budget profiles.")
     matrix_parser.add_argument("--label", default="", help="Optional experiment label.")
@@ -139,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     preflight_parser.add_argument("--suite", required=True, help="Suite id or path.")
     preflight_parser.add_argument("--adapters", default="dummy", help="Comma-separated adapter names.")
-    preflight_parser.add_argument("--models", default="unspecified", help="Comma-separated canonical model names.")
+    preflight_parser.add_argument("--models", default="unspecified", help="Comma-separated canonical model labels; unspecified compares current CLI defaults.")
     preflight_parser.add_argument("--model-registry", help="JSON registry mapping canonical model names to adapter-specific CLI identifiers.")
     preflight_parser.add_argument("--budget-profiles", default="open_ended", help="Comma-separated budget profiles.")
     preflight_parser.add_argument("--repetitions", type=int, default=3)
@@ -420,10 +420,12 @@ def _preflight_matrix(args: argparse.Namespace) -> int:
         report = {
             "suite_id": suite.suite_id,
             "combination_count": 0,
+            "comparison_mode": "unavailable",
             "execution_ready": False,
             "comparative_ranking_ready": False,
             "identity_configuration_clean": False,
             "same_model_claim_requires_postrun_verification": True,
+            "same_model_claim_supported": False,
             "checks": [{"status": "blocked", "code": "model_registry_invalid", "message": str(exc)}],
             "warnings": [],
             "blockers": [{"status": "blocked", "code": "model_registry_invalid", "message": str(exc)}],
@@ -451,6 +453,7 @@ def _preflight_matrix(args: argparse.Namespace) -> int:
         print(f"Matrix preflight: suite={report['suite_id']} combinations={report['combination_count']}")
         print(f"Execution ready: {report['execution_ready']}")
         print(f"Comparative ranking ready: {report['comparative_ranking_ready']}")
+        print(f"Comparison mode: {report['comparison_mode']}")
         print(f"Model mapping configuration clean: {report['identity_configuration_clean']}")
         print("Comparative tasks: " + ", ".join(report["comparative_task_ids"]))
         if report["excluded_task_ids"]:
@@ -474,7 +477,7 @@ def _matrix_specs_from_args(args: argparse.Namespace) -> list[dict[str, object]]
                     {
                         "adapter": adapter,
                         "model": model,
-                        "adapter_model": adapter_model_for(registry, model, adapter) if registry else model,
+                        "adapter_model": adapter_model_for(registry, model, adapter) if registry and model != "unspecified" else model,
                         "budget_profile": budget_profile,
                         "label": getattr(args, "label", ""),
                         "repetitions": args.repetitions,

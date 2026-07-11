@@ -62,11 +62,18 @@ The runner also injects these environment variables while the adapter command is
 
 `AGENT_BENCH_MODEL` is the adapter-specific invocation identifier. `AGENT_BENCH_CANONICAL_MODEL` is the user-facing comparison identifier retained in reports; it is not necessarily valid CLI syntax for every harness.
 
+`AGENT_BENCH_MODEL=unspecified` is intentional: it tells a built-in adapter to
+use its current CLI default. The user changes those defaults over time, so this
+mode must not be rewritten to a remembered DeepSeek, mimo, longcat, GPT, or
+Gemini label. The runner records any actual identity exposed by saved harness
+output. See `docs/model_modes.md` for the distinction between this practical
+configuration comparison and an explicit same-model experiment.
+
 An explicit adapter timeout environment variable takes precedence. Otherwise a profile with `AGENT_BENCH_BUDGET_MAX_SECONDS` supplies the subprocess timeout. `open_ended` intentionally has no timeout. A Ctrl-C interruption preserves `interruption.json`, `checkpoint.json`, and `run.interrupted` evidence; `resume` reruns repetitions that have no saved `result.json`.
 
 Built-in default templates:
 
-- opencode 1.17.15 always uses `opencode run --auto "$(cat {instruction_file})"`. Its `--model` flag currently crashes against this local CLI/provider setup, so the matrix command cannot select an opencode model; its configured default must be verified from saved harness output.
+- opencode 1.17.15 always uses `opencode run --auto "$(cat {instruction_file})"`. Its `--model` flag currently crashes against this local CLI/provider setup, so the matrix command cannot select an opencode model; it intentionally uses the current opencode configured default and records any identity available from saved output.
 - claude-code uses `claude -p --output-format json --dangerously-skip-permissions --no-session-persistence "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
 
 You can still override them with:

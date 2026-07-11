@@ -363,6 +363,30 @@ class FrameworkTests(unittest.TestCase):
         self.assertFalse(report["comparative_ranking_ready"])
         self.assertIn("no_model_registry", [item["code"] for item in report["warnings"]])
 
+    def test_matrix_preflight_allows_current_cli_default_configurations(self) -> None:
+        suite = SimpleNamespace(suite_id="preflight-cli-defaults", tasks=["c-bugfix"])
+        report = preflight_matrix(
+            suite,
+            [
+                {"adapter": "opencode", "model": "unspecified", "adapter_model": "unspecified", "budget_profile": "oneshot", "repetitions": 3},
+                {"adapter": "claude-code", "model": "unspecified", "adapter_model": "unspecified", "budget_profile": "oneshot", "repetitions": 3},
+            ],
+            ROOT / "benchmarks" / "tasks",
+            registry_used=False,
+        )
+
+        self.assertTrue(report["execution_ready"])
+        self.assertTrue(report["comparative_ranking_ready"])
+        self.assertTrue(report["identity_configuration_clean"])
+        self.assertEqual(report["comparison_mode"], "cli_default_configurations")
+        self.assertFalse(report["same_model_claim_supported"])
+        self.assertFalse(report["same_model_claim_requires_postrun_verification"])
+        codes = [item["code"] for item in report["checks"]]
+        self.assertIn("cli_default_model_mode", codes)
+        self.assertNotIn("no_model_registry", codes)
+        self.assertNotIn("adapter_model_selection_external", codes)
+        self.assertEqual(report["model_mappings"][0]["identity_hint"], "cli_default_pending")
+
     def test_matrix_preflight_flags_opencode_default_model_limitation(self) -> None:
         suite = SimpleNamespace(suite_id="preflight-opencode", tasks=["c-bugfix"])
         report = preflight_matrix(
@@ -395,6 +419,24 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertFalse(report["execution_ready"])
         self.assertEqual(report["blockers"][0]["code"], "model_registry_invalid")
+
+    def test_cli_default_preflight_does_not_require_a_registry_mapping(self) -> None:
+        output = StringIO()
+        with redirect_stdout(output):
+            code = main([
+                "preflight-matrix",
+                "--suite", "calibration",
+                "--adapters", "opencode,claude-code",
+                "--models", "unspecified",
+                "--model-registry", str(ROOT / "config" / "model_registry.example.json"),
+                "--repetitions", "3",
+                "--json",
+            ])
+
+        report = json.loads(output.getvalue())
+        self.assertEqual(code, 0)
+        self.assertEqual(report["comparison_mode"], "cli_default_configurations")
+        self.assertTrue(report["execution_ready"])
 
     def test_matrix_run_can_resume_from_saved_combination_summaries(self) -> None:
         suite = SimpleNamespace(suite_id="matrix-resume-test", tasks=["c-bugfix"])
@@ -493,6 +535,33 @@ class FrameworkTests(unittest.TestCase):
         identity = summarize_model_identity("provider/LongCat-2.0", ["LongCat-2.0"])
 
         self.assertEqual(identity["status"], "verified_match")
+
+    def test_model_identity_records_observed_cli_default(self) -> None:
+        identity = summarize_model_identity("unspecified", ["mimo-v2.5-pro"])
+        missing = summarize_model_identity("unspecified", [])
+
+        self.assertEqual(identity["status"], "default_detected")
+        self.assertEqual(identity["detected_models"], ["mimo-v2.5-pro"])
+        self.assertEqual(missing["status"], "default_unverified")
+
+    def test_matrix_leaderboard_labels_observed_cli_default_identity(self) -> None:
+        task = {
+            "task_id": "candidate",
+            "benchmark_role": "comparative_candidate",
+            "mean_score": 60.0,
+            "mean_verified_normalized_score": 75.0,
+            "mean_verified_coverage_percent": 80.0,
+            "model_identity": {"status": "default_detected", "detected_models": ["LongCat-2.0"]},
+            "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+        }
+        leaderboard = build_matrix_leaderboard([
+            {"adapter": "opencode", "model": "unspecified", "budget_profile": "open_ended", "tasks": [task]},
+        ])
+
+        row = leaderboard["rows"][0]
+        self.assertEqual(row["model_identity_status"], "default_detected")
+        self.assertEqual(row["detected_models"], ["LongCat-2.0"])
+        self.assertEqual(row["ranking_evidence_state"], "cli_default_model_observed")
 
     def test_model_registry_resolves_adapter_specific_identifier(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

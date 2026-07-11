@@ -32,13 +32,13 @@ Commit meaningful code/documentation phases before starting expensive real harne
 
 ## Next Deliverable: Comparable Local Matrix
 
-1. Run `doctor`; do not assume Docker exists. The current machine had no `docker` command in the last audit.
+1. Run `doctor`; Docker is currently available through Colima, but this is live environment state and must still be checked before a run.
 2. Select only `benchmark_role=comparative_candidate` tasks. Do not use `smoke_only` in rankings.
-3. Run the same model through `opencode` and `claude-code` with the same task suite and budget profile. Use at least three repetitions per task.
-   Use `config/model_registry.example.json` as the schema for canonical model id to adapter-specific CLI identifiers. Pass it to `run-matrix --model-registry`; do not assume the same raw string is valid for both CLIs.
-4. Preserve raw run directories, model labels, detected model metadata, traces, diffs, test results, duration, and real token/cost output when available.
-5. Run `calibrate-difficulty` after the matrix. Tasks with insufficient evidence, `too_easy`, or `too_hard` must be reported separately, not averaged into a public winner claim.
-6. The matrix report now has a raw suite table and a comparative-only ranking. Treat the latter as the selection aid only after checking the `Model Evidence` column: same-model claims require `verified_match`, while `requested_unverified` and `mismatch` are provisional evidence. It excludes `smoke_only`, ranks conservative strict score, and always displays verified normalized score, coverage, task pass rate, variance, duration, and cost separately. Never substitute a tool-call count for cost.
+3. First run each CLI's current default configuration through the same suite and budget profile, with at least three repetitions per task: `--adapters opencode,claude-code --models unspecified`. This is the user's primary practical selection comparison, not a same-model claim. Record detected model identities and CLI versions.
+4. Only for the separate same-model question, use `config/model_registry.example.json` as the schema for canonical model id to adapter-specific CLI identifiers. Pass it to `run-matrix --model-registry`; do not assume the same raw string is valid for both CLIs, and require `verified_match` evidence.
+5. Preserve raw run directories, requested labels, detected model metadata, traces, diffs, test results, duration, and real token/cost output when available.
+6. Run `calibrate-difficulty` after the matrix. Tasks with insufficient evidence, `too_easy`, or `too_hard` must be reported separately, not averaged into a public winner claim.
+7. The matrix report now has a raw suite table and a comparative-only ranking. In CLI-default mode, treat the ranking as current configuration evidence and check the observed model column; same-model claims are not allowed. In explicit mode, same-model claims require `verified_match`, while `requested_unverified` and `mismatch` are provisional evidence. It excludes `smoke_only`, ranks conservative strict score, and always displays verified normalized score, coverage, task pass rate, variance, duration, and cost separately. Never substitute a tool-call count for cost.
 
 This produces a preliminary personal answer to the harness question. It is not an authoritative public leaderboard yet.
 

@@ -9,6 +9,22 @@ from agent_benchmark.runner.container import docker_ready
 from agent_benchmark.task_schema import TaskSpec, load_task
 
 
+def comparison_mode_for_specs(combination_specs: list[dict[str, object]]) -> str:
+    """Classify a matrix as explicit-model or current-CLI-default comparison.
+
+    ``unspecified`` is intentionally a first-class option, not a missing
+    configuration. It means each adapter should use its own current CLI default
+    and the resulting evidence must record what that default actually was.
+    """
+    if combination_specs and all(
+        str(spec.get("model", "unspecified")) == "unspecified"
+        and str(spec.get("adapter_model") or "unspecified") == "unspecified"
+        for spec in combination_specs
+    ):
+        return "cli_default_configurations"
+    return "explicit_model_selection"
+
+
 def preflight_matrix(
     suite: object,
     combination_specs: list[dict[str, object]],
@@ -106,12 +122,18 @@ def preflight_matrix(
     else:
         add("pass", "local_environment", "All selected tasks use local evaluator environments.")
 
+    comparison_mode = comparison_mode_for_specs(combination_specs)
+    uses_cli_defaults = comparison_mode == "cli_default_configurations"
     mappings: list[dict[str, object]] = []
     for spec in combination_specs:
         model = str(spec.get("model", "unspecified"))
         adapter = str(spec.get("adapter", ""))
         adapter_model = str(spec.get("adapter_model") or model)
-        identity_hint = summarize_model_identity(model, [adapter_model])
+        identity_hint = (
+            {"status": "cli_default_pending"}
+            if uses_cli_defaults
+            else summarize_model_identity(model, [adapter_model])
+        )
         model_selection = getattr(adapter_by_name(adapter), "model_selection", "unknown") if adapter in available else "unknown"
         mapping = {
             "adapter": adapter,
@@ -121,7 +143,7 @@ def preflight_matrix(
             "identity_hint": identity_hint["status"],
         }
         mappings.append(mapping)
-        if model != "unspecified" and model_selection == "configured_default_only":
+        if not uses_cli_defaults and model != "unspecified" and model_selection == "configured_default_only":
             add(
                 "warning",
                 "adapter_model_selection_external",
@@ -134,7 +156,13 @@ def preflight_matrix(
                 f"Registry maps canonical '{model}' to '{adapter_model}' for '{adapter}', which does not normalize to the canonical id. Post-run evidence must resolve this before comparison.",
             )
 
-    if registry_used:
+    if uses_cli_defaults:
+        add(
+            "pass",
+            "cli_default_model_mode",
+            "Every adapter will use its current CLI configured default. This matrix compares current harness/model configurations, not an assumed same-model pair; observed identities are recorded after execution.",
+        )
+    elif registry_used:
         add("pass", "model_registry", "Adapter-specific invocation identifiers were resolved from the supplied model registry.")
     elif len(adapters) > 1:
         add("warning", "no_model_registry", "Multiple harnesses use raw model identifiers; same-model claims remain provisional until actual identities are recorded.")
@@ -142,7 +170,7 @@ def preflight_matrix(
         add("warning", "no_model_registry", "No model registry was supplied; post-run model identity still needs checking.")
 
     execution_ready = not blockers
-    identity_configuration_clean = (
+    identity_configuration_clean = uses_cli_defaults or (
         not any(
             item["code"] in {"registry_identity_hint_mismatch", "adapter_model_selection_external"}
             for item in warnings
@@ -155,14 +183,18 @@ def preflight_matrix(
         and bool(comparative_ids)
         and identity_configuration_clean
     )
-    same_model_claim_requires_postrun_verification = len(adapters) > 1
+    same_model_claim_requires_postrun_verification = (
+        comparison_mode == "explicit_model_selection" and len(adapters) > 1
+    )
     return {
         "suite_id": str(getattr(suite, "suite_id", "unknown")),
         "combination_count": len(combination_specs),
+        "comparison_mode": comparison_mode,
         "execution_ready": execution_ready,
         "comparative_ranking_ready": ranking_ready,
         "identity_configuration_clean": identity_configuration_clean,
         "same_model_claim_requires_postrun_verification": same_model_claim_requires_postrun_verification,
+        "same_model_claim_supported": comparison_mode == "explicit_model_selection",
         "checks": checks,
         "warnings": warnings,
         "blockers": blockers,

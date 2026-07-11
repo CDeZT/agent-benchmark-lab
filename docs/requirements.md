@@ -15,8 +15,14 @@ The benchmark must support all of these comparison modes:
 - Same model, different harnesses, such as DeepSeek in Claude Code versus opencode.
 - Same harness, different models, such as Claude Code with DeepSeek, mimo, longcat, GPT, or Gemini.
 - Full combination ranking across harness/model pairs.
+- Current CLI default configuration comparison: Claude Code and opencode may be reconfigured by the user at any time, so the default experiment must use each CLI's live default rather than assuming a fixed model label. It must record observed identity and clearly distinguish this practical configuration comparison from a same-model claim.
 
 The project exists because public model leaderboards often do not answer the user's actual question: which real local tool and model combination is better for their own work.
+
+Model-selection rule: a registry or CLI argument is configuration metadata, not
+proof of actual model identity. Explicit same-model conclusions require saved
+post-run identity evidence; the ordinary CLI-default mode must remain usable
+without pinning a model or maintaining a registry.
 
 ## User Priorities
 

@@ -5,11 +5,18 @@ def summarize_model_identity(requested_model: str, detected_models: list[str]) -
     """State whether a requested model is supported by saved harness evidence."""
     unique = sorted({model.strip() for model in detected_models if model and model.strip()})
     if requested_model == "unspecified":
+        if unique:
+            return {
+                "status": "default_detected",
+                "requested_model": requested_model,
+                "detected_models": unique,
+                "reason": "The harness CLI default was used; this identity was observed in saved harness output.",
+            }
         return {
-            "status": "not_requested",
+            "status": "default_unverified",
             "requested_model": requested_model,
-            "detected_models": unique,
-            "reason": "No explicit model was requested for this experiment.",
+            "detected_models": [],
+            "reason": "The harness CLI default was used, but saved output did not expose its actual model identity.",
         }
     if not unique:
         return {

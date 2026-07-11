@@ -16,7 +16,7 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["math_ops.c"]
+      "expected_changed_files": ["clamp.c"]
     }
   ]
 }

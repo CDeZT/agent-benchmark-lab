@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-11 (iteration 22)
+
+- Audited the preceding agent iteration and found two evidence-integrity defects: generated C test binaries and a browser screenshot had been committed to the task corpus, and `c-bugfix` still checked for the unrelated `math_ops.c` instead of `clamp.c`. Removed the generated artifacts from version control, ignored their paths, and corrected the process check.
+- Separated two valid but different experiment modes. `--models unspecified` is now the first-class `cli_default_configurations` mode: each harness uses the model currently configured in its own CLI, and reports `default_detected` or `default_unverified` identity evidence. It supports practical configuration ranking without pretending the two harnesses use one model.
+- Kept explicit registry-backed model selection for the narrower same-model question. It still requires `verified_match` saved output before a same-model conclusion.
+- Corrected handoff documentation that had called a raw matrix a verified `mimo-v2.5-pro` comparison even though its saved opencode identity was mismatched. The raw run remains available for audit, but it has no same-model winner claim.
+
 ## 2026-07-11 (iteration 21)
 
 - Added a real Playwright Chromium visual evaluator for static local pages. It captures a PNG, checks rendered selector visibility, and records non-background pixel count plus channel standard deviation under the repetition's `visual/` evidence directory.
