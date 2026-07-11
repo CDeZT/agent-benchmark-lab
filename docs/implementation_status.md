@@ -26,9 +26,9 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 92 unittest test functions, all expected to pass in the current tree.
+- 104 unittest test functions, all expected to pass in the current tree.
 
-It is not yet a finished real Claude Code versus opencode benchmark. The Docker evaluator contract is implemented but still needs a working local daemon and a real container-task smoke run; browser screenshots and external benchmark importers remain unfinished.
+It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima and a project-owned container task has run, but browser screenshots, external benchmark evaluator bridges, and a registry-clean multi-repeat real matrix remain unfinished.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
 
 ## Status Table
@@ -37,12 +37,12 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | --- | --- | --- | --- |
 | Compare same model across harnesses | Partial | Matrix runner supports canonical model ids plus adapter-specific invocation ids through a model registry; reports expose requested/detected model identity status. Claude Code JSON smoke confirmed actual model, token, and cost parsing. | Run actual three-repeat comparisons where every comparable task reports `verified_match`. |
 | Compare models in same harness | Partial | Matrix runner supports multiple canonical models, model registry mappings, and identity evidence. | Create the user's local registry and run real comparisons. |
-| Full harness/model ranking | Partial | Matrix reports separate raw suite aggregation from comparative-only ranking; smoke tasks are excluded and strict score, verified score, coverage, pass rate, variance, duration, and cost are all visible. | Add historical cross-matrix comparison and real runs. |
+| Full harness/model ranking | Partial | Matrix reports separate raw suite aggregation from comparative-only ranking. Ranking uses task-level dimensions evidenced by every repetition in every combination; strict score remains diagnostic, and provisional versus verified model identity is visible. | Run a registry-clean real matrix and add historical cross-matrix comparison. |
 | Total and dimension scores | Partial | `ScoreResult` has strict weighted total, per-dimension scores, verified evidence coverage, and verified-only normalized score. | Browser/subagent/causal self-repair evidence is still incomplete. |
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
 | Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints; `resume`, `resume-suite`, and `resume-matrix` reuse saved work and only run missing repetitions/tasks/combinations. | Add an optional historical recovery browser. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches from unverified/mismatched requests. 92 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches from unverified/mismatched requests. 104 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 16 of 19 tasks currently have hidden tests. | Add independent hidden tests to the remaining3 tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
@@ -56,7 +56,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
 | Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; both passed `python-bugfix` real smoke. Claude JSON output now yields actual `mimo-v2.5-pro[1m]`, tokens, and cost on this machine. | Add the user's adapter-specific model registry and run larger verified matrices. |
 | Real harness smoke | Implemented | `opencode` and `claude-code` both passed `python-bugfix`; `real-smoke` suite exists; `audit --include-real-harness` exists. | Expand beyond smoke tasks. |
-| Isolation | Partial | Per-run workspace copies plus Docker evaluator v1: pinned dependency packages, image ID/build evidence, CPU/memory limits, and read-only hidden-test mount. Network behavior is intentionally task-specific rather than globally disabled. | Start a local daemon and run/record container task smoke; pin base-image digests before authoritative runs. |
+| Isolation | Partial | Per-run workspace copies plus Docker evaluator v1: pinned dependency packages, image ID/build evidence, CPU/memory limits, and read-only hidden-test mount. Colima Docker is ready and `python-fullstack` has project-owned container evidence. Network behavior is intentionally task-specific rather than globally disabled. | Pin base-image digests before authoritative runs and add cache cleanup policy. |
 | Logs and evidence | Partial | trace/result/diff/stdout/stderr are saved. | Add replay UI and richer tool traces. |
 | Handoff/journal | Implemented | Handoff and project journal exist and are updated. | Keep updating every phase. |
 | Self-audit command | Implemented | `agent-benchmark audit` runs validation, unit tests, compileall, and smoke suite. | Add lint/Docker/browser/real-harness audit levels later. |
@@ -98,8 +98,8 @@ No dimension should be assigned a non-zero score without execution evidence. Som
 
 ## Next Best Iterations
 
-1. Start a Docker daemon and smoke-test the implemented container evaluator on the four dependency tasks.
-2. Run real harness matrix on the `calibration` suite (opencode vs claude-code × multiple models).
+1. Repair local model-registry mappings, then run `preflight-matrix` before any real harness matrix.
+2. Run a three-repeat real harness matrix on the `calibration` suite (opencode vs claude-code × multiple models) and interpret only `verified_match` rows.
 3. Add browser screenshot/pixel visual checks.
 4. Import a stratified SWE-bench Verified pilot, then a Terminal-Bench pilot.
 5. Build dashboard for historical results.

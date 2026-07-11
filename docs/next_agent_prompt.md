@@ -36,6 +36,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
     PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
+    PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models mimo-v2.5-pro --model-registry config/model_registry.example.json --repetitions 3
     PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --help
     PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --help
     PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --help
@@ -47,8 +48,10 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 不要把当前自定义 seed/inspired 任务说成已导入的权威题库；外部导入还没实现。
 - 新任务必须声明 `difficulty`、`difficulty_rationale` 和 `provenance`；外部导入任务必须保留上游来源、版本、许可和 evaluator 证据。
 - 依赖无法在当前环境复现的任务必须标记 `container_required`，不得混进默认本机比较或把跳过测试当作成功。
-- `container_required` 任务已有 Docker evaluator v1；只有 `doctor` 显示 Docker daemon ready 后才能运行。保留每次 run 的 `environment.Dockerfile`、`environment.json` 和 `environment-build.log` 作为环境证据。
+- `container_required` 任务已有 Docker evaluator v1；当前 Colima Docker daemon 可用，且已有 `python-fullstack` 容器运行证据。保留每次 run 的 `environment.Dockerfile`、`environment.json` 和 `environment-build.log` 作为环境证据。
 - 同模型跨 harness 比较必须使用 canonical model + adapter-specific model registry；检查报告 `model_identity.status`，只有 `verified_match` 才能做同模型结论。不要把 CLI 参数标签当作模型身份事实。
+- 在调用真实 harness 前先执行 `preflight-matrix`。如果它报告 registry identity hint mismatch，配置可以用于调试但不可用于公平排名；先修正映射，再花费 token。
+- 矩阵的主排名是任务级共同证据维度的 comparable score；严格总分只作诊断。模型身份不是 `verified_match` 的行必须称为 provisional，不能写成同模型结论。
 - `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
 - 每次新增功能后，必须补测试或可验证命令。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
@@ -75,11 +78,11 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 92 个 unittest 测试函数，应该全部通过。
+- 104 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
-- 激活并实测 Docker evaluator：当前 Docker CLI 和 Colima 已安装，但 Colima VM 镜像下载曾因网络超时失败；不要把未实际运行的容器任务算入比较。
-- 运行 real harness matrix（opencode vs claude-code × 多个模型），优先使用 `calibration`。
+- 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
+- 运行 real harness matrix（opencode vs claude-code × 多个模型），优先使用 `calibration`；只解释 `verified_match` 行。
 - 增加 browser screenshot/pixel visual verification。
 - 通过上游 evaluator 导入固定分层的 SWE-bench Verified pilot，再接入 Terminal-Bench。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。

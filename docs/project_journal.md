@@ -1,5 +1,14 @@
 # Project Journal
 
+## 2026-07-11 (iteration 19)
+
+- Re-audited the Claude Code changes and found a fairness bug in the new comparable-score report: it displayed a fair score but still ordered rows by strict score, which can punish missing telemetry rather than capability.
+- Reworked matrix comparison to intersect evidence per task and per repetition across every matrix combination. The primary rank now uses that comparable score; strict score stays as a diagnostic. Added provisional and verified rank fields so rows without `verified_match` model identity cannot be mistaken for same-model evidence.
+- Added `preflight-matrix`, a non-executing gate for repetitions, duplicate combinations, task roles, hidden tests, Docker readiness, adapter availability, and model registry mappings. It produces JSON for automation and never invokes a harness or consumes model tokens.
+- Live preflight found the local ignored `config/model_registry.json` maps Claude Code's `mimo-v2.5-pro` and `longcat-2.0` labels to `deepseek-v4-pro`. That configuration is still executable for debugging, but is explicitly not comparative-ranking-ready until repaired and verified by saved harness output.
+- Reconciled stale project documents: Docker is now ready through Colima with project-owned `python-fullstack` container evidence; older “Docker unavailable” and 92-test claims were removed.
+- Added a graceful invalid-registry preflight response instead of a CLI traceback, and expanded the regression suite to 104 test functions.
+
 ## 2026-07-11 (iteration 18)
 
 - **Real harness verification** (dual): opencode × LongCat-2.0 and claude-code × deepseek-v4-pro both pass python-bugfix.

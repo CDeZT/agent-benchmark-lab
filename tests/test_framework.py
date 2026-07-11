@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+from contextlib import redirect_stdout
+from io import StringIO
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -12,8 +14,9 @@ from unittest.mock import patch
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.audit import AuditOptions, run_audit
+from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
-from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_config
+from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_config, main
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
@@ -284,6 +287,99 @@ class FrameworkTests(unittest.TestCase):
         )
 
         self.assertEqual([row["rank"] for row in leaderboard["rows"]], [1, 1])
+
+    def test_matrix_ranking_uses_task_level_comparable_evidence(self) -> None:
+        def task(strict: float, completion: float, evidence: list[str]) -> dict[str, object]:
+            return {
+                "task_id": "candidate",
+                "benchmark_role": "comparative_candidate",
+                "mean_score": strict,
+                "mean_verified_normalized_score": completion,
+                "mean_verified_coverage_percent": 80.0,
+                "runs": [{
+                    "public_test_passed": True,
+                    "hidden_test_passed": True,
+                    "dimensions": {"task_completion": completion, "tool_use": 100.0},
+                    "measurement": {"weights": {"task_completion": 30.0, "tool_use": 6.0}, "dimensions_with_evidence": evidence},
+                }],
+            }
+
+        leaderboard = build_matrix_leaderboard([
+            {"adapter": "a", "model": "one", "budget_profile": "open_ended", "tasks": [task(90.0, 70.0, ["task_completion", "tool_use"])]},
+            {"adapter": "b", "model": "two", "budget_profile": "open_ended", "tasks": [task(80.0, 90.0, ["task_completion"])]},
+        ])
+
+        self.assertEqual(leaderboard["comparable_dimensions_by_task"]["candidate"], ["task_completion"])
+        self.assertEqual([row["adapter"] for row in leaderboard["rows"]], ["a", "b"])
+        self.assertEqual([row["rank"] for row in leaderboard["rows"]], [2, 1])
+
+    def test_matrix_comparable_dimensions_do_not_leak_between_tasks(self) -> None:
+        def task(task_id: str, evidence: list[str]) -> dict[str, object]:
+            return {
+                "task_id": task_id,
+                "benchmark_role": "comparative_candidate",
+                "mean_score": 50.0,
+                "runs": [{"dimensions": {"tool_use": 100.0, "cost_efficiency": 100.0}, "measurement": {"weights": {"tool_use": 6.0, "cost_efficiency": 4.0}, "dimensions_with_evidence": evidence}}],
+            }
+
+        leaderboard = build_matrix_leaderboard([
+            {"adapter": "a", "model": "one", "budget_profile": "open_ended", "tasks": [task("alpha", ["tool_use"]), task("beta", ["cost_efficiency"])]},
+            {"adapter": "b", "model": "two", "budget_profile": "open_ended", "tasks": [task("alpha", ["cost_efficiency"]), task("beta", ["tool_use"])]},
+        ])
+
+        self.assertEqual(leaderboard["comparable_dimensions_by_task"], {"alpha": [], "beta": []})
+        self.assertEqual([row["mean_comparable_score"] for row in leaderboard["rows"]], [None, None])
+
+    def test_matrix_preflight_warns_before_a_nonstatistical_comparison(self) -> None:
+        suite = SimpleNamespace(suite_id="preflight-test", tasks=["python-bugfix", "c-bugfix"])
+        report = preflight_matrix(
+            suite,
+            [{"adapter": "dummy", "model": "model-a", "adapter_model": "model-a", "budget_profile": "oneshot", "repetitions": 1}],
+            ROOT / "benchmarks" / "tasks",
+            registry_used=False,
+        )
+
+        self.assertTrue(report["execution_ready"])
+        self.assertFalse(report["comparative_ranking_ready"])
+        self.assertTrue(report["identity_configuration_clean"])
+        self.assertEqual(report["comparative_task_ids"], ["c-bugfix"])
+        self.assertEqual(report["excluded_task_ids"], ["python-bugfix"])
+        self.assertIn("insufficient_repetitions", [item["code"] for item in report["warnings"]])
+
+    def test_matrix_preflight_requires_a_registry_for_cross_harness_ranking(self) -> None:
+        suite = SimpleNamespace(suite_id="preflight-cross-harness", tasks=["c-bugfix"])
+        report = preflight_matrix(
+            suite,
+            [
+                {"adapter": "opencode", "model": "shared", "adapter_model": "shared", "budget_profile": "oneshot", "repetitions": 3},
+                {"adapter": "claude-code", "model": "shared", "adapter_model": "shared", "budget_profile": "oneshot", "repetitions": 3},
+            ],
+            ROOT / "benchmarks" / "tasks",
+            registry_used=False,
+        )
+
+        self.assertTrue(report["execution_ready"])
+        self.assertFalse(report["identity_configuration_clean"])
+        self.assertFalse(report["comparative_ranking_ready"])
+        self.assertIn("no_model_registry", [item["code"] for item in report["warnings"]])
+
+    def test_preflight_reports_missing_registry_mapping_without_traceback(self) -> None:
+        output = StringIO()
+        with redirect_stdout(output):
+            code = main([
+                "preflight-matrix",
+                "--suite", "calibration",
+                "--adapters", "opencode,claude-code",
+                "--models", "deepseek-v4-pro",
+                "--model-registry", str(ROOT / "config" / "model_registry.example.json"),
+                "--repetitions", "3",
+                "--json",
+            ])
+
+        report = json.loads(output.getvalue())
+        self.assertEqual(code, 1)
+        self.assertFalse(report["execution_ready"])
+        self.assertEqual(report["blockers"][0]["code"], "model_registry_invalid")
 
     def test_matrix_run_can_resume_from_saved_combination_summaries(self) -> None:
         suite = SimpleNamespace(suite_id="matrix-resume-test", tasks=["c-bugfix"])

@@ -11,6 +11,7 @@ import uuid
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
+from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
@@ -132,6 +133,20 @@ def main(argv: list[str] | None = None) -> int:
     matrix_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
     matrix_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
 
+    preflight_parser = subparsers.add_parser(
+        "preflight-matrix",
+        help="Check matrix comparability and environment readiness without invoking a harness.",
+    )
+    preflight_parser.add_argument("--suite", required=True, help="Suite id or path.")
+    preflight_parser.add_argument("--adapters", default="dummy", help="Comma-separated adapter names.")
+    preflight_parser.add_argument("--models", default="unspecified", help="Comma-separated canonical model names.")
+    preflight_parser.add_argument("--model-registry", help="JSON registry mapping canonical model names to adapter-specific CLI identifiers.")
+    preflight_parser.add_argument("--budget-profiles", default="open_ended", help="Comma-separated budget profiles.")
+    preflight_parser.add_argument("--repetitions", type=int, default=3)
+    preflight_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    preflight_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
+    preflight_parser.add_argument("--json", action="store_true", help="Print the machine-readable preflight report.")
+
     resume_matrix_parser = subparsers.add_parser("resume-matrix", help="Resume an interrupted matrix run from saved combination checkpoints.")
     resume_matrix_parser.add_argument("--matrix-run-dir", required=True, help="Path containing matrix_manifest.json.")
     resume_matrix_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
@@ -172,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
         return _resume_suite(args)
     if args.command == "run-matrix":
         return _run_matrix(args)
+    if args.command == "preflight-matrix":
+        return _preflight_matrix(args)
     if args.command == "resume-matrix":
         return _resume_matrix(args)
     parser.error("Unknown command")
@@ -383,6 +400,68 @@ def _resume_suite(args: argparse.Namespace) -> int:
 def _run_matrix(args: argparse.Namespace) -> int:
     suite_path = _resolve_suite(Path(args.suite), Path(args.suites_dir))
     suite = load_suite(suite_path)
+    combination_specs = _matrix_specs_from_args(args)
+    matrix_summary = _run_matrix_with_specs(
+        suite,
+        combination_specs,
+        Path(args.tasks_dir),
+        Path(args.runs_dir),
+    )
+    print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _preflight_matrix(args: argparse.Namespace) -> int:
+    suite_path = _resolve_suite(Path(args.suite), Path(args.suites_dir))
+    suite = load_suite(suite_path)
+    try:
+        combination_specs = _matrix_specs_from_args(args)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        report = {
+            "suite_id": suite.suite_id,
+            "combination_count": 0,
+            "execution_ready": False,
+            "comparative_ranking_ready": False,
+            "identity_configuration_clean": False,
+            "same_model_claim_requires_postrun_verification": True,
+            "checks": [{"status": "blocked", "code": "model_registry_invalid", "message": str(exc)}],
+            "warnings": [],
+            "blockers": [{"status": "blocked", "code": "model_registry_invalid", "message": str(exc)}],
+            "tasks": [],
+            "comparative_task_ids": [],
+            "excluded_task_ids": [],
+            "model_mappings": [],
+        }
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            print(f"Matrix preflight: suite={suite.suite_id}")
+            print("Execution ready: False")
+            print("blocked: " + str(exc))
+        return 1
+    report = preflight_matrix(
+        suite,
+        combination_specs,
+        Path(args.tasks_dir),
+        registry_used=bool(args.model_registry),
+    )
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    else:
+        print(f"Matrix preflight: suite={report['suite_id']} combinations={report['combination_count']}")
+        print(f"Execution ready: {report['execution_ready']}")
+        print(f"Comparative ranking ready: {report['comparative_ranking_ready']}")
+        print(f"Model mapping configuration clean: {report['identity_configuration_clean']}")
+        print("Comparative tasks: " + ", ".join(report["comparative_task_ids"]))
+        if report["excluded_task_ids"]:
+            print("Excluded tasks: " + ", ".join(report["excluded_task_ids"]))
+        for check in report["checks"]:
+            if check["status"] != "pass":
+                print(f"{check['status']}: {check['message']}")
+    return 0 if report["execution_ready"] else 1
+
+
+def _matrix_specs_from_args(args: argparse.Namespace) -> list[dict[str, object]]:
     adapters = _split_csv(args.adapters)
     models = _split_csv(args.models)
     budget_profiles = _split_csv(args.budget_profiles)
@@ -397,18 +476,11 @@ def _run_matrix(args: argparse.Namespace) -> int:
                         "model": model,
                         "adapter_model": adapter_model_for(registry, model, adapter) if registry else model,
                         "budget_profile": budget_profile,
-                        "label": args.label,
+                        "label": getattr(args, "label", ""),
                         "repetitions": args.repetitions,
                     }
                 )
-    matrix_summary = _run_matrix_with_specs(
-        suite,
-        combination_specs,
-        Path(args.tasks_dir),
-        Path(args.runs_dir),
-    )
-    print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
-    return 0
+    return combination_specs
 
 
 def _resume_matrix(args: argparse.Namespace) -> int:

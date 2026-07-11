@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、92 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、104 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -33,13 +33,13 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 机器可读题库目录：难度分层为 easy=3、medium=9、hard=4、expert=3；每题都有难度依据和来源类型
 - 当前任务是项目自定义 seed/inspired tasks，部分受 SWE-bench、Terminal-Bench 等思路启发；尚未真正导入权威外部题库。详见 `docs/task_provenance.md`。
 - `calibration` suite 从易到专家级覆盖本机可运行任务；依赖 Flask、NumPy、SciPy 或 pandas 的任务明确标记为 `container_required`，不会混进默认本机比较。
-- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。首次本机运行仍需要可用的 Docker daemon。
+- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。当前 Colima Docker daemon 已可用，且已有 `python-fullstack` 容器运行证据；权威外部题库 evaluator 仍未接入。
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 模型身份证据：报告区分规范模型名、adapter 实际调用名、harness 检测名和匹配状态。跨 harness 的“同模型”结论必须是 `verified_match`，不能只看用户标签。
 - `config/model_registry.example.json`：支持把同一规范模型名映射为 Claude Code / opencode 各自需要的 CLI 参数，避免不同 CLI 命名导致伪同模型比较。
 - 矩阵运行与恢复（adapter × model × budget_profile）；每个组合与内部 suite 都有 checkpoint，`resume-matrix` 可补跑未完成组合
-- 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名
+- 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名；排名使用每个任务、每次重复、所有组合共同具备证据的维度，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名。`preflight-matrix` 会在花费 token 前检查统计重复、题目角色、隐藏测试、Docker、适配器和模型映射。
 - 公开测试（19/19）+ 隐藏测试（16/19）+ SHA-256 完整性检查
 - 静态 HTML 视觉检查
 - 过程检查（plan.md、文件变更、测试质量、指令匹配）
@@ -73,13 +73,14 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --ad
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-dir runs/<matrix-run-id>
+PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models mimo-v2.5-pro --model-registry config/model_registry.example.json --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite calibration --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-For a real cross-harness matrix, copy and adapt `config/model_registry.example.json`, then pass `--model-registry <your-registry.json>` to `run-matrix`. The registry records a canonical comparison name while sending each harness its required model identifier.
+For a real cross-harness matrix, copy and adapt `config/model_registry.example.json`, run `preflight-matrix`, then pass `--model-registry <your-registry.json>` to `run-matrix`. The registry records a canonical comparison name while sending each harness its required model identifier. A preflight identity mismatch means the run may be useful for debugging, but must not be used for a same-model conclusion until saved harness output reports `verified_match`.
 
 Run outputs are written under `runs/` by default.
 

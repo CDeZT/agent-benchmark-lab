@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 92 unittest test functions, real harness smoke support, model identity evidence, Docker evaluator v1 code, recoverable task/suite/matrix runs, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 104 unittest test functions, real harness smoke support, model identity evidence, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -114,6 +114,8 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `audit-corpus`, which proves baseline/reference contrast, and made it a mandatory default `audit` check. Fixed `code-review`, `repo-understanding`, and `python-test-writing`; the current corpus result is 15 local tasks passing and 4 container-required tasks skipped.
 - Added interruption-safe task and suite persistence: task manifests/checkpoints plus `resume --experiment-dir` reuse completed repetitions; suite manifests/checkpoints plus `resume-suite --suite-run-dir` reuse completed task summaries and only run missing tasks. Matrix-level resume is still pending.
 - Added matrix persistence and `resume-matrix --matrix-run-dir`: each combination gets a stable summary and nested suite checkpoint, so interruption inside a combination or between combinations resumes without redoing completed work. Matrix reports now have a comparative-only ranking that excludes `smoke_only` and reports strict score, verified score, coverage, pass rate, variance, duration, and cost side by side.
+- Added `preflight-matrix`, a no-cost gate that checks matrix combinations, repetitions, task roles, hidden tests, environment readiness, adapter availability, and model registry mappings before a harness is invoked. It marks a canonical-to-invocation mismatch as executable but not ready for a fair comparative ranking.
+- Corrected comparable-score ranking: comparisons now intersect evidence per task and per repetition, so evidence from different tasks cannot leak into a shared dimension. The primary rank is the comparable score; strict score remains diagnostic. Rows with non-verified model identity are labelled provisional and receive no verified rank.
 - Re-audited feasibility with a full audit and a real harness smoke: both opencode and Claude Code passed the smoke-only task. Claude's structured JSON output now provides actual model identity (`mimo-v2.5-pro[1m]` in the latest local smoke), token usage, and cost. Added canonical-model to adapter-model registry support plus `verified_match`/`requested_unverified`/`mismatch` identity status so a same-model claim cannot rely on a label alone.
 - Implemented Docker evaluator v1 for `container_required` tasks: exact-version Python dependencies, generated Dockerfile/image evidence, CPU/memory limits, read-write workspace mount, read-only hidden tests, and a public test helper injected into the real harness prompt. The host harness keeps its local credentials instead of putting them in the container. The evaluator does not impose a blanket no-network policy because network/tool use needs its own task-specific measurement.
 - Installed the `docker` CLI and Colima without sudo. Colima VM image download timed out multiple times. OrbStack installation initiated as alternative (in progress). No daemon-backed container task has been claimed as tested; `doctor` reports this honestly.
@@ -125,8 +127,8 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Running full calibration suite matrix across both harnesses.
-- Testing all 4 container_required tasks with Docker.
+- Repair the local model registry before launching another full calibration matrix. The present registry maps two Claude Code canonical labels to `deepseek-v4-pro`; `preflight-matrix` correctly rejects it for fair same-model ranking.
+- Test the remaining container-required tasks and pin base-image digests before relying on them in a long comparison.
 
 ## Docker Status
 
@@ -144,8 +146,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Not Yet Implemented
 
-- Larger real Claude Code/opencode benchmark runs beyond smoke tests.
-- Docker daemon activation and a real container-task smoke run (Docker evaluator code exists).
+- Larger registry-clean real Claude Code/opencode benchmark runs beyond smoke tests.
 - Docker-backed external evaluator bridges (SWE-bench Verified, Terminal-Bench).
 - Visual browser automation.
 - Optional LLM judge adjudication.
@@ -178,7 +179,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 92 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 104 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -188,6 +189,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
+PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models mimo-v2.5-pro --model-registry config/model_registry.example.json --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 5 checks, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
@@ -202,8 +204,8 @@ The local `foundation` suite has 11 tasks. Do not claim any container-required d
 
 ## Recommended Next Phase
 
-1. Restore network access for Colima (or start another Docker daemon), then smoke-test the implemented Docker evaluator on project-owned Flask/NumPy tasks.
-2. Create a local model registry from `config/model_registry.example.json`, then run a three-repeat real harness matrix on `calibration` (opencode vs claude-code × multiple models). Only interpret rows with verified model identity.
+1. Repair the local model registry, run `preflight-matrix`, then run a three-repeat real harness matrix on `calibration` (opencode vs claude-code × multiple models). Only interpret rows with verified model identity.
+2. Test the remaining project-owned Flask/NumPy container tasks and pin base-image digests.
 3. Add browser screenshot and pixel-based visual verification for `frontend-visual`.
 4. Bridge to a fixed SWE-bench Verified pilot, then Terminal-Bench, preserving upstream evaluators.
 5. Add more domain-specific tasks (embedded, optics, full-stack).
