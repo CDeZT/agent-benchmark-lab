@@ -20,7 +20,7 @@ The repository has 19 project-owned tasks, all tagged with a difficulty tier and
 | Hard | 4 | Multi-step embedded, optics, data, and cross-module work |
 | Expert | 3 | Systems memory work and dependency-isolated full-stack work |
 
-`calibration` is the local, runnable progression suite. It covers all four tiers without relying on third-party Python packages. Run it with at least three repetitions before a larger harness/model matrix. `python-fullstack`, `project-generation`, `optics-imaging-pipeline`, and `python-data-pipeline` are intentionally tagged `container_required`; this Mac currently has neither Docker nor the required packages, so treating their skipped or import-failed local tests as valid comparative results would be incorrect. The runner refuses these tasks before a local run begins.
+`calibration` is the local, runnable progression suite. It covers all four tiers without relying on third-party Python packages. Run it with at least three repetitions before a larger harness/model matrix. `python-fullstack`, `project-generation`, `optics-imaging-pipeline`, and `python-data-pipeline` are intentionally tagged `container_required`; this Mac's Colima Docker daemon is currently available, and their evidence must come from the container evaluator rather than a host import fallback.
 
 ## External Corpus Plan
 
@@ -53,10 +53,10 @@ Do not report one global number across custom, SWE-bench, Terminal-Bench, web, a
 
 ## Difficulty Calibration Rule
 
-`easy` through `expert` are initially authoring hypotheses, not empirical facts. Before a task contributes to a comparative harness/model leaderboard, run `agent-benchmark calibrate-difficulty` on real (non-dummy) results. The current policy requires at least three distinct adapter/model/profile combinations and nine total runs. It labels a task a `discriminative_candidate` only when observed success rates avoid universal-easy/universal-impossible extremes and differ by at least 20 percentage points across combinations. Otherwise it remains insufficient, too easy, too hard, or in need of more diverse evidence.
+`easy` through `expert` are initially authoring hypotheses, not empirical facts. Before a task contributes to a comparative harness/model leaderboard, run `agent-benchmark calibrate-difficulty` on real (non-dummy) results. The current policy requires at least three distinct adapter/observed-model/profile combinations, at least three runs in every combination, and at least nine eligible runs in total. Requested model labels and stale registry mappings are not enough: a run without exactly one model identity detected in saved harness output is excluded from empirical calibration. It labels a task a `discriminative_candidate` only when observed success rates avoid universal-easy/universal-impossible extremes and differ by at least 20 percentage points across combinations. Otherwise it remains insufficient, too easy, too hard, or in need of more diverse evidence.
 
 This is intentionally conservative. It does not claim that one small pilot establishes benchmark difficulty; it prevents the common mistake of calling a hand-authored task "hard" without checking whether every candidate solves it immediately.
 
-The first live calibration result already changed the corpus: `python-bugfix` achieved 100% completion in four non-dummy combinations over twelve recorded runs, so it is now `smoke_only`. It remains useful for checking adapter wiring, but must not contribute to a serious harness/model ranking.
+The first live calibration result already changed the corpus: `python-bugfix` achieved 100% completion in three eligible identified configurations over 23 eligible runs, so it is now `smoke_only`. It remains useful for checking adapter wiring, but must not contribute to a serious harness/model ranking.
 
 `audit-corpus` is a mandatory gate: a locally runnable comparative task needs a failing baseline and a passing reference solution against its configured acceptance checks. It is part of the default project audit. The current corpus has 15 local tasks passing this gate and four explicitly skipped container-required tasks.

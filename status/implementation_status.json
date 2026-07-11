@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "114 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "117 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {
@@ -108,7 +108,7 @@
       "id": "task_coverage_seed",
       "title": "Task corpus, difficulty ladder, and domain coverage",
       "status": "implemented",
-      "evidence": ["Repository contains 19 task definitions", "all manifests declare validated difficulty and provenance", "catalog reports easy=3, medium=9, hard=4, expert=3", "python-bugfix is marked smoke_only after real calibration showed 100% success across four combinations and twelve runs", "embedded and optics have domain_seed tasks"],
+      "evidence": ["Repository contains 19 task definitions", "all manifests declare validated difficulty and provenance", "catalog reports easy=3, medium=9, hard=4, expert=3", "difficulty calibration groups only identified model evidence and requires three runs per combination", "python-bugfix is marked smoke_only after 100% success across three eligible configurations and 23 eligible runs", "c-bugfix is marked smoke_only after 100% success across three eligible configurations and 14 eligible runs", "embedded and optics have domain_seed tasks"],
       "remaining": ["Run empirical calibration for every comparative task", "Add negative controls and imported benchmark tasks with preserved provenance"]
     },
     {
@@ -143,7 +143,7 @@
       "id": "real_harness_adapters",
       "title": "Real Claude Code and opencode adapters",
       "status": "partial",
-      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Both opencode and Claude Code passed real python-bugfix smoke tests", "Parser extracts LongCat-2.0 from opencode stderr", "Claude JSON parsed mimo-v2.5-pro[1m], tokens, and cost", "detected_model and model_identity are in summaries"],
+      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Both opencode and Claude Code passed real python-bugfix smoke tests", "Three real current-default c-bugfix runs per harness passed public and hidden tests", "Parser extracts LongCat-2.0 from opencode stderr", "Claude JSON parsed mimo-v2.5-pro[1m], tokens, and cost", "detected_model and model_identity are in summaries"],
       "remaining": ["Run larger registry-backed benchmark matrices", "Improve provider-specific tool trace parsing", "Handle provider-specific permissions and interaction behavior"]
     },
     {

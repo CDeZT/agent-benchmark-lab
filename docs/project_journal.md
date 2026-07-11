@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-11 (iteration 23)
+
+- Re-audited empirical score validity after real runs showed that historical `unspecified` labels can represent changing CLI defaults. Difficulty calibration now groups by one observed harness model identity, excludes unidentified/mixed history, and reports its exclusions instead of manufacturing a model grouping.
+- Tightened the statistical gate to match the user's repeated-run requirement: a task needs three eligible adapter/observed-model/profile combinations, at least three runs in each combination, and at least nine eligible runs before it can be called easy, hard, or discriminative. Earlier under-sampled hard/discriminative labels correctly became `insufficient_evidence`.
+- Ran three real `c-bugfix` repetitions for each current CLI default. opencode + LongCat-2.0 and Claude Code + mimo-v2.5-pro[1m] both passed 3/3; the task is now `smoke_only`. The result is documented in `docs/real_harness_calibration.md` and deliberately has no same-model winner claim.
+
 ## 2026-07-11 (iteration 22)
 
 - Audited the preceding agent iteration and found two evidence-integrity defects: generated C test binaries and a browser screenshot had been committed to the task corpus, and `c-bugfix` still checked for the unrelated `math_ops.c` instead of `clamp.c`. Removed the generated artifacts from version control, ignored their paths, and corrected the process check.

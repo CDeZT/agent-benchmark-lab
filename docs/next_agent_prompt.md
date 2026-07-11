@@ -59,6 +59,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 当前 opencode 1.17.15 的 `--model` 会崩溃，因此其 CLI 默认模型模式是正常且受支持的；即使 registry 写了 opencode 映射，也不能宣称该命令选中了某个模型。
 - 矩阵的主排名是任务级共同证据维度的 comparable score；严格总分只作诊断。模型身份不是 `verified_match` 的行必须称为 provisional，不能写成同模型结论。
 - `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
+- `calibrate-difficulty` 只能按实际检测到的模型身份聚合；默认要求每个 adapter/observed-model/profile 组合至少 3 次、至少 3 个组合和 9 个 eligible run。身份未知或混合的历史 run 只能保留审计，不能凑统计结论。
 - 每次新增功能后，必须补测试或可验证命令。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
 - 每次迭代如果改变需求状态，必须更新：
@@ -84,7 +85,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 114 个 unittest 测试函数，应该全部通过。
+- 117 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。

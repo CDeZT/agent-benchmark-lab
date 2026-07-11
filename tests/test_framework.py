@@ -139,6 +139,7 @@ class FrameworkTests(unittest.TestCase):
                             "adapter": "opencode" if index < 2 else "claude-code",
                             "model": f"model-{index}",
                             "budget_profile": "open_ended",
+                            "model_identity": {"status": "verified_match", "detected_models": [f"model-{index}"]},
                             "runs": [{"public_test_passed": value, "hidden_test_passed": value} for value in successes],
                         }
                     ),
@@ -150,6 +151,87 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(task["combination_count"], 3)
         self.assertEqual(task["run_count"], 9)
         self.assertEqual(task["classification"], "discriminative_candidate")
+
+    def test_difficulty_calibration_excludes_unidentified_model_history(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for index in range(3):
+                summary_dir = root / f"run-{index}"
+                summary_dir.mkdir()
+                summary_dir.joinpath("summary.json").write_text(
+                    json.dumps(
+                        {
+                            "task_id": "unknown-default-task",
+                            "adapter": "opencode",
+                            "model": "unspecified",
+                            "budget_profile": "open_ended",
+                            "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            report = analyze_difficulty(root)
+
+        self.assertEqual(report["task_count"], 0)
+        self.assertEqual(report["ignored_summaries"]["unidentified_model"], 3)
+
+    def test_difficulty_calibration_groups_by_detected_not_requested_model(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for index, requested in enumerate(("mimo-v2.5-pro", "deepseek-v4-pro")):
+                summary_dir = root / f"run-{index}"
+                summary_dir.mkdir()
+                summary_dir.joinpath("summary.json").write_text(
+                    json.dumps(
+                        {
+                            "task_id": "observed-model-task",
+                            "adapter": "opencode",
+                            "model": requested,
+                            "budget_profile": "oneshot",
+                            "model_identity": {"status": "mismatch", "detected_models": ["LongCat-2.0"]},
+                            "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            report = analyze_difficulty(root, min_combinations=1, min_runs=1, min_runs_per_combination=1)
+
+        task = report["tasks"][0]
+        self.assertEqual(task["combination_count"], 1)
+        self.assertEqual(task["combination_success_rates"][0]["observed_model"], "longcat-2.0")
+
+    def test_difficulty_calibration_requires_three_runs_per_combination(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            configurations = [
+                ("opencode", "LongCat-2.0", [True, True, True, True]),
+                ("claude-code", "mimo-v2.5-pro", [False, False, False, False]),
+                ("claude-code", "deepseek-v4-pro", [True]),
+            ]
+            for index, (adapter, model, outcomes) in enumerate(configurations):
+                summary_dir = root / f"run-{index}"
+                summary_dir.mkdir()
+                summary_dir.joinpath("summary.json").write_text(
+                    json.dumps(
+                        {
+                            "task_id": "undersampled-combination-task",
+                            "adapter": adapter,
+                            "model": model,
+                            "budget_profile": "oneshot",
+                            "model_identity": {"status": "verified_match", "detected_models": [model]},
+                            "runs": [{"public_test_passed": value, "hidden_test_passed": value} for value in outcomes],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+            report = analyze_difficulty(root)
+
+        task = report["tasks"][0]
+        self.assertEqual(task["observed_combination_count"], 3)
+        self.assertEqual(task["combination_count"], 2)
+        self.assertEqual(task["observed_run_count"], 9)
+        self.assertEqual(task["run_count"], 8)
+        self.assertEqual(task["classification"], "insufficient_evidence")
 
     def test_dummy_run_writes_evidence(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
@@ -331,7 +413,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual([row["mean_comparable_score"] for row in leaderboard["rows"]], [None, None])
 
     def test_matrix_preflight_warns_before_a_nonstatistical_comparison(self) -> None:
-        suite = SimpleNamespace(suite_id="preflight-test", tasks=["python-bugfix", "c-bugfix"])
+        suite = SimpleNamespace(suite_id="preflight-test", tasks=["python-bugfix", "process-planning"])
         report = preflight_matrix(
             suite,
             [{"adapter": "dummy", "model": "model-a", "adapter_model": "model-a", "budget_profile": "oneshot", "repetitions": 1}],
@@ -342,12 +424,12 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(report["execution_ready"])
         self.assertFalse(report["comparative_ranking_ready"])
         self.assertTrue(report["identity_configuration_clean"])
-        self.assertEqual(report["comparative_task_ids"], ["c-bugfix"])
+        self.assertEqual(report["comparative_task_ids"], ["process-planning"])
         self.assertEqual(report["excluded_task_ids"], ["python-bugfix"])
         self.assertIn("insufficient_repetitions", [item["code"] for item in report["warnings"]])
 
     def test_matrix_preflight_requires_a_registry_for_cross_harness_ranking(self) -> None:
-        suite = SimpleNamespace(suite_id="preflight-cross-harness", tasks=["c-bugfix"])
+        suite = SimpleNamespace(suite_id="preflight-cross-harness", tasks=["process-planning"])
         report = preflight_matrix(
             suite,
             [
@@ -364,7 +446,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("no_model_registry", [item["code"] for item in report["warnings"]])
 
     def test_matrix_preflight_allows_current_cli_default_configurations(self) -> None:
-        suite = SimpleNamespace(suite_id="preflight-cli-defaults", tasks=["c-bugfix"])
+        suite = SimpleNamespace(suite_id="preflight-cli-defaults", tasks=["process-planning"])
         report = preflight_matrix(
             suite,
             [
@@ -388,7 +470,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(report["model_mappings"][0]["identity_hint"], "cli_default_pending")
 
     def test_matrix_preflight_flags_opencode_default_model_limitation(self) -> None:
-        suite = SimpleNamespace(suite_id="preflight-opencode", tasks=["c-bugfix"])
+        suite = SimpleNamespace(suite_id="preflight-opencode", tasks=["process-planning"])
         report = preflight_matrix(
             suite,
             [{"adapter": "opencode", "model": "longcat-2.0", "adapter_model": "longcat-2.0", "budget_profile": "bounded", "repetitions": 3}],

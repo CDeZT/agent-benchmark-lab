@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     difficulty_parser.add_argument("--include-dummy", action="store_true")
     difficulty_parser.add_argument("--min-combinations", type=int, default=3)
     difficulty_parser.add_argument("--min-runs", type=int, default=9)
+    difficulty_parser.add_argument("--min-runs-per-combination", type=int, default=3)
     difficulty_parser.add_argument("--json", action="store_true")
 
     taxonomy_parser = subparsers.add_parser("taxonomy", help="Show outcome capability axes and task mappings.")
@@ -237,6 +238,7 @@ def _calibrate_difficulty(args: argparse.Namespace) -> int:
         include_dummy=args.include_dummy,
         min_combinations=args.min_combinations,
         min_runs=args.min_runs,
+        min_runs_per_combination=args.min_runs_per_combination,
     )
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -245,7 +247,7 @@ def _calibrate_difficulty(args: argparse.Namespace) -> int:
     print(
         f"Difficulty calibration: {report['task_count']} observed tasks; "
         f"min_combinations={policy['min_combinations']}, min_runs={policy['min_runs']}, "
-        f"include_dummy={policy['dummy_runs_included']}"
+        f"min_runs_per_combination={policy['min_runs_per_combination']}, include_dummy={policy['dummy_runs_included']}"
     )
     for task in report["tasks"]:
         print(

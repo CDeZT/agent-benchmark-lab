@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、114 个 unittest 测试函数、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、117 个 unittest 测试函数、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -48,7 +48,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - Markdown + HTML 报告（含 SVG 雷达图）
 - 自动计算均值、方差、标准差
 - 严格总分 + 已验证证据覆盖率 + 已验证维度归一化分，防止将“暂未测到的维度为 0”误读为能力失败
-- `calibrate-difficulty`：依据真实 harness/model 多组合、多次运行的通过率与差异，判断题目是否有区分度；不把 dummy 结果当作难度结论
+- `calibrate-difficulty`：依据真实 harness/实际检测模型的多组合、多次运行的通过率与差异判断题目区分度；默认要求每个组合至少 3 次、总计至少 9 次，并排除模型身份未检测到的历史 run
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
 - 一键审计、环境诊断、交接提示

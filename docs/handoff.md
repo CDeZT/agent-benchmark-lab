@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 114 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 117 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -111,7 +111,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `docs/corpus_strategy.md`: external imports must follow Docker isolation and preserve upstream evaluator/provenance evidence; custom embedded and optics tasks remain first-class.
 - Added strict-score measurement coverage: every result now distinguishes the all-dimension strict total from verified evidence coverage and a verified-only normalized score. Do not present either number without the other.
 - Added `calibrate-difficulty`, which requires real non-dummy results across at least 3 combinations and 9 runs before a task can be called a discriminative candidate.
-- Applied the first live calibration result: `python-bugfix` is 100% successful across four non-dummy combinations and twelve recorded runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
+- Tightened `calibrate-difficulty`: combinations now use actual observed model identity, unidentified/mixed runs are excluded, and each eligible combination needs at least 3 repetitions. This prevents changing CLI defaults and 1-2 run samples from creating pseudo-statistical difficulty conclusions.
+- Applied the first live calibration result: `python-bugfix` is 100% successful across three eligible identified configurations and 23 eligible runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
+- Recorded three real repetitions for each current CLI default on `c-bugfix`: opencode + observed LongCat-2.0 and Claude Code + observed mimo-v2.5-pro[1m] both pass 3/3. It is therefore now `smoke_only`; the strict-score difference is telemetry-sensitive and cannot establish a harness or same-model winner. See `docs/real_harness_calibration.md`.
 - Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
 - Added `audit-corpus`, which proves baseline/reference contrast, and made it a mandatory default `audit` check. Fixed `code-review`, `repo-understanding`, and `python-test-writing`; the current corpus result is 15 local tasks passing and 4 container-required tasks skipped.
 - Added interruption-safe task and suite persistence: task manifests/checkpoints plus `resume --experiment-dir` reuse completed repetitions; suite manifests/checkpoints plus `resume-suite --suite-run-dir` reuse completed task summaries and only run missing tasks. Matrix-level resume is still pending.
@@ -185,7 +187,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 114 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 117 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
