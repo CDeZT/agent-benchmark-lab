@@ -21,6 +21,7 @@ from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.model_identity import summarize_model_identity
+from agent_benchmark.metrics import confidence_interval_95
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
 from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
 from agent_benchmark.runner.container import DockerTaskEnvironment, DockerUnavailableError, container_spec_for_task
@@ -245,6 +246,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["mean_score"], 58.0)
             self.assertEqual(summary["mean_verified_normalized_score"], 100.0)
             self.assertEqual(summary["mean_verified_coverage_percent"], 58.0)
+            self.assertEqual(summary["score_confidence_interval_95"]["margin"], 0.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
             for run in summary["runs"]:
@@ -263,6 +265,15 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 100.0)
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
                 self.assertTrue(result["score"]["evidence"]["test"]["hidden"]["passed"])
+
+    def test_confidence_interval_uses_student_t_for_small_repeated_samples(self) -> None:
+        interval = confidence_interval_95([1.0, 2.0, 3.0])
+
+        self.assertEqual(interval["method"], "two_sided_student_t")
+        self.assertEqual(interval["n"], 3)
+        self.assertEqual(interval["lower"], -0.4843)
+        self.assertEqual(interval["upper"], 4.4843)
+        self.assertIsNone(confidence_interval_95([1.0]))
 
     def test_run_can_resume_from_saved_repetition_results(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")

@@ -29,12 +29,12 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
         f"- Mean verified evidence coverage: {suite_summary.get('mean_verified_coverage_percent')}%",
         f"- Mean duration seconds: {suite_summary['mean_duration_seconds']}",
         "",
-        "| Task | Strict Score | Verified Score | Coverage | Mean Duration | Variance | Experiment |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| Task | Strict Score | Score 95% CI | Verified Score | Coverage | Mean Duration | Variance | Experiment |",
+        "| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |",
     ]
     for task in suite_summary["tasks"]:
         lines.append(
-            f"| `{task['task_id']}` | {task['mean_score']} | {task.get('mean_verified_normalized_score')} | "
+            f"| `{task['task_id']}` | {task['mean_score']} | {_format_interval(task.get('score_confidence_interval_95'))} | {task.get('mean_verified_normalized_score')} | "
             f"{task.get('mean_verified_coverage_percent')}% | {task['mean_duration_seconds']} | "
             f"{task['variance']} | `{task['experiment_dir']}` |"
         )
@@ -48,3 +48,9 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
                 f"{values['mean_verified_normalized_score']} | {values['mean_verified_coverage_percent']}% |"
             )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _format_interval(interval: object) -> str:
+    if not isinstance(interval, dict):
+        return "n/a"
+    return f"[{interval.get('lower')}, {interval.get('upper')}] (n={interval.get('n')})"

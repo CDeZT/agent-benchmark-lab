@@ -109,6 +109,7 @@ For each harness/model/task/profile combination, report:
 - Number of repetitions.
 - Mean score.
 - Variance and standard deviation.
+- Task-level two-sided 95% confidence interval for repeated score and duration measurements. It uses Student-t for 2-30 repetitions and remains unavailable for one repetition rather than pretending uncertainty is zero.
 - Best and worst score.
 - Success rate.
 - Mean duration.

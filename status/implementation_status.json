@@ -52,14 +52,14 @@
       "id": "repeated_runs_mean_variance",
       "title": "Repeated runs with mean and variance",
       "status": "implemented",
-      "evidence": ["run and run-suite support repetitions", "summary includes mean, variance, stdev, best, worst"],
-      "remaining": ["Add confidence intervals and statistical comparison tests"]
+      "evidence": ["run and run-suite support repetitions", "summary includes mean, variance, stdev, best, worst", "task summaries include two-sided 95% Student-t confidence intervals for repeated measurements"],
+      "remaining": ["Add paired significance tests once larger matched matrices exist"]
     },
     {
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "117 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "118 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {

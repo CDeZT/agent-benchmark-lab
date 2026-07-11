@@ -272,6 +272,7 @@ def _write_matrix_markdown(path: Path, matrix_summary: dict[str, Any]) -> None:
                 "",
                 f"- Basis: {leaderboard.get('ranking_basis')}",
                 "- `smoke_only` and other non-comparative tasks are excluded from this table.",
+                "- Confidence intervals remain task-level evidence in each linked suite run; an aggregate matrix CI is intentionally not fabricated across heterogeneous tasks.",
             ]
         )
         if comparable:

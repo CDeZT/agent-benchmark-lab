@@ -13,6 +13,7 @@ import time
 import uuid
 
 from agent_benchmark.adapters import adapter_by_name
+from agent_benchmark.metrics import confidence_interval_95
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.model_identity import summarize_model_identity
 from agent_benchmark.parsers import parse_harness_output
@@ -386,16 +387,20 @@ def _summarize(
         "experiment_dir": str(experiment_dir),
         "repetitions": len(results),
         "mean_score": round(statistics.mean(scores), 2) if scores else 0.0,
+        "score_confidence_interval_95": confidence_interval_95(scores),
         "variance": round(statistics.pvariance(scores), 4) if len(scores) > 1 else 0.0,
         "stdev": round(statistics.pstdev(scores), 4) if len(scores) > 1 else 0.0,
         "best_score": max(scores) if scores else 0.0,
         "worst_score": min(scores) if scores else 0.0,
         "mean_verified_normalized_score": round(statistics.mean(verified_scores), 2) if verified_scores else None,
+        "verified_normalized_score_confidence_interval_95": confidence_interval_95(verified_scores),
         "mean_verified_coverage_percent": round(statistics.mean(coverage), 2) if coverage else 0.0,
         "mean_duration_seconds": round(statistics.mean(durations), 4) if durations else 0.0,
+        "duration_confidence_interval_95": confidence_interval_95(durations),
         "mean_adapter_duration_seconds": round(statistics.mean(adapter_durations), 4) if adapter_durations else 0.0,
         "mean_test_duration_seconds": round(statistics.mean(test_durations), 4) if test_durations else 0.0,
         "mean_cost_usd": round(statistics.mean(costs), 6) if costs else None,
+        "cost_confidence_interval_95": confidence_interval_95(costs),
         "mean_input_tokens": round(statistics.mean(input_tokens), 2) if input_tokens else None,
         "mean_output_tokens": round(statistics.mean(output_tokens), 2) if output_tokens else None,
         "detected_model": detected_models[0] if detected_models else None,

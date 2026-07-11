@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-11 (iteration 24)
+
+- Added task-level two-sided 95% confidence intervals to repeated scores, verified-only scores, durations, and available costs. The implementation uses Student-t critical values for the small sample sizes this project requires and returns no interval for one observation.
+- Added CI evidence to JSON, Markdown, HTML, and suite task reports. Matrix reporting deliberately points to task-level intervals instead of producing a mathematically invalid aggregate interval over mixed tasks.
+- Ran an end-to-end three-repeat report smoke to verify score and duration CI artifacts in every report surface.
+
 ## 2026-07-11 (iteration 23)
 
 - Re-audited empirical score validity after real runs showed that historical `unspecified` labels can represent changing CLI defaults. Difficulty calibration now groups by one observed harness model identity, excludes unidentified/mixed history, and reports its exclusions instead of manufacturing a model grouping.

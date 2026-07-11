@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 117 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 118 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -112,6 +112,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added strict-score measurement coverage: every result now distinguishes the all-dimension strict total from verified evidence coverage and a verified-only normalized score. Do not present either number without the other.
 - Added `calibrate-difficulty`, which requires real non-dummy results across at least 3 combinations and 9 runs before a task can be called a discriminative candidate.
 - Tightened `calibrate-difficulty`: combinations now use actual observed model identity, unidentified/mixed runs are excluded, and each eligible combination needs at least 3 repetitions. This prevents changing CLI defaults and 1-2 run samples from creating pseudo-statistical difficulty conclusions.
+- Added task-level two-sided 95% confidence intervals to repeated score, verified score, duration, and available cost measurements. Small-sample intervals use Student-t; one repetition reports no CI. Suite reports show each task CI, while matrix reports explicitly avoid fabricating one aggregate CI across heterogeneous tasks.
 - Applied the first live calibration result: `python-bugfix` is 100% successful across three eligible identified configurations and 23 eligible runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
 - Recorded three real repetitions for each current CLI default on `c-bugfix`: opencode + observed LongCat-2.0 and Claude Code + observed mimo-v2.5-pro[1m] both pass 3/3. It is therefore now `smoke_only`; the strict-score difference is telemetry-sensitive and cannot establish a harness or same-model winner. See `docs/real_harness_calibration.md`.
 - Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
@@ -187,7 +188,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 117 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 118 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

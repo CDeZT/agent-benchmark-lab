@@ -18,6 +18,7 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
         f"- Budget profile: `{summary['budget_profile']}`",
         f"- Repetitions: {summary['repetitions']}",
         f"- Mean score: {summary['mean_score']}",
+        f"- Score 95% confidence interval: {_format_interval(summary.get('score_confidence_interval_95'))}",
         f"- Mean verified normalized score: {summary.get('mean_verified_normalized_score')}",
         f"- Mean verified evidence coverage: {summary.get('mean_verified_coverage_percent')}%",
         f"- Variance: {summary['variance']}",
@@ -25,6 +26,7 @@ def write_markdown_report(path: Path, summary: dict[str, Any], results: list[obj
         f"- Best score: {summary['best_score']}",
         f"- Worst score: {summary['worst_score']}",
         f"- Mean duration seconds: {summary['mean_duration_seconds']}",
+        f"- Duration 95% confidence interval: {_format_interval(summary.get('duration_confidence_interval_95'))}",
         f"- Mean adapter duration seconds: {summary['mean_adapter_duration_seconds']}",
         f"- Mean test duration seconds: {summary['mean_test_duration_seconds']}",
         f"- Mean cost USD: {summary['mean_cost_usd']}",
@@ -74,3 +76,9 @@ def _status(value: object) -> str:
     if value is False:
         return "fail"
     return "n/a"
+
+
+def _format_interval(interval: object) -> str:
+    if not isinstance(interval, dict):
+        return "n/a (need at least 2 repetitions)"
+    return f"[{interval.get('lower')}, {interval.get('upper')}] (n={interval.get('n')}, {interval.get('method')})"

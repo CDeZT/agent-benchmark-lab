@@ -33,6 +33,7 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
     model_identity = summary.get("model_identity")
     model_status = model_identity.get("status", "not-recorded") if isinstance(model_identity, dict) else "not-recorded"
     total_tools = summary.get("total_tool_calls", 0)
+    score_interval = _format_interval(summary.get("score_confidence_interval_95"))
     document = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -45,6 +46,7 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
     .metric {{ border: 1px solid #d8dee4; border-radius: 8px; padding: 12px; }}
     .metric span {{ display: block; color: #52606d; font-size: 13px; }}
     .metric b {{ font-size: 24px; }}
+    .metric.ci b {{ font-size: 16px; overflow-wrap: anywhere; }}
     .bar {{ display: grid; grid-template-columns: 220px 1fr 64px; gap: 12px; align-items: center; margin: 8px 0; }}
     meter {{ width: 100%; height: 18px; }}
     .radar {{ max-width: 520px; margin: 16px 0 28px; }}
@@ -60,6 +62,7 @@ def write_html_report(path: Path, summary: dict[str, Any]) -> None:
   <section class="summary">
     <div class="metric"><span>Model identity</span><b>{html.escape(str(model_status))}</b></div>
     <div class="metric"><span>Mean</span><b>{summary['mean_score']}</b></div>
+    <div class="metric ci"><span>Score 95% CI</span><b>{html.escape(score_interval)}</b></div>
     <div class="metric"><span>Verified normalized</span><b>{summary.get('mean_verified_normalized_score')}</b></div>
     <div class="metric"><span>Verified coverage</span><b>{summary.get('mean_verified_coverage_percent')}%</b></div>
     <div class="metric"><span>Variance</span><b>{summary['variance']}</b></div>
@@ -87,6 +90,12 @@ def _status(value: object) -> str:
     if value is False:
         return "fail"
     return "n/a"
+
+
+def _format_interval(interval: object) -> str:
+    if not isinstance(interval, dict):
+        return "n/a"
+    return f"[{interval.get('lower')}, {interval.get('upper')}]"
 
 
 def _radar_svg(dimensions: dict[str, float]) -> str:
