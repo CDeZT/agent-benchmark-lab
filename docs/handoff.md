@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 7 suites, 121 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 7 suites, 125 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -115,8 +115,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added task-level two-sided 95% confidence intervals to repeated score, verified score, duration, and available cost measurements. Small-sample intervals use Student-t; one repetition reports no CI. Suite reports show each task CI, while matrix reports explicitly avoid fabricating one aggregate CI across heterogeneous tasks.
 - Added `selection-ladder` (expert -> easy) and `screening-report`. A task is not eligible for selection ranking until it is a comparative candidate, passes baseline/reference audit, and is empirically discriminative with identified three-repeat evidence. The current report honestly has zero selection-ready tasks: 2 smoke-only, 13 awaiting real evidence, and 4 container/corpus-gated.
 - Added `config/authoritative_corpora.json` and `docs/screening_exam_policy.md`. SWE-bench Verified and Terminal-Bench Core are approved source/evaluator contracts, but neither is claimed imported until an upstream task instance and evaluator evidence are preserved.
-- Applied the first live calibration result: `python-bugfix` is 100% successful across three eligible identified configurations and 23 eligible runs, so its manifest is now `smoke_only`; never use it as a differentiating leaderboard task.
-- Recorded three real repetitions for each current CLI default on `c-bugfix`: opencode + observed LongCat-2.0 and Claude Code + observed mimo-v2.5-pro[1m] both pass 3/3. It is therefore now `smoke_only`; the strict-score difference is telemetry-sensitive and cannot establish a harness or same-model winner. See `docs/real_harness_calibration.md`.
+- Added `task_fingerprint` to every new task, suite, and matrix run contract. Fingerprint mismatch now blocks task/suite/matrix resume and excludes historical summaries from difficulty calibration/screening. This invalidates previous unversioned real matrices for selection claims after the frontend baseline was corrected; raw directories remain useful debugging evidence only.
+- `python-bugfix` and `c-bugfix` are deliberately `smoke_only`; use them for adapter wiring and quick regression checks, never as differentiating leaderboard tasks. Their historic real runs predate fingerprints and need rerunning before they can support calibration.
+- Historic `c-bugfix` CLI-default repetitions remain documented in `docs/real_harness_calibration.md` solely for debugging. They cannot establish a harness/model result, selection status, or a winner.
 - Added outcome capability scorecards to suite summaries. These aggregate software engineering, agent workflow, systems/embedded, scientific computing, web/UI, and security/reliability separately; smoke-only tasks are excluded from these comparisons.
 - Added `audit-corpus`, which proves baseline/reference contrast, and made it a mandatory default `audit` check. Fixed `code-review`, `repo-understanding`, and `python-test-writing`; the current corpus result is 15 local tasks passing and 4 container-required tasks skipped.
 - Added interruption-safe task and suite persistence: task manifests/checkpoints plus `resume --experiment-dir` reuse completed repetitions; suite manifests/checkpoints plus `resume-suite --suite-run-dir` reuse completed task summaries and only run missing tasks. Matrix-level resume is still pending.
@@ -163,29 +164,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Real Harness Results
 
-**Calibration Suite Matrix** (8 tasks, CLI default mode, 2 repetitions):
-
-| Task | opencode (LongCat-2.0) | claude-code (mimo-v2.5-pro[1m]) | Winner |
-|------|------------------------|----------------------------------|--------|
-| python-bugfix | 62.6 ✓✓ | 64.1 ✓✓ | claude-code |
-| c-bugfix | 52.0 ✓✓ | 52.4 ✓✓ | claude-code |
-| process-planning | 53.2 ✓✓ | 57.1 ✓✓ | claude-code |
-| frontend-visual | 38.0 ✓✗ | 56.5 ✓✓ | claude-code |
-| embedded-c | 36.0 ✓✗ | 36.8 ✓✗ | claude-code |
-| embedded-protocol-parser | 35.5 ✓✗ | 35.9 ✓✗ | claude-code |
-| python-swebench-style | 63.2 ✓✓ | 63.2 ✓✓ | tie |
-| c-systems-programming | 63.2 ✓✓ | 62.5 ✓✓ | opencode |
-| **Mean** | **50.5** | **53.6** | **claude-code** |
-| **Pass rate** | **8/8** | **8/8** | **tie** |
-| **Hidden pass** | **4/8** | **5/8** | **claude-code** |
-
-**Key findings** (3 repetitions):
-- **claude-code wins 51.9 vs 49.9** on calibration suite (3 repetitions)
-- Both harnesses have zero variance (very stable)
-- claude-code passes more hidden tests (5 vs 4), indicating better edge case handling
-- Biggest difference: frontend-visual (+18.5 for claude-code)
-- Both 100% public test pass rate
-- Framework correctly auto-detects model identity
+Previous calibration matrices are retained under ignored `runs/` as legacy raw evidence, but are no longer eligible for difficulty calibration, screening, or winner claims because they predate task-contract fingerprinting. One older frontend matrix was also run while its workspace baseline had accidentally been repaired; this was corrected in commit `29e0a22`. Do not quote its scores, variance, hidden-test counts, or a Claude Code/opencode winner. Rerun the current fingerprinted `selection-ladder` or a current calibration subset with three repetitions before interpreting any result.
 
 ## Not Yet Implemented
 
@@ -221,7 +200,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 121 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 125 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

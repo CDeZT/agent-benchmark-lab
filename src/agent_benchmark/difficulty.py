@@ -6,6 +6,8 @@ from pathlib import Path
 import statistics
 from typing import Any
 
+from agent_benchmark.task_fingerprint import task_fingerprint
+from agent_benchmark.task_schema import load_task
 
 def analyze_difficulty(
     runs_dir: Path,
@@ -14,6 +16,7 @@ def analyze_difficulty(
     min_combinations: int = 3,
     min_runs: int = 9,
     min_runs_per_combination: int = 3,
+    tasks_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Classify empirical task discriminability from saved experiment summaries.
 
@@ -26,7 +29,9 @@ def analyze_difficulty(
         "dummy_adapter": 0,
         "unidentified_model": 0,
         "no_completion_outcome": 0,
+        "task_fingerprint_mismatch": 0,
     }
+    current_fingerprints = _current_fingerprints(tasks_dir) if tasks_dir else {}
     for path in sorted(runs_dir.rglob("summary.json")) if runs_dir.exists() else []:
         summary = _load_summary(path)
         if summary is None:
@@ -35,11 +40,14 @@ def analyze_difficulty(
         if not include_dummy and adapter == "dummy":
             ignored_summaries["dummy_adapter"] += 1
             continue
+        task_id = str(summary["task_id"])
+        if tasks_dir is not None and summary.get("task_fingerprint") != current_fingerprints.get(task_id):
+            ignored_summaries["task_fingerprint_mismatch"] += 1
+            continue
         observed_model = _observed_model(summary)
         if observed_model is None:
             ignored_summaries["unidentified_model"] += 1
             continue
-        task_id = str(summary["task_id"])
         combination = (adapter, observed_model, str(summary.get("budget_profile", "")))
         recorded_outcome = False
         for run in summary.get("runs", []):
@@ -89,10 +97,22 @@ def analyze_difficulty(
             "minimum_between_combination_gap": 0.2,
             "combination_key": "adapter x observed_model x budget_profile",
             "unidentified_model_summaries_excluded": True,
+            "task_fingerprint_match_required": tasks_dir is not None,
         },
         "task_count": len(tasks),
         "ignored_summaries": ignored_summaries,
         "tasks": tasks,
+    }
+
+
+def _current_fingerprints(tasks_dir: Path) -> dict[str, str]:
+    if not tasks_dir.exists():
+        return {}
+    return {
+        task.task_id: task_fingerprint(task)
+        for path in tasks_dir.iterdir()
+        if path.is_dir()
+        for task in [load_task(path)]
     }
 
 

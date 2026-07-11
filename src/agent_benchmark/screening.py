@@ -20,7 +20,7 @@ def build_screening_report(tasks_dir: Path, runs_dir: Path) -> dict[str, Any]:
     is neither universally easy nor universally impossible.
     """
     catalog = build_catalog(tasks_dir)
-    calibration = analyze_difficulty(runs_dir)
+    calibration = analyze_difficulty(runs_dir, tasks_dir=tasks_dir)
     corpus = audit_corpus(tasks_dir)
     empirical = {str(item["task_id"]): item for item in calibration["tasks"]}
     corpus_by_task = {str(item["task_id"]): item for item in corpus["tasks"]}
@@ -42,6 +42,7 @@ def build_screening_report(tasks_dir: Path, runs_dir: Path) -> dict[str, Any]:
             "selection_ready_requirements": [
                 "comparative_candidate role",
                 "baseline/reference corpus audit passes",
+                "current task-contract fingerprint on every contributing summary",
                 "empirical discriminative_candidate status from identified real-model evidence",
                 "three eligible configurations with three repetitions each",
             ],

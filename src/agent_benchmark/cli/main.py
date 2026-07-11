@@ -22,6 +22,7 @@ from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_sup
 from agent_benchmark.screening import build_screening_report
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
+from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
 
 
@@ -46,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Assess task discriminability from saved real harness outcomes.",
     )
     difficulty_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    difficulty_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     difficulty_parser.add_argument("--include-dummy", action="store_true")
     difficulty_parser.add_argument("--min-combinations", type=int, default=3)
     difficulty_parser.add_argument("--min-runs", type=int, default=9)
@@ -250,6 +252,7 @@ def _calibrate_difficulty(args: argparse.Namespace) -> int:
         min_combinations=args.min_combinations,
         min_runs=args.min_runs,
         min_runs_per_combination=args.min_runs_per_combination,
+        tasks_dir=Path(args.tasks_dir),
     )
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -552,6 +555,7 @@ def _run_matrix_with_specs(
     matrix_run_dir: Path | None = None,
 ) -> dict[str, object]:
     _validate_matrix_specs(combination_specs)
+    current_fingerprints = _suite_task_fingerprints(suite, tasks_dir)
     if matrix_run_dir is None:
         matrix_run_id = f"matrix-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
         matrix_run_dir = runs_dir / matrix_run_id
@@ -564,6 +568,8 @@ def _run_matrix_with_specs(
             raise ValueError(f"Resume manifest suite_id does not match '{suite.suite_id}'.")
         if manifest.get("task_ids") != list(suite.tasks):
             raise ValueError("Resume manifest task list does not match the current suite definition.")
+        if manifest.get("task_fingerprints") != current_fingerprints:
+            raise ValueError("Resume matrix task fingerprints do not match the current task contracts.")
         if manifest.get("combination_specs") != combination_specs:
             raise ValueError("Resume manifest combinations do not match the requested matrix.")
 
@@ -641,6 +647,7 @@ def _write_matrix_manifest(
         "matrix_run_id": matrix_run_id,
         "suite_id": suite.suite_id,
         "task_ids": list(suite.tasks),
+        "task_fingerprints": _suite_task_fingerprints(suite, tasks_dir),
         "tasks_dir": str(tasks_dir.resolve()),
         "runs_dir": str(runs_dir.resolve()),
         "combination_specs": combination_specs,
@@ -685,6 +692,7 @@ def _run_suite_with_config(
     tasks_dir: Path,
     suite_run_dir: Path | None = None,
 ) -> dict[str, object]:
+    current_fingerprints = _suite_task_fingerprints(suite, tasks_dir)
     if suite_run_dir is None:
         suite_run_id = f"suite-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
         suite_run_dir = config.runs_dir / suite_run_id
@@ -701,6 +709,8 @@ def _run_suite_with_config(
             raise ValueError(f"Resume manifest suite_id does not match '{suite.suite_id}'.")
         if manifest.get("task_ids") != list(suite.tasks):
             raise ValueError("Resume manifest task list does not match the current suite definition.")
+        if manifest.get("task_fingerprints") != current_fingerprints:
+            raise ValueError("Resume suite task fingerprints do not match the current task contracts.")
 
     summaries = []
     summaries_dir = suite_run_dir / "task_summaries"
@@ -773,6 +783,7 @@ def _write_suite_manifest(
         "suite_run_id": suite_run_id,
         "suite_id": suite.suite_id,
         "task_ids": list(suite.tasks),
+        "task_fingerprints": _suite_task_fingerprints(suite, tasks_dir),
         "tasks_dir": str(tasks_dir.resolve()),
         "runs_dir": str(config.runs_dir.resolve()),
         "config": {
@@ -796,6 +807,13 @@ def _load_suite_manifest(suite_run_dir: Path) -> dict[str, object]:
     if not isinstance(payload, dict):
         raise ValueError(f"Invalid suite manifest at {path}")
     return payload
+
+
+def _suite_task_fingerprints(suite: object, tasks_dir: Path) -> dict[str, str]:
+    return {
+        task_id: task_fingerprint(load_task(_resolve_task(Path(task_id), tasks_dir)))
+        for task_id in list(suite.tasks)
+    }
 
 
 def _write_suite_checkpoint(

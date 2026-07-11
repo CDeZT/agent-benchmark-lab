@@ -24,7 +24,10 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main screening-report --json
 2. Its baseline/reference contrast passes `audit-corpus`.
 3. Identified real-harness evidence contains at least three
    adapter/observed-model/profile configurations with at least three runs each.
-4. Empirical calibration calls it `discriminative_candidate`: neither
+4. Every contributing summary carries the exact current task-contract
+   fingerprint. Missing or mismatched fingerprints are historical/debugging
+   evidence only, never ranking evidence.
+5. Empirical calibration calls it `discriminative_candidate`: neither
    universally easy nor universally impossible, with a material success-rate
    spread.
 

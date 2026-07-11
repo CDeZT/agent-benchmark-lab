@@ -2,6 +2,11 @@
 
 This document records individual real harness runs without turning them into a comparative leaderboard claim. The raw evidence stays in ignored `runs/` directories.
 
+All entries below predate task-contract fingerprints and are therefore retained
+only as debugging and implementation evidence. They must not enter current
+difficulty calibration, selection, or harness/model winner claims. New real
+calibration must be rerun from the current fingerprinted task contracts.
+
 ## 2026-07-11: Embedded Protocol Parser
 
 - Task: `embedded-protocol-parser` (`hard`, project-owned embedded-domain seed).
@@ -33,4 +38,4 @@ Interpretation: this is one complete failure sample for a hard embedded task, no
 | opencode + LongCat-2.0 | 3/3 | 50.45 | 0.35 | 100.00 | 46% | 16.16s | not exposed |
 | Claude Code + mimo-v2.5-pro[1m] | 3/3 | 52.43 | 0.22 | 94.87 | 50% | 21.85s | $0.128317 |
 
-Interpretation: both current configurations reliably completed this small task. It is now `smoke_only` and excluded from comparative leaderboards. This is **not** a same-model or overall harness winner claim: the observed models differ and one task is too small to represent the user's workflow. The 1.98 strict-score gap is largely measurement asymmetry: Claude Code exposed token/cost telemetry and therefore receives a partly scored `cost_efficiency` dimension, while opencode has no cost telemetry and keeps that dimension at 0. The meaningful shared outcome is 3/3 acceptance-test success, with opencode faster in this narrow sample. Use a three-repeat multi-task default-configuration matrix before any practical tool recommendation.
+Interpretation at the time was that both configurations completed this smoke task, but the run contracts are now legacy and invalid for current comparison. `c-bugfix` remains `smoke_only` by task policy and excluded from comparative leaderboards. The observed models differ, and the 1.98 strict-score gap was additionally telemetry-sensitive because Claude Code exposed token/cost telemetry while opencode did not. Rerun a fingerprinted, three-repeat multi-task default-configuration matrix before making any practical tool recommendation.

@@ -32,6 +32,7 @@ from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.reports.matrix import build_matrix_leaderboard
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
+from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import axes_for_task, build_scorecard
 
 
@@ -80,6 +81,10 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(tasks["c-bugfix"]["selection_status"], "warmup_only")
         self.assertEqual(report["summary"]["selection_ready_count"], 0)
         self.assertEqual(report["tasks"][0]["difficulty"], "expert")
+        self.assertIn(
+            "current task-contract fingerprint on every contributing summary",
+            report["policy"]["selection_ready_requirements"],
+        )
 
     def test_screening_status_requires_evidence_or_official_evaluator(self) -> None:
         self.assertEqual(
@@ -116,6 +121,54 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(task["baseline_failed"])
         self.assertTrue(task["reference_passed"])
         self.assertEqual(report["summary"], {"passes": 15, "skipped_environment": 4})
+
+    def test_task_fingerprint_changes_when_task_contract_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            task_root = Path(tmp) / "python-bugfix"
+            shutil.copytree(ROOT / "benchmarks" / "tasks" / "python-bugfix", task_root)
+            original = task_fingerprint(load_task(task_root))
+            workspace = task_root / "workspace" / "stats.py"
+            workspace.write_text(workspace.read_text(encoding="utf-8") + "\n# contract changed\n", encoding="utf-8")
+
+            changed = task_fingerprint(load_task(task_root))
+
+        self.assertNotEqual(original, changed)
+
+    def test_resume_rejects_changed_task_fingerprint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            task_root = Path(tmp) / "python-bugfix"
+            shutil.copytree(ROOT / "benchmarks" / "tasks" / "python-bugfix", task_root)
+            task = load_task(task_root)
+            initial = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp) / "runs"))
+            source = task_root / "workspace" / "stats.py"
+            source.write_text(source.read_text(encoding="utf-8") + "\n# changed after run\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "fingerprint"):
+                run_task(load_task(task_root), ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp) / "runs"), resume_experiment_dir=Path(initial["experiment_dir"]))
+
+    def test_difficulty_calibration_excludes_stale_task_fingerprints(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            summary_dir = root / "stale"
+            summary_dir.mkdir()
+            summary_dir.joinpath("summary.json").write_text(
+                json.dumps(
+                    {
+                        "task_id": "python-bugfix",
+                        "adapter": "opencode",
+                        "model": "unspecified",
+                        "budget_profile": "oneshot",
+                        "task_fingerprint": "obsolete",
+                        "model_identity": {"status": "default_detected", "detected_models": ["LongCat-2.0"]},
+                        "runs": [{"public_test_passed": True, "hidden_test_passed": True}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = analyze_difficulty(root, tasks_dir=ROOT / "benchmarks" / "tasks")
+
+        self.assertEqual(report["task_count"], 0)
+        self.assertEqual(report["ignored_summaries"]["task_fingerprint_mismatch"], 1)
 
     def test_external_imported_provenance_requires_reproducibility_fields(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
@@ -359,6 +412,20 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(resumed["tasks"][0]["experiment_id"], first_task["experiment_id"])
         self.assertEqual(checkpoint["completed_tasks"], ["python-bugfix", "c-bugfix"])
         self.assertEqual(checkpoint["status"], "complete")
+
+    def test_suite_resume_rejects_changed_task_fingerprint(self) -> None:
+        suite = SimpleNamespace(suite_id="fingerprint-resume-test", tasks=["python-bugfix"])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tasks_dir = root / "tasks"
+            shutil.copytree(ROOT / "benchmarks" / "tasks", tasks_dir)
+            config = ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=root / "runs")
+            initial = _run_suite_with_config(suite, config, tasks_dir)
+            source = tasks_dir / "python-bugfix" / "workspace" / "stats.py"
+            source.write_text(source.read_text(encoding="utf-8") + "\n# changed after suite run\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "fingerprint"):
+                _run_suite_with_config(suite, config, tasks_dir, suite_run_dir=Path(initial["suite_run_dir"]))
 
     def test_matrix_leaderboard_excludes_smoke_only_tasks(self) -> None:
         leaderboard = build_matrix_leaderboard(
@@ -650,6 +717,7 @@ class FrameworkTests(unittest.TestCase):
                     repetitions=2,
                     runs_dir=Path(tmp),
                 ),
+                "test-fingerprint",
             )
 
         self.assertEqual(summary["mean_cost_usd"], 0.02)

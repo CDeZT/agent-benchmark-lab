@@ -25,6 +25,7 @@ from agent_benchmark.runner.container import DockerTaskEnvironment, ensure_docke
 from agent_benchmark.runner.profiles import BudgetProfile, profile_instruction_suffix
 from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.task_schema import TaskSpec
+from agent_benchmark.task_fingerprint import task_fingerprint
 
 
 @dataclass
@@ -48,6 +49,7 @@ class RunResult:
     output_tokens: int | None = None
     task_difficulty: str = "unspecified"
     task_provenance_type: str = "unspecified"
+    task_fingerprint: str = ""
 
 
 def run_task(
@@ -58,11 +60,12 @@ def run_task(
     config.validate()
     ensure_task_environment_supported(task)
     adapter = adapter_by_name(config.adapter)
+    fingerprint = task_fingerprint(task)
     if resume_experiment_dir is None:
         experiment_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
         experiment_dir = config.runs_dir / experiment_id
         experiment_dir.mkdir(parents=True, exist_ok=True)
-        _write_experiment_manifest(experiment_dir, experiment_id, task, config, "in_progress")
+        _write_experiment_manifest(experiment_dir, experiment_id, task, config, "in_progress", fingerprint)
         _write_checkpoint(experiment_dir, config.repetitions)
     else:
         experiment_dir = resume_experiment_dir
@@ -70,6 +73,8 @@ def run_task(
         experiment_id = str(manifest["experiment_id"])
         if manifest.get("task_id") != task.task_id:
             raise ValueError(f"Resume manifest task_id does not match '{task.task_id}'.")
+        if manifest.get("task_fingerprint") != fingerprint:
+            raise ValueError("Resume task fingerprint does not match the current task contract.")
 
     results: list[RunResult] = []
     for repetition in range(1, config.repetitions + 1):
@@ -97,6 +102,7 @@ def run_task(
                 "budget_profile": config.budget_profile,
                 "label": config.label,
                 "repetition": repetition,
+                "task_fingerprint": fingerprint,
             },
         )
 
@@ -125,7 +131,7 @@ def run_task(
             }
             (run_dir / "interruption.json").write_text(json.dumps(interruption, ensure_ascii=False, indent=2), encoding="utf-8")
             recorder.event("run.interrupted", interruption)
-            _write_experiment_manifest(experiment_dir, experiment_id, task, config, "interrupted")
+            _write_experiment_manifest(experiment_dir, experiment_id, task, config, "interrupted", fingerprint)
             _write_checkpoint(experiment_dir, config.repetitions)
             raise
         (run_dir / "stdout.log").write_text(adapter_result.stdout, encoding="utf-8")
@@ -172,17 +178,18 @@ def run_task(
             output_tokens=harness_evidence.output_tokens,
             task_difficulty=task.difficulty,
             task_provenance_type=str(task.provenance.get("type", "unspecified")),
+            task_fingerprint=fingerprint,
         )
         results.append(result)
         (run_dir / "result.json").write_text(_result_json(result), encoding="utf-8")
         recorder.event("run.finished", {"run_id": run_id, "score": score.total, "duration_seconds": duration_seconds})
         _write_checkpoint(experiment_dir, config.repetitions)
 
-    summary = _summarize(results, experiment_id, experiment_dir, task, config)
+    summary = _summarize(results, experiment_id, experiment_dir, task, config, fingerprint)
     (experiment_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     write_markdown_report(experiment_dir / "report.md", summary, results)
     write_html_report(experiment_dir / "report.html", summary)
-    _write_experiment_manifest(experiment_dir, experiment_id, task, config, "complete")
+    _write_experiment_manifest(experiment_dir, experiment_id, task, config, "complete", fingerprint)
     _write_checkpoint(experiment_dir, config.repetitions, complete=True)
     return summary
 
@@ -298,11 +305,13 @@ def _write_experiment_manifest(
     task: TaskSpec,
     config: ExperimentConfig,
     status: str,
+    fingerprint: str,
 ) -> None:
     payload = {
         "experiment_id": experiment_id,
         "task_id": task.task_id,
         "task_dir": str(task.root.resolve()),
+        "task_fingerprint": fingerprint,
         "runs_dir": str(config.runs_dir.resolve()),
         "config": {
             "adapter": config.adapter,
@@ -355,6 +364,7 @@ def _summarize(
     experiment_dir: Path,
     task: TaskSpec,
     config: ExperimentConfig,
+    fingerprint: str,
 ) -> dict[str, object]:
     scores = [result.score.total for result in results]
     durations = [result.duration_seconds for result in results]
@@ -376,6 +386,7 @@ def _summarize(
         "task_difficulty": task.difficulty,
         "task_difficulty_rationale": task.difficulty_rationale,
         "task_provenance": task.provenance,
+        "task_fingerprint": fingerprint,
         "task_capabilities": task.capabilities,
         "task_domains": task.domains,
         "benchmark_role": task.metadata.get("benchmark_role", "comparative_candidate"),
@@ -427,6 +438,7 @@ def _summarize(
                 "tool_call_count": result.tool_call_count,
                 "task_difficulty": result.task_difficulty,
                 "task_provenance_type": result.task_provenance_type,
+                "task_fingerprint": result.task_fingerprint,
                 "run_dir": result.run_dir,
             }
             for result in results

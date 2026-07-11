@@ -3,7 +3,7 @@
   "updated_at": "2026-07-11",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 7 suites, validated difficulty/provenance metadata, a hard-to-easy selective screening ladder, reports, recoverable matrix runs, evidence-backed scoring, hidden tests, test timeouts, a ready Colima Docker evaluator, Playwright screenshot/pixel checks for static local pages, doctor diagnostics, real opencode/Claude Code smoke tests, matrix preflight, an audit command, and a next-agent handoff prompt. The normal matrix is now a first-class current-CLI-default comparison: model selections behind Claude Code and opencode are dynamic, so each run records observed identity instead of assuming a fixed label. Explicit same-model comparison remains separate and needs verified identity. The local selection gate currently has zero selection-ready tasks, which is intentionally honest. External benchmark evaluator bridges and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
+    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 7 suites, validated difficulty/provenance metadata, a hard-to-easy selective screening ladder, task-contract fingerprints, reports, recoverable matrix runs, evidence-backed scoring, hidden tests, test timeouts, a ready Colima Docker evaluator, Playwright screenshot/pixel checks for static local pages, doctor diagnostics, real opencode/Claude Code smoke tests, matrix preflight, an audit command, and a next-agent handoff prompt. The normal matrix is now a first-class current-CLI-default comparison: model selections behind Claude Code and opencode are dynamic, so each run records observed identity instead of assuming a fixed label. Explicit same-model comparison remains separate and needs verified identity. The local selection gate currently has zero selection-ready tasks, which is intentionally honest; older unversioned run data is retained for debugging but excluded from selection statistics. External benchmark evaluator bridges and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
   },
   "items": [
     {
@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "121 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "125 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {
@@ -108,7 +108,7 @@
       "id": "task_coverage_seed",
       "title": "Task corpus, difficulty ladder, and domain coverage",
       "status": "implemented",
-      "evidence": ["Repository contains 19 task definitions", "all manifests declare validated difficulty and provenance", "catalog reports easy=3, medium=9, hard=4, expert=3", "difficulty calibration groups only identified model evidence and requires three runs per combination", "python-bugfix is marked smoke_only after 100% success across three eligible configurations and 23 eligible runs", "c-bugfix is marked smoke_only after 100% success across three eligible configurations and 14 eligible runs", "embedded and optics have domain_seed tasks"],
+      "evidence": ["Repository contains 19 task definitions", "all manifests declare validated difficulty and provenance", "catalog reports easy=3, medium=9, hard=4, expert=3", "difficulty calibration groups only identified model evidence, matching task fingerprints, and three runs per combination", "python-bugfix and c-bugfix are deliberately smoke_only and excluded from leaderboard scoring", "embedded and optics have domain_seed tasks"],
       "remaining": ["Run empirical calibration for every comparative task", "Add negative controls and imported benchmark tasks with preserved provenance"]
     },
     {

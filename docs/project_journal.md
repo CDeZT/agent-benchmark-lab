@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-12 (iteration 26)
+
+- Audited another agent's calibration documentation and found an evidence-validity failure: matrix manifests recorded only task ids, so a run made while `frontend-visual` had an accidentally repaired baseline could still look comparable after the baseline was restored.
+- Added complete task-contract fingerprints to new task, suite, and matrix manifests, results, and summaries. Resume now rejects a changed contract; difficulty calibration and screening exclude missing or mismatched historical fingerprints.
+- Reclassified all older unversioned matrix results as legacy debugging evidence. Removed their winner/zero-variance claims from handoff rather than retroactively treating them as valid screening data.
+
 ## 2026-07-11 (iteration 25)
 
 - Reframed the corpus as a selective exam rather than a qualification checklist. Added a hard-to-easy `selection-ladder` suite and executable `screening-report`; smoke, corpus-gated, under-sampled, too-easy/hard, and genuinely selection-ready tasks now have distinct states.
@@ -16,7 +22,7 @@
 
 - Re-audited empirical score validity after real runs showed that historical `unspecified` labels can represent changing CLI defaults. Difficulty calibration now groups by one observed harness model identity, excludes unidentified/mixed history, and reports its exclusions instead of manufacturing a model grouping.
 - Tightened the statistical gate to match the user's repeated-run requirement: a task needs three eligible adapter/observed-model/profile combinations, at least three runs in each combination, and at least nine eligible runs before it can be called easy, hard, or discriminative. Earlier under-sampled hard/discriminative labels correctly became `insufficient_evidence`.
-- Ran three real `c-bugfix` repetitions for each current CLI default. opencode + LongCat-2.0 and Claude Code + mimo-v2.5-pro[1m] both passed 3/3; the task is now `smoke_only`. The result is documented in `docs/real_harness_calibration.md` and deliberately has no same-model winner claim.
+- Recorded three real `c-bugfix` repetitions for each current CLI default. The task is `smoke_only`; the raw result is documented in `docs/real_harness_calibration.md`. It now predates task-contract fingerprints and is retained only as debugging evidence, not as a calibration or winner claim.
 
 ## 2026-07-11 (iteration 22)
 

@@ -64,6 +64,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - `calibrate-difficulty` 只能按实际检测到的模型身份聚合；默认要求每个 adapter/observed-model/profile 组合至少 3 次、至少 3 个组合和 9 个 eligible run。身份未知或混合的历史 run 只能保留审计，不能凑统计结论。
 - 这是筛选性考试，不是合格性题库：先执行 `screening-report`。只有 `selection_ready_local_seed` 才可进入本地选择排名；`smoke_only`、`awaiting_real_evidence`、`retune_or_replace` 和 `corpus_gate_pending` 都不得混入结论。
 - `selection-ladder` 必须保持 expert -> hard -> medium -> easy。权威题库以 `config/authoritative_corpora.json` 为准；不得把本地 inspired task 写成 SWE-bench 或 Terminal-Bench 已导入任务。
+- 任务内容指纹是结果有效性边界：不得把缺失或不匹配 `task_fingerprint` 的旧 summary 用于难度校准、筛选、排名或胜负结论；任务变动后不得绕过 resume 的指纹拒绝。
 - 重复 run 的任务级 95% CI 使用 Student-t（2-30 次）；单次 run 必须显示 CI unavailable。不要为跨任务 matrix 汇总制造一个统计上无意义的总 CI。
 - 每次新增功能后，必须补测试或可验证命令。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
@@ -90,7 +91,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 121 个 unittest 测试函数，应该全部通过。
+- 125 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
