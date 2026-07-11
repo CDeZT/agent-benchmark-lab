@@ -81,7 +81,7 @@ def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
         [
             f"FROM {base_image}",
             "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1",
-            "RUN python3 -m pip install --no-cache-dir " + " ".join(packages),
+            "RUN python3 -m pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple " + " ".join(packages),
             "WORKDIR /workspace",
         ]
     ) + "\n"

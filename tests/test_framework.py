@@ -109,7 +109,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(spec.base_image, "python:3.12.8-slim-bookworm")
         self.assertEqual(spec.packages, ("numpy==2.2.1", "scipy==1.15.1"))
         self.assertEqual(spec.cpus, 2.0)
-        self.assertEqual(spec.memory, "2g")
+        self.assertEqual(spec.memory, "4g")
         self.assertIn("numpy==2.2.1", spec.dockerfile)
         self.assertTrue(spec.image_tag.startswith("agent-benchmark/optics-imaging-pipeline:"))
 
