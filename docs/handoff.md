@@ -154,23 +154,28 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Real Harness Results
 
-**CLI Default Configuration Mode** (python-bugfix, 2 repetitions):
+**Calibration Suite Matrix** (8 tasks, CLI default mode, 2 repetitions):
 
-| 指标 | opencode (LongCat-2.0) | claude-code (mimo-v2.5-pro[1m]) |
-|------|------------------------|----------------------------------|
-| 均分 | 63.33 | **64.05** |
-| 通过率 | 2/2 (100%) | 2/2 (100%) |
-| 耗时 | 24.88s | **23.00s** |
-| 成本 | N/A | $0.1229 |
-| tool_use | **88.75** | 75.0 |
-| cost_efficiency | 0 | **38.55** |
+| Task | opencode (LongCat-2.0) | claude-code (mimo-v2.5-pro[1m]) | Winner |
+|------|------------------------|----------------------------------|--------|
+| python-bugfix | 62.6 ✓✓ | 64.1 ✓✓ | claude-code |
+| c-bugfix | 52.0 ✓✓ | 52.4 ✓✓ | claude-code |
+| process-planning | 53.2 ✓✓ | 57.1 ✓✓ | claude-code |
+| frontend-visual | 38.0 ✓✗ | 56.5 ✓✓ | claude-code |
+| embedded-c | 36.0 ✓✗ | 36.8 ✓✗ | claude-code |
+| embedded-protocol-parser | 35.5 ✓✗ | 35.9 ✓✗ | claude-code |
+| python-swebench-style | 63.2 ✓✓ | 63.2 ✓✓ | tie |
+| c-systems-programming | 63.2 ✓✓ | 62.5 ✓✓ | opencode |
+| **Mean** | **50.5** | **53.6** | **claude-code** |
+| **Pass rate** | **8/8** | **8/8** | **tie** |
+| **Hidden pass** | **4/8** | **5/8** | **claude-code** |
 
 **Key findings**:
-- Both harnesses have similar overall performance (63.33 vs 64.05)
-- opencode more tool-efficient (fewer calls for same result)
-- claude-code provides cost/token evidence (opencode does not)
-- Framework correctly auto-detects model identity without explicit --model
-- Both 100% pass rate on python-bugfix
+- **claude-code wins 53.6 vs 50.5** on calibration suite
+- claude-code passes more hidden tests (5 vs 4), indicating better edge case handling
+- Biggest difference: frontend-visual (+18.5 for claude-code)
+- Both 100% public test pass rate
+- Framework correctly auto-detects model identity
 
 ## Not Yet Implemented
 
