@@ -20,6 +20,7 @@ Each benchmark repetition writes `trace.jsonl`. Every line is a JSON object.
 | `adapter.started` | Adapter execution started. |
 | `adapter.finished` | Adapter execution finished. |
 | `adapter.failed` | Adapter failed before normal completion. |
+| `run.interrupted` | The runner received Ctrl-C and persisted an incomplete repetition for resume. |
 | `workspace.changed` | Changed files were detected. |
 | `test.public.started` | Public test command started. |
 | `test.public.finished` | Public test command finished. |

@@ -11,6 +11,7 @@ class ClaudeCodeAdapter(ShellCommandAdapter):
     """
 
     name = "claude-code"
+    model_selection = "cli"
     command_env = "AGENT_BENCH_CLAUDE_CODE_COMMAND"
     timeout_env = "AGENT_BENCH_CLAUDE_CODE_TIMEOUT_SECONDS"
     default_command_template = (

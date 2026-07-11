@@ -62,6 +62,7 @@ def run_task(
         experiment_dir = config.runs_dir / experiment_id
         experiment_dir.mkdir(parents=True, exist_ok=True)
         _write_experiment_manifest(experiment_dir, experiment_id, task, config, "in_progress")
+        _write_checkpoint(experiment_dir, config.repetitions)
     else:
         experiment_dir = resume_experiment_dir
         manifest = _load_experiment_manifest(experiment_dir)
@@ -111,7 +112,21 @@ def run_task(
             runtime_task = replace(task, instruction=instruction + container_environment.agent_instruction())
             (run_dir / "instruction.txt").write_text(runtime_task.instruction, encoding="utf-8")
 
-        adapter_result = _run_adapter_with_env(adapter, runtime_task, workspace, recorder, config)
+        try:
+            adapter_result = _run_adapter_with_env(adapter, runtime_task, workspace, recorder, config)
+        except KeyboardInterrupt:
+            duration_seconds = time.monotonic() - run_start
+            interruption = {
+                "run_id": run_id,
+                "repetition": repetition,
+                "duration_seconds": round(duration_seconds, 4),
+                "reason": "keyboard_interrupt",
+            }
+            (run_dir / "interruption.json").write_text(json.dumps(interruption, ensure_ascii=False, indent=2), encoding="utf-8")
+            recorder.event("run.interrupted", interruption)
+            _write_experiment_manifest(experiment_dir, experiment_id, task, config, "interrupted")
+            _write_checkpoint(experiment_dir, config.repetitions)
+            raise
         (run_dir / "stdout.log").write_text(adapter_result.stdout, encoding="utf-8")
         (run_dir / "stderr.log").write_text(adapter_result.stderr, encoding="utf-8")
         changed_files = _changed_files(baseline, workspace, task)
@@ -193,6 +208,8 @@ def _run_adapter_with_env(adapter: object, task: TaskSpec, workspace: Path, reco
         "AGENT_BENCH_CANONICAL_MODEL": config.model,
         "AGENT_BENCH_BUDGET_PROFILE": config.budget_profile,
         "AGENT_BENCH_LABEL": config.label,
+        "AGENT_BENCH_BUDGET_MAX_ATTEMPTS": "",
+        "AGENT_BENCH_BUDGET_MAX_SECONDS": "",
     }
     if profile.max_attempts is not None:
         injected["AGENT_BENCH_BUDGET_MAX_ATTEMPTS"] = str(profile.max_attempts)

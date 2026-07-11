@@ -822,4 +822,8 @@ def _resolve_suite(suite_arg: Path, suites_dir: Path) -> Path:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("Interrupted. Evidence and checkpoint were preserved for resume.", file=sys.stderr)
+        sys.exit(130)

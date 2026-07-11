@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 104 unittest test functions, real harness smoke support, model identity evidence, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 6 suites, 109 unittest test functions, real harness smoke support, model identity evidence, Docker evaluator v1 with a ready Colima daemon, recoverable task/suite/matrix runs, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -116,6 +116,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added matrix persistence and `resume-matrix --matrix-run-dir`: each combination gets a stable summary and nested suite checkpoint, so interruption inside a combination or between combinations resumes without redoing completed work. Matrix reports now have a comparative-only ranking that excludes `smoke_only` and reports strict score, verified score, coverage, pass rate, variance, duration, and cost side by side.
 - Added `preflight-matrix`, a no-cost gate that checks matrix combinations, repetitions, task roles, hidden tests, environment readiness, adapter availability, and model registry mappings before a harness is invoked. It marks a canonical-to-invocation mismatch as executable but not ready for a fair comparative ranking.
 - Corrected comparable-score ranking: comparisons now intersect evidence per task and per repetition, so evidence from different tasks cannot leak into a shared dimension. The primary rank is the comparable score; strict score remains diagnostic. Rows with non-verified model identity are labelled provisional and receive no verified rank.
+- Made budget duration enforcement real: a profile time limit now becomes the adapter subprocess timeout unless an adapter-specific timeout overrides it. `open_ended` clears stale budget timeout state. Ctrl-C now writes interruption evidence, leaves the experiment resumable, and exits the CLI with code 130 without a traceback.
+- Recorded a real `claude-code` + `deepseek-v4-pro` hard embedded calibration run. It timed out after 180 seconds with no detected model/tool/cost evidence and failed public/hidden tests; see `docs/real_harness_calibration.md`. It is a single failure sample, not a comparative conclusion.
+- Added adapter model-selection capability to matrix preflight. Current opencode 1.17.15 is `configured_default_only` because `--model` crashes, so a registry cannot by itself establish an opencode model selection; require post-run identity evidence before same-model comparisons.
 - Re-audited feasibility with a full audit and a real harness smoke: both opencode and Claude Code passed the smoke-only task. Claude's structured JSON output now provides actual model identity (`mimo-v2.5-pro[1m]` in the latest local smoke), token usage, and cost. Added canonical-model to adapter-model registry support plus `verified_match`/`requested_unverified`/`mismatch` identity status so a same-model claim cannot rely on a label alone.
 - Implemented Docker evaluator v1 for `container_required` tasks: exact-version Python dependencies, generated Dockerfile/image evidence, CPU/memory limits, read-write workspace mount, read-only hidden tests, and a public test helper injected into the real harness prompt. The host harness keeps its local credentials instead of putting them in the container. The evaluator does not impose a blanket no-network policy because network/tool use needs its own task-specific measurement.
 - Installed the `docker` CLI and Colima without sudo. Colima VM image download timed out multiple times. OrbStack installation initiated as alternative (in progress). No daemon-backed container task has been claimed as tested; `doctor` reports this honestly.
@@ -127,7 +130,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Repair the local model registry before launching another full calibration matrix. The present registry maps two Claude Code canonical labels to `deepseek-v4-pro`; `preflight-matrix` correctly rejects it for fair same-model ranking.
+- Repair the local model registry before launching another full calibration matrix. The present registry maps two Claude Code canonical labels to `deepseek-v4-pro`, and opencode currently cannot select `--model`; `preflight-matrix` correctly rejects this for fair same-model ranking.
 - Test the remaining container-required tasks and pin base-image digests before relying on them in a long comparison.
 
 ## Docker Status
@@ -179,7 +182,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 104 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 109 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

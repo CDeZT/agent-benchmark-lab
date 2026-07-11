@@ -57,13 +57,17 @@ The runner also injects these environment variables while the adapter command is
 - `AGENT_BENCH_CANONICAL_MODEL`
 - `AGENT_BENCH_BUDGET_PROFILE`
 - `AGENT_BENCH_LABEL`
+- `AGENT_BENCH_BUDGET_MAX_ATTEMPTS`
+- `AGENT_BENCH_BUDGET_MAX_SECONDS`
 
 `AGENT_BENCH_MODEL` is the adapter-specific invocation identifier. `AGENT_BENCH_CANONICAL_MODEL` is the user-facing comparison identifier retained in reports; it is not necessarily valid CLI syntax for every harness.
 
+An explicit adapter timeout environment variable takes precedence. Otherwise a profile with `AGENT_BENCH_BUDGET_MAX_SECONDS` supplies the subprocess timeout. `open_ended` intentionally has no timeout. A Ctrl-C interruption preserves `interruption.json`, `checkpoint.json`, and `run.interrupted` evidence; `resume` reruns repetitions that have no saved `result.json`.
+
 Built-in default templates:
 
-- opencode uses `opencode run --auto "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
-- claude-code uses `claude -p --dangerously-skip-permissions --no-session-persistence "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
+- opencode 1.17.15 always uses `opencode run --auto "$(cat {instruction_file})"`. Its `--model` flag currently crashes against this local CLI/provider setup, so the matrix command cannot select an opencode model; its configured default must be verified from saved harness output.
+- claude-code uses `claude -p --output-format json --dangerously-skip-permissions --no-session-persistence "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
 
 You can still override them with:
 
@@ -82,5 +86,6 @@ Adapters should emit at least:
 - `adapter.stderr`
 - `adapter.finished`
 - `adapter.failed`
+- `run.interrupted`
 
 Long-running adapters should stream periodic progress events when possible.

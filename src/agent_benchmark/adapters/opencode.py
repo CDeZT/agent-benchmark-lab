@@ -11,6 +11,7 @@ class OpencodeAdapter(ShellCommandAdapter):
     """
 
     name = "opencode"
+    model_selection = "configured_default_only"
     command_env = "AGENT_BENCH_OPENCODE_COMMAND"
     timeout_env = "AGENT_BENCH_OPENCODE_TIMEOUT_SECONDS"
     default_command_template = (

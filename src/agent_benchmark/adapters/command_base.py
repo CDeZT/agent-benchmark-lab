@@ -13,6 +13,7 @@ from agent_benchmark.task_schema import TaskSpec
 
 class ShellCommandAdapter:
     name = "shell-command"
+    model_selection = "environment_only"
     command_env = "AGENT_BENCH_COMMAND"
     timeout_env = "AGENT_BENCH_TIMEOUT_SECONDS"
     default_command_template: str | None = None
@@ -25,9 +26,10 @@ class ShellCommandAdapter:
 
     def timeout_seconds(self) -> float | None:
         raw = os.environ.get(self.timeout_env) or os.environ.get("AGENT_BENCH_TIMEOUT_SECONDS")
-        if not raw:
-            return None
-        return float(raw)
+        if raw:
+            return float(raw)
+        budget_seconds = os.environ.get("AGENT_BENCH_BUDGET_MAX_SECONDS")
+        return float(budget_seconds) if budget_seconds else None
 
     def run(self, task: TaskSpec, workspace: Path, recorder: JsonlRecorder) -> AdapterResult:
         command_template = self.command_template()

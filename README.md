@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、104 个 unittest 测试函数、审计命令和真实 harness smoke 路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、109 个 unittest 测试函数、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -39,6 +39,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 模型身份证据：报告区分规范模型名、adapter 实际调用名、harness 检测名和匹配状态。跨 harness 的“同模型”结论必须是 `verified_match`，不能只看用户标签。
 - `config/model_registry.example.json`：支持把同一规范模型名映射为 Claude Code / opencode 各自需要的 CLI 参数，避免不同 CLI 命名导致伪同模型比较。
 - 矩阵运行与恢复（adapter × model × budget_profile）；每个组合与内部 suite 都有 checkpoint，`resume-matrix` 可补跑未完成组合
+- `bounded` 等 profile 会把最长时长传递为真实 adapter 子进程超时；`open_ended` 不限时。Ctrl-C 会保留中断事件、checkpoint 和说明文件，`resume` 只重跑没有 `result.json` 的 repetition。
 - 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名；排名使用每个任务、每次重复、所有组合共同具备证据的维度，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名。`preflight-matrix` 会在花费 token 前检查统计重复、题目角色、隐藏测试、Docker、适配器和模型映射。
 - 公开测试（19/19）+ 隐藏测试（16/19）+ SHA-256 完整性检查
 - 静态 HTML 视觉检查
@@ -50,6 +51,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
 - 一键审计、环境诊断、交接提示
+- 已有一条真实嵌入式硬题失败校准样本；详见 `docs/real_harness_calibration.md`。单次结果不进入 harness/model 排行榜。
 
 See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
 
@@ -80,7 +82,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-For a real cross-harness matrix, copy and adapt `config/model_registry.example.json`, run `preflight-matrix`, then pass `--model-registry <your-registry.json>` to `run-matrix`. The registry records a canonical comparison name while sending each harness its required model identifier. A preflight identity mismatch means the run may be useful for debugging, but must not be used for a same-model conclusion until saved harness output reports `verified_match`.
+For a real cross-harness matrix, copy and adapt `config/model_registry.example.json`, run `preflight-matrix`, then pass `--model-registry <your-registry.json>` to `run-matrix`. The registry records a canonical comparison name while sending each harness its required model identifier. A preflight identity mismatch means the run may be useful for debugging, but must not be used for a same-model conclusion until saved harness output reports `verified_match`. Current opencode 1.17.15 cannot select `--model` safely, so its configured default needs separate identity verification before it can participate in a same-model claim.
 
 Run outputs are written under `runs/` by default.
 

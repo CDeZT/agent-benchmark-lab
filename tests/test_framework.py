@@ -363,6 +363,21 @@ class FrameworkTests(unittest.TestCase):
         self.assertFalse(report["comparative_ranking_ready"])
         self.assertIn("no_model_registry", [item["code"] for item in report["warnings"]])
 
+    def test_matrix_preflight_flags_opencode_default_model_limitation(self) -> None:
+        suite = SimpleNamespace(suite_id="preflight-opencode", tasks=["c-bugfix"])
+        report = preflight_matrix(
+            suite,
+            [{"adapter": "opencode", "model": "longcat-2.0", "adapter_model": "longcat-2.0", "budget_profile": "bounded", "repetitions": 3}],
+            ROOT / "benchmarks" / "tasks",
+            registry_used=True,
+        )
+
+        self.assertTrue(report["execution_ready"])
+        self.assertFalse(report["identity_configuration_clean"])
+        self.assertFalse(report["comparative_ranking_ready"])
+        self.assertEqual(report["model_mappings"][0]["model_selection"], "configured_default_only")
+        self.assertIn("adapter_model_selection_external", [item["code"] for item in report["warnings"]])
+
     def test_preflight_reports_missing_registry_mapping_without_traceback(self) -> None:
         output = StringIO()
         with redirect_stdout(output):
@@ -1030,6 +1045,106 @@ class FrameworkTests(unittest.TestCase):
             _restore_env("AGENT_BENCH_COMMAND", old_command)
             _restore_env("AGENT_BENCH_TIMEOUT_SECONDS", old_timeout)
             _restore_env("AGENT_BENCH_BUDGET_MAX_ATTEMPTS", old_max_attempts)
+
+    def test_budget_duration_becomes_adapter_timeout_when_no_override_exists(self) -> None:
+        from agent_benchmark.adapters.generic_command import GenericCommandAdapter
+
+        old_timeout = os.environ.get("AGENT_BENCH_TIMEOUT_SECONDS")
+        old_budget = os.environ.get("AGENT_BENCH_BUDGET_MAX_SECONDS")
+        os.environ.pop("AGENT_BENCH_TIMEOUT_SECONDS", None)
+        os.environ["AGENT_BENCH_BUDGET_MAX_SECONDS"] = "0.25"
+        try:
+            self.assertEqual(GenericCommandAdapter().timeout_seconds(), 0.25)
+        finally:
+            _restore_env("AGENT_BENCH_TIMEOUT_SECONDS", old_timeout)
+            _restore_env("AGENT_BENCH_BUDGET_MAX_SECONDS", old_budget)
+
+    def test_budget_duration_enforces_generic_adapter_timeout(self) -> None:
+        from agent_benchmark.runner.profiles import BudgetProfile
+
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        old_command = os.environ.get("AGENT_BENCH_COMMAND")
+        old_timeout = os.environ.get("AGENT_BENCH_TIMEOUT_SECONDS")
+        os.environ["AGENT_BENCH_COMMAND"] = "python3 -c \"import time; time.sleep(2)\""
+        os.environ.pop("AGENT_BENCH_TIMEOUT_SECONDS", None)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                with patch(
+                    "agent_benchmark.runner.config.get_profile",
+                    return_value=BudgetProfile(name="tiny", max_duration_seconds=0.1),
+                ):
+                    summary = run_task(
+                        task,
+                        ExperimentConfig(
+                            adapter="generic-command",
+                            budget_profile="bounded",
+                            repetitions=1,
+                            runs_dir=Path(tmp),
+                        ),
+                    )
+                result = json.loads((Path(summary["runs"][0]["run_dir"]) / "result.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(result["adapter_result"]["exit_code"], 124)
+            self.assertIn("timed out after 0.1 seconds", result["adapter_result"]["stderr"])
+        finally:
+            _restore_env("AGENT_BENCH_COMMAND", old_command)
+            _restore_env("AGENT_BENCH_TIMEOUT_SECONDS", old_timeout)
+
+    def test_open_ended_profile_clears_stale_budget_timeout(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        old_command = os.environ.get("AGENT_BENCH_COMMAND")
+        old_timeout = os.environ.get("AGENT_BENCH_TIMEOUT_SECONDS")
+        old_budget = os.environ.get("AGENT_BENCH_BUDGET_MAX_SECONDS")
+        os.environ["AGENT_BENCH_COMMAND"] = (
+            "python3 -c \"import time; from pathlib import Path; time.sleep(0.15); "
+            "Path('stats.py').write_text('def average(values):\\n"
+            "    return 0.0 if not values else sum(values) / len(values)\\n')\""
+        )
+        os.environ.pop("AGENT_BENCH_TIMEOUT_SECONDS", None)
+        os.environ["AGENT_BENCH_BUDGET_MAX_SECONDS"] = "0.01"
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                summary = run_task(
+                    task,
+                    ExperimentConfig(
+                        adapter="generic-command",
+                        budget_profile="open_ended",
+                        repetitions=1,
+                        runs_dir=Path(tmp),
+                    ),
+                )
+                result = json.loads((Path(summary["runs"][0]["run_dir"]) / "result.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(result["adapter_result"]["exit_code"], 0)
+        finally:
+            _restore_env("AGENT_BENCH_COMMAND", old_command)
+            _restore_env("AGENT_BENCH_TIMEOUT_SECONDS", old_timeout)
+            _restore_env("AGENT_BENCH_BUDGET_MAX_SECONDS", old_budget)
+
+    def test_keyboard_interrupt_preserves_resume_evidence(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+
+        class InterruptingAdapter:
+            name = "interrupting"
+
+            def run(self, task: object, workspace: Path, recorder: JsonlRecorder) -> AdapterResult:
+                raise KeyboardInterrupt
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("agent_benchmark.runner.run.adapter_by_name", return_value=InterruptingAdapter()):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_task(task, ExperimentConfig(adapter="dummy", repetitions=2, runs_dir=Path(tmp)))
+            experiment_dir = next(Path(tmp).iterdir())
+            manifest = json.loads((experiment_dir / "experiment_manifest.json").read_text(encoding="utf-8"))
+            checkpoint = json.loads((experiment_dir / "checkpoint.json").read_text(encoding="utf-8"))
+            interruption = json.loads((experiment_dir / "repetition_1" / "interruption.json").read_text(encoding="utf-8"))
+            trace = (experiment_dir / "repetition_1" / "trace.jsonl").read_text(encoding="utf-8")
+
+        self.assertEqual(manifest["status"], "interrupted")
+        self.assertEqual(checkpoint["completed_repetitions"], [])
+        self.assertEqual(checkpoint["remaining_repetitions"], [1, 2])
+        self.assertEqual(interruption["reason"], "keyboard_interrupt")
+        self.assertIn('"event": "run.interrupted"', trace)
 
     def test_profile_instruction_suffix_appears_in_instruction_file(self) -> None:
         """Prove oneshot profile suffix is written to instruction.txt."""

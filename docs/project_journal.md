@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-11 (iteration 20)
+
+- Ran a real hard embedded calibration task through Claude Code with requested `deepseek-v4-pro`. The adapter timed out at 180 seconds with no detected model/tool/cost trace and failed public/hidden tests; this is preserved as a single non-comparative calibration sample in `docs/real_harness_calibration.md`.
+- A live OpenCode attempt on the same task exposed a defect: `bounded` was only a prompt/env hint and did not cap the adapter subprocess, while Ctrl-C left a traceback and only a half-written experiment.
+- Fixed hard profile timeout enforcement, stale budget-timeout cleanup for `open_ended`, graceful Ctrl-C evidence (`run.interrupted`, `interruption.json`, checkpoint/manifest), and CLI exit code 130. Added regression tests for all cases.
+- Corrected an adapter-contract documentation error and added a preflight capability gate: opencode 1.17.15 cannot currently select `--model` without a server error, so its configured default model must be observed from real output rather than inferred from a registry label.
+
 ## 2026-07-11 (iteration 19)
 
 - Re-audited the Claude Code changes and found a fairness bug in the new comparable-score report: it displayed a fair score but still ordered rows by strict score, which can punish missing telemetry rather than capability.

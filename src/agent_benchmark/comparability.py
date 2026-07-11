@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agent_benchmark.adapters import available_adapters
+from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.model_identity import summarize_model_identity
 from agent_benchmark.runner.container import docker_ready
 from agent_benchmark.task_schema import TaskSpec, load_task
@@ -112,13 +112,21 @@ def preflight_matrix(
         adapter = str(spec.get("adapter", ""))
         adapter_model = str(spec.get("adapter_model") or model)
         identity_hint = summarize_model_identity(model, [adapter_model])
+        model_selection = getattr(adapter_by_name(adapter), "model_selection", "unknown") if adapter in available else "unknown"
         mapping = {
             "adapter": adapter,
             "canonical_model": model,
             "adapter_model": adapter_model,
+            "model_selection": model_selection,
             "identity_hint": identity_hint["status"],
         }
         mappings.append(mapping)
+        if model != "unspecified" and model_selection == "configured_default_only":
+            add(
+                "warning",
+                "adapter_model_selection_external",
+                f"Adapter '{adapter}' currently uses its configured default model and cannot select '{adapter_model}' from this matrix command. Actual harness identity must be verified after a run.",
+            )
         if registry_used and identity_hint["status"] == "mismatch":
             add(
                 "warning",
@@ -135,7 +143,10 @@ def preflight_matrix(
 
     execution_ready = not blockers
     identity_configuration_clean = (
-        not any(item["code"] == "registry_identity_hint_mismatch" for item in warnings)
+        not any(
+            item["code"] in {"registry_identity_hint_mismatch", "adapter_model_selection_external"}
+            for item in warnings
+        )
         and (registry_used or len(adapters) <= 1)
     )
     ranking_ready = (
