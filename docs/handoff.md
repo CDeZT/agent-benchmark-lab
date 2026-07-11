@@ -137,7 +137,12 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 ## Docker Status
 
 - **Docker daemon: RUNNING** via colima --vm-type vz (macOS Virtualization.framework)
-- Container tasks verified: python-fullstack passes (score=58.0)
+- **Proxy configured**: `http://127.0.0.1:7897` (Docker builds now fast)
+- **All 4 container_required tasks verified**:
+  - python-fullstack: score=43.0, public=True
+  - optics-imaging-pipeline: score=46.0, public=True, hidden=True (memory=4g)
+  - python-data-pipeline: score=46.0, public=True, hidden=True
+  - project-generation: score=48.0, public=True (added pytest to deps)
 - Use `colima start` to restart if stopped (no re-download needed)
 
 ## Latest Real Harness Results
