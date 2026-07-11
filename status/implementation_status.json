@@ -3,7 +3,7 @@
   "updated_at": "2026-07-11",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 6 suites, validated difficulty/provenance metadata, a local easy-to-expert calibration suite, reports, recoverable matrix runs, evidence-backed scoring, hidden tests, test timeouts, a ready Colima Docker evaluator, doctor diagnostics, real opencode/Claude Code smoke tests, matrix preflight, an audit command, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because a registry-clean three-repeat matrix with verified model identity, browser screenshots, external benchmark evaluator bridges, and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
+    "plain_language": "The repository has a working benchmark framework foundation, 19 current task definitions, 6 suites, validated difficulty/provenance metadata, a local easy-to-expert calibration suite, reports, recoverable matrix runs, evidence-backed scoring, hidden tests, test timeouts, a ready Colima Docker evaluator, Playwright screenshot/pixel checks for static local pages, doctor diagnostics, real opencode/Claude Code smoke tests, matrix preflight, an audit command, and a next-agent handoff prompt. It is not yet a finished real Claude Code vs opencode benchmark because a registry-clean three-repeat matrix with verified model identity, external benchmark evaluator bridges, and stronger process scoring are still pending. Current tasks are custom seed/inspired tasks, not imported authoritative benchmark tasks."
   },
   "items": [
     {
@@ -52,8 +52,8 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "109 unittest test functions cover framework and scoring behavior"],
-      "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Add browser screenshot evidence"]
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, and planning artifact checks are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "110 unittest test functions cover framework and scoring behavior"],
+      "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {
       "id": "process_planning_scoring",
@@ -87,8 +87,8 @@
       "id": "visual_verification",
       "title": "Visual verification for UI tasks",
       "status": "partial",
-      "evidence": ["visual_checks supports static HTML checks", "frontend-visual has visual evidence"],
-      "remaining": ["Add Playwright/browser screenshot capture", "Add pixel checks and screenshot artifacts"]
+      "evidence": ["visual_checks supports static HTML checks", "browser_screenshot uses Playwright Chromium, rendered-selector visibility, PNG artifacts, and pixel statistics", "frontend-visual has browser visual evidence"],
+      "remaining": ["Add server-backed pages, interactions, reference-image diffs, and mobile viewport coverage"]
     },
     {
       "id": "cost_and_duration",
@@ -178,7 +178,7 @@
       "id": "doctor_command",
       "title": "Local environment and harness diagnostics",
       "status": "implemented",
-      "evidence": ["agent-benchmark doctor checks python3, cc, opencode, claude, Docker daemon readiness, and adapter command env vars"],
+      "evidence": ["agent-benchmark doctor checks python3, node, cc, opencode, claude, Playwright Chromium, Docker daemon readiness, and adapter command env vars"],
       "remaining": ["Add provider credential checks without printing secrets", "Report active container runtime name when Docker is ready"]
     },
     {

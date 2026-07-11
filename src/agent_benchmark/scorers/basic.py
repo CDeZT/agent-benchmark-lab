@@ -184,13 +184,14 @@ def score_run(
         },
     )
 
-    visual = score_visual_checks(workspace, task.visual_checks)
+    visual = score_visual_checks(workspace, task.visual_checks, artifacts_dir=workspace.parent / "visual")
     dimensions["visual_verification"] = visual.score
-    evidence["visual_verification"] = {"engine": visual.engine, "checks": visual.checks}
+    evidence["visual_verification"] = {"engine": visual.engine, "verified": visual.verified, "checks": visual.checks}
     recorder.event(
         "visual.checked",
         {
             "engine": visual.engine,
+            "verified": visual.verified,
             "score": visual.score,
             "check_count": len(visual.checks),
             "passed_count": sum(1 for check in visual.checks if check.get("passed")),
@@ -314,7 +315,8 @@ def _measurement_summary(
 
     if task.protected_paths:
         statuses["safety_boundary"] = "verified"
-    if task.visual_checks:
+    visual_evidence = evidence.get("visual_verification")
+    if isinstance(visual_evidence, dict) and visual_evidence.get("verified"):
         statuses["visual_verification"] = "verified"
 
     process_evidence = evidence.get("process")

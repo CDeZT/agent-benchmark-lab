@@ -25,10 +25,12 @@ RECOMMENDED_COMMANDS = {
 def run_doctor() -> dict[str, Any]:
     checks = [
         _command_check("python3", ["python3", "--version"]),
+        _command_check("node", ["node", "--version"]),
         _command_check("cc", ["cc", "--version"]),
         _command_check("opencode", ["opencode", "--version"]),
         _command_check("claude", ["claude", "--version"]),
         _docker_check(),
+        _playwright_check(),
         _env_check("AGENT_BENCH_COMMAND"),
         _env_check("AGENT_BENCH_OPENCODE_COMMAND", recommended=RECOMMENDED_COMMANDS["opencode"]),
         _env_check("AGENT_BENCH_CLAUDE_CODE_COMMAND", recommended=RECOMMENDED_COMMANDS["claude-code"]),
@@ -121,9 +123,41 @@ def _docker_check() -> DoctorCheck:
     return DoctorCheck(name="docker", status="ok", details={"path": path, "server_version": completed.stdout.strip()})
 
 
+def _playwright_check() -> DoctorCheck:
+    node = shutil.which("node")
+    if not node:
+        return DoctorCheck(name="playwright", status="warning", details={"reason": "Node.js is unavailable"})
+    command = [
+        node,
+        "-e",
+        "const fs=require('fs'); const {chromium}=require('playwright'); const path=chromium.executablePath(); if (!fs.existsSync(path)) process.exit(2); console.log(path)",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return DoctorCheck(name="playwright", status="warning", details={"reason": str(exc)})
+    if completed.returncode:
+        detail = (completed.stderr or completed.stdout).strip().splitlines()
+        return DoctorCheck(
+            name="playwright",
+            status="warning",
+            details={"reason": detail[-1] if detail else "package or Chromium browser is unavailable"},
+        )
+    return DoctorCheck(name="playwright", status="ok", details={"browser_path": completed.stdout.strip()})
+
+
 def _short_details(details: dict[str, Any]) -> str:
     if "server_version" in details:
         return f"{details.get('path', '')} server={details['server_version']}".strip()
+    if "browser_path" in details:
+        return details["browser_path"]
     if "version" in details:
         return f"{details.get('path', '')} {details.get('version', '')}".strip()
     if "configured" in details:

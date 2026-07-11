@@ -74,6 +74,10 @@ def validate_task(task: TaskSpec) -> ValidationResult:
             result.errors.append(f"{task.task_id}: visual check path is missing: {path}")
         if "type" not in check:
             result.errors.append(f"{task.task_id}: visual_checks[{index}] is missing type")
+        if check.get("type") == "browser_screenshot":
+            viewport = check.get("viewport", {})
+            if not isinstance(viewport, dict) or not all(isinstance(viewport.get(key), int) and viewport[key] > 0 for key in ("width", "height")):
+                result.errors.append(f"{task.task_id}: visual_checks[{index}] browser_screenshot needs positive viewport width and height")
     for index, check in enumerate(task.process_checks):
         check_type = check.get("type", "")
         if check_type == "instruction_match":

@@ -656,9 +656,28 @@ class FrameworkTests(unittest.TestCase):
             result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["visual_verification"], 100.0)
             visual_evidence = result["score"]["evidence"]["visual_verification"]
-            self.assertEqual(visual_evidence["engine"], "html-static-v1")
-            self.assertEqual(len(visual_evidence["checks"]), 3)
+            self.assertEqual(visual_evidence["engine"], "html-static-v1+playwright-chromium-v1")
+            self.assertTrue(visual_evidence["verified"])
+            self.assertEqual(len(visual_evidence["checks"]), 4)
             self.assertTrue(all(check["passed"] for check in visual_evidence["checks"]))
+            browser = next(check for check in visual_evidence["checks"] if check["type"] == "browser_screenshot")
+            self.assertTrue(Path(browser["screenshot_path"]).is_file())
+            self.assertGreaterEqual(browser["pixel"]["non_background_pixels"], 200)
+
+    def test_browser_visual_check_is_unavailable_without_node(self) -> None:
+        from agent_benchmark.scorers.visual import score_visual_checks
+
+        task = load_task(ROOT / "benchmarks" / "tasks" / "frontend-visual")
+        check = next(item for item in task.visual_checks if item["type"] == "browser_screenshot")
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            shutil.copytree(task.workspace_path, workspace)
+            with patch("agent_benchmark.scorers.visual.shutil.which", return_value=None):
+                result = score_visual_checks(workspace, [check], Path(tmp) / "visual")
+
+        self.assertEqual(result.score, 0.0)
+        self.assertFalse(result.verified)
+        self.assertEqual(result.checks[0]["measurement_status"], "unavailable")
 
     def test_process_planning_scores_when_artifact_exists(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "process-planning")
@@ -716,6 +735,8 @@ class FrameworkTests(unittest.TestCase):
         rendered = format_doctor(summary)
 
         self.assertIn("command:python3", rendered)
+        self.assertIn("command:node", rendered)
+        self.assertIn("playwright", rendered)
         self.assertIn("opencode", rendered)
         self.assertIn("claude-code", rendered)
 
@@ -892,8 +913,9 @@ class FrameworkTests(unittest.TestCase):
             score = score_run(task, baseline, workspace, recorder)
             self.assertEqual(score.dimensions["visual_verification"], 100.0)
             visual = score.evidence["visual_verification"]
-            self.assertEqual(visual["engine"], "html-static-v1")
-            self.assertEqual(len(visual["checks"]), 3)
+            self.assertEqual(visual["engine"], "html-static-v1+playwright-chromium-v1")
+            self.assertTrue(visual["verified"])
+            self.assertEqual(len(visual["checks"]), 4)
             for check in visual["checks"]:
                 self.assertTrue(check["passed"], f"Check failed: {check}")
 

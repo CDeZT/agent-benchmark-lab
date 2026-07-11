@@ -98,9 +98,9 @@ Current implementation snapshots protected files from the baseline workspace and
 
 ## Visual Verification
 
-Current implementation supports static HTML visual checks through task manifests. These checks can verify required text, forbidden placeholder text, and simple selector text for `tag`, `#id`, or `.class` selectors.
+Current implementation supports static HTML checks plus `browser_screenshot` checks. Browser checks use Playwright Chromium to capture an actual page PNG, verify required selectors have visible rendered boxes, and verify non-background pixels plus channel standard deviation. Screenshots are saved as run artifacts and their paths/statistics are recorded in score evidence.
 
-This is an early evidence path, not the final visual system. Later versions should attach Playwright/browser screenshots, pixel checks, and screenshot artifacts to the same `visual_verification` dimension.
+Static local pages are covered now. Server-backed apps, interaction flows, reference-image diffs, and mobile viewport matrices remain future visual work. See `docs/browser_visual_verification.md`.
 
 ## Repetition Statistics
 

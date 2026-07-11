@@ -35,6 +35,14 @@
       "type": "html_not_contains_text",
       "path": "index.html",
       "text": "TODO"
+    },
+    {
+      "type": "browser_screenshot",
+      "path": "index.html",
+      "viewport": {"width": 800, "height": 600},
+      "required_selectors": ["h1", "#status"],
+      "min_non_background_pixels": 200,
+      "min_channel_stddev": 2.0
     }
   ]
 }

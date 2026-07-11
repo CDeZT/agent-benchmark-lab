@@ -26,9 +26,9 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 19 task definitions covering many major capability areas.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 109 unittest test functions, all expected to pass in the current tree.
+- 110 unittest test functions, all expected to pass in the current tree.
 
-It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima and a project-owned container task has run, but browser screenshots, external benchmark evaluator bridges, and a registry-clean multi-repeat real matrix remain unfinished.
+It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima, browser screenshots/pixel evidence work for local static pages, and a project-owned container task has run; external benchmark evaluator bridges and a registry-clean multi-repeat real matrix remain unfinished.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
 
 ## Status Table
@@ -42,12 +42,12 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best, worst. | Add confidence intervals later. |
 | Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints; `resume`, `resume-suite`, and `resume-matrix` reuse saved work and only run missing repetitions/tasks/combinations. | Add an optional historical recovery browser. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches from unverified/mismatched requests. 109 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add browser/subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports now distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches from unverified/mismatched requests. 110 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add direct subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 16 of 19 tasks currently have hidden tests. | Add independent hidden tests to the remaining3 tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
 | Prevent test tampering | Implemented | Protected files checked with SHA-256 hashes. | Add stricter invalid-run policy levels. |
-| Visual verification | Partial | Static HTML checks exist. | Add browser screenshots and pixel checks. |
+| Visual verification | Partial | Static HTML checks plus Playwright Chromium screenshots, rendered-selector visibility, and pixel statistics are saved per run. | Add server-backed pages, interactions, reference-image diffs, and mobile viewports. |
 | Cost and duration | Partial | Duration is measured; parsed token/cost fields are carried into run summaries when harness output exposes them. | Improve provider-specific usage parsing and reporting. |
 | Task corpus and difficulty ladder | Implemented | 19 manifests carry validated difficulty/provenance fields; easy=3, medium=9, hard=4, expert=3; the 8-task local `calibration` suite spans all four tiers. | Add task-quality negative controls and more domain tasks. |
 | Empirical difficulty calibration | Partial | `calibrate-difficulty` analyzes saved non-dummy results across combinations and refuses to call a task discriminative without 3 combinations and 9 runs. `python-bugfix` has already been identified as too easy and marked smoke-only. | Run real matrices, then revise tasks that are too easy, too hard, or non-discriminative. |
@@ -100,8 +100,7 @@ No dimension should be assigned a non-zero score without execution evidence. Som
 
 1. Repair local model-registry mappings, then run `preflight-matrix` before any real harness matrix.
 2. Run a three-repeat real harness matrix on the `calibration` suite (opencode vs claude-code × multiple models) and interpret only `verified_match` rows.
-3. Add browser screenshot/pixel visual checks.
-4. Import a stratified SWE-bench Verified pilot, then a Terminal-Bench pilot.
+3. Import a stratified SWE-bench Verified pilot, then a Terminal-Bench pilot.
 5. Build dashboard for historical results.
 
 ## How To Check This From CLI

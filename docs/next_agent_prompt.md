@@ -29,6 +29,9 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 
 开始工作前先运行：
 
+    python3 -m pip install -r requirements-browser.txt
+    npm ci
+    npx playwright install chromium
     PYTHONPATH=src python3 -m agent_benchmark.cli.main status
     PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
     PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
@@ -79,13 +82,12 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 109 个 unittest 测试函数，应该全部通过。
+- 110 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
 - 运行 real harness matrix（opencode vs claude-code × 多个模型），优先使用 `calibration`；只解释 `verified_match` 行。
 - `bounded` 的时间上限现在会真正限制 adapter 子进程；`open_ended` 无上限。Ctrl-C 后检查 `interruption.json` 和 `checkpoint.json`，再用 `resume` 重跑未保存 result 的 repetition。
-- 增加 browser screenshot/pixel visual verification。
 - 通过上游 evaluator 导入固定分层的 SWE-bench Verified pilot，再接入 Terminal-Bench。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
 - `python-bugfix` 已经实测为 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。

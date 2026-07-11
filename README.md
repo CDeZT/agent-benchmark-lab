@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、109 个 unittest 测试函数、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、110 个 unittest 测试函数、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -43,6 +43,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名；排名使用每个任务、每次重复、所有组合共同具备证据的维度，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名。`preflight-matrix` 会在花费 token 前检查统计重复、题目角色、隐藏测试、Docker、适配器和模型映射。
 - 公开测试（19/19）+ 隐藏测试（16/19）+ SHA-256 完整性检查
 - 静态 HTML 视觉检查
+- Playwright Chromium 截图与像素证据：检查元素实际可见、截图非空和像素标准差，PNG 保存到每次 run 的 `visual/` 证据目录
 - 过程检查（plan.md、文件变更、测试质量、指令匹配）
 - Markdown + HTML 报告（含 SVG 雷达图）
 - 自动计算均值、方差、标准差
@@ -56,6 +57,14 @@ The project is intentionally broader than a model leaderboard. It is designed to
 See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
 
 ## Quick Start
+
+Browser visual checks need one-time local setup:
+
+```bash
+python3 -m pip install -r requirements-browser.txt
+npm ci
+npx playwright install chromium
+```
 
 ```bash
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks

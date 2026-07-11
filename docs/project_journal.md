@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-11 (iteration 21)
+
+- Added a real Playwright Chromium visual evaluator for static local pages. It captures a PNG, checks rendered selector visibility, and records non-background pixel count plus channel standard deviation under the repetition's `visual/` evidence directory.
+- Added pinned browser dependencies (`Playwright 1.61.1`, `Pillow 12.2.0`), Browser setup instructions, and Doctor checks for Node plus installed Chromium. Upgraded from Playwright 1.54.1 after `npm audit` identified a fixed high-severity browser-download certificate issue; the final audit reports zero npm vulnerabilities.
+- Upgraded `frontend-visual` from static-only checks to actual browser screenshot/pixel evidence, with regression coverage for browser availability and screenshot artifacts.
+
 ## 2026-07-11 (iteration 20)
 
 - Ran a real hard embedded calibration task through Claude Code with requested `deepseek-v4-pro`. The adapter timed out at 180 seconds with no detected model/tool/cost trace and failed public/hidden tests; this is preserved as a single non-comparative calibration sample in `docs/real_harness_calibration.md`.
