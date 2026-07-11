@@ -26,6 +26,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - docs/corpus_strategy.md
 - docs/claude_code_handoff.md
 - docs/model_modes.md
+- docs/screening_exam_policy.md
 - README.md
 
 开始工作前先运行：
@@ -37,6 +38,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
     PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
     PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
     PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
+    PYTHONPATH=src python3 -m agent_benchmark.cli.main screening-report
     PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
     PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
@@ -60,6 +62,8 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 矩阵的主排名是任务级共同证据维度的 comparable score；严格总分只作诊断。模型身份不是 `verified_match` 的行必须称为 provisional，不能写成同模型结论。
 - `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
 - `calibrate-difficulty` 只能按实际检测到的模型身份聚合；默认要求每个 adapter/observed-model/profile 组合至少 3 次、至少 3 个组合和 9 个 eligible run。身份未知或混合的历史 run 只能保留审计，不能凑统计结论。
+- 这是筛选性考试，不是合格性题库：先执行 `screening-report`。只有 `selection_ready_local_seed` 才可进入本地选择排名；`smoke_only`、`awaiting_real_evidence`、`retune_or_replace` 和 `corpus_gate_pending` 都不得混入结论。
+- `selection-ladder` 必须保持 expert -> hard -> medium -> easy。权威题库以 `config/authoritative_corpora.json` 为准；不得把本地 inspired task 写成 SWE-bench 或 Terminal-Bench 已导入任务。
 - 重复 run 的任务级 95% CI 使用 Student-t（2-30 次）；单次 run 必须显示 CI unavailable。不要为跨任务 matrix 汇总制造一个统计上无意义的总 CI。
 - 每次新增功能后，必须补测试或可验证命令。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
@@ -76,7 +80,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 
 当前已实现的大方向：
 - CLI benchmark lab。
-- task/suite/matrix runner（当前 19 个任务定义，6 个套件，`calibration` 覆盖 easy 到 expert）。
+- task/suite/matrix runner（当前 19 个任务定义，7 个套件，`calibration` 覆盖 easy 到 expert，`selection-ladder` 由难到易）。
 - public tests + hidden tests。
 - SHA-256 protected path integrity。
 - static HTML visual checks。
@@ -86,7 +90,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 118 个 unittest 测试函数，应该全部通过。
+- 121 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。

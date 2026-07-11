@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-11 (iteration 25)
+
+- Reframed the corpus as a selective exam rather than a qualification checklist. Added a hard-to-easy `selection-ladder` suite and executable `screening-report`; smoke, corpus-gated, under-sampled, too-easy/hard, and genuinely selection-ready tasks now have distinct states.
+- Connected baseline/reference corpus audit to the selection gate, preventing a task from becoming selection-ready merely because its pass-rate statistics look interesting.
+- Registered official SWE-bench Verified and Terminal-Bench Core source/evaluator contracts without falsely claiming that their tasks are already imported. The next external phase must preserve upstream task ids and official verifier output.
+
 ## 2026-07-11 (iteration 24)
 
 - Added task-level two-sided 95% confidence intervals to repeated scores, verified-only scores, durations, and available costs. The implementation uses Student-t critical values for the small sample sizes this project requires and returns no interval for one observation.

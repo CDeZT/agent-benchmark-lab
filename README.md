@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、6 个 suite、118 个 unittest 测试函数、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **19 个任务定义**、7 个 suite、121 个 unittest 测试函数、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -49,6 +49,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 自动计算均值、方差、标准差，以及基于 Student-t 的任务级 95% 置信区间（单次 run 不伪造 CI）
 - 严格总分 + 已验证证据覆盖率 + 已验证维度归一化分，防止将“暂未测到的维度为 0”误读为能力失败
 - `calibrate-difficulty`：依据真实 harness/实际检测模型的多组合、多次运行的通过率与差异判断题目区分度；默认要求每个组合至少 3 次、总计至少 9 次，并排除模型身份未检测到的历史 run
+- `screening-report`：区分 smoke、等待真实数据、需要重做、容器题库门未通过和已具筛选性的题；`selection-ladder` 从 expert 到 easy 排列，smoke 题不参与排名
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
 - 一键审计、环境诊断、交接提示
@@ -70,6 +71,7 @@ npx playwright install chromium
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
+PYTHONPATH=src python3 -m agent_benchmark.cli.main screening-report
 PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites

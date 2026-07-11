@@ -22,9 +22,11 @@ The repository has 19 project-owned tasks, all tagged with a difficulty tier and
 
 `calibration` is the local, runnable progression suite. It covers all four tiers without relying on third-party Python packages. Run it with at least three repetitions before a larger harness/model matrix. `python-fullstack`, `project-generation`, `optics-imaging-pipeline`, and `python-data-pipeline` are intentionally tagged `container_required`; this Mac's Colima Docker daemon is currently available, and their evidence must come from the container evaluator rather than a host import fallback.
 
+`selection-ladder` is deliberately ordered from expert to easy. It is a screening sequence, not a claim that every listed task is ready for ranking. Run `screening-report` before a selection matrix; only `selection_ready_local_seed` tasks may receive local selection weight. The source-of-truth policy is `docs/screening_exam_policy.md`.
+
 ## External Corpus Plan
 
-External imports begin in two layers once Docker isolation exists. This order is deliberate: reliable environments and provenance are more valuable than importing many tasks that cannot be reproduced.
+External imports begin in two layers once Docker isolation exists. This order is deliberate: reliable environments and provenance are more valuable than importing many tasks that cannot be reproduced. `config/authoritative_corpora.json` records approved upstream source/evaluator contracts, but no task is called imported until its raw upstream evidence is preserved.
 
 1. **SWE-bench Verified pilot**: import a fixed, stratified subset of real issue-resolution tasks, preserve the upstream instance id, repository base commit, data release, license note, and evaluator output. Use its containerized evaluator rather than rewriting expected patches.
 2. **Terminal-Bench pilot**: run a small fixed subset through the upstream Docker task environment and verifier. Keep terminal-agent scores separate from repository-issue scores.

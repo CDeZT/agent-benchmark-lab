@@ -19,6 +19,7 @@ from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prom
 from agent_benchmark.reports.matrix import build_matrix_leaderboard, write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
 from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_supported, run_task
+from agent_benchmark.screening import build_screening_report
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
@@ -50,6 +51,14 @@ def main(argv: list[str] | None = None) -> int:
     difficulty_parser.add_argument("--min-runs", type=int, default=9)
     difficulty_parser.add_argument("--min-runs-per-combination", type=int, default=3)
     difficulty_parser.add_argument("--json", action="store_true")
+
+    screening_parser = subparsers.add_parser(
+        "screening-report",
+        help="Show which tasks are ready for discriminatory screening rather than smoke checks.",
+    )
+    screening_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
+    screening_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    screening_parser.add_argument("--json", action="store_true")
 
     taxonomy_parser = subparsers.add_parser("taxonomy", help="Show outcome capability axes and task mappings.")
     taxonomy_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
@@ -160,6 +169,8 @@ def main(argv: list[str] | None = None) -> int:
         return _catalog(args)
     if args.command == "calibrate-difficulty":
         return _calibrate_difficulty(args)
+    if args.command == "screening-report":
+        return _screening_report(args)
     if args.command == "taxonomy":
         return _taxonomy(args)
     if args.command == "audit-corpus":
@@ -253,6 +264,29 @@ def _calibrate_difficulty(args: argparse.Namespace) -> int:
         print(
             f"{task['task_id']}\t{task['classification']}\tcombinations={task['combination_count']}"
             f"\truns={task['run_count']}\trate_range={task['success_rate_range']}"
+        )
+    return 0
+
+
+def _screening_report(args: argparse.Namespace) -> int:
+    report = build_screening_report(Path(args.tasks_dir), Path(args.runs_dir))
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    summary = report["summary"]
+    print(
+        "Selection screening report: "
+        f"ready={summary['selection_ready_count']}, awaiting={summary['awaiting_real_evidence_count']}, "
+        f"warmup={summary['warmup_only_count']}, retune={summary['retune_or_replace_count']}, "
+        f"corpus_gate_pending={summary['corpus_gate_pending_count']}, "
+        f"official_evaluator_pending={summary['official_evaluator_pending_count']}"
+    )
+    for task in report["tasks"]:
+        calibration = task.get("empirical_calibration")
+        empirical = calibration.get("classification") if isinstance(calibration, dict) else "unobserved"
+        print(
+            f"{task['difficulty']}\t{task['selection_status']}\t{task['id']}\t"
+            f"empirical={empirical}\tprovenance={task['provenance_type']}"
         )
     return 0
 

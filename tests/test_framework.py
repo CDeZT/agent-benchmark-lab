@@ -27,6 +27,7 @@ from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
 from agent_benchmark.runner.container import DockerTaskEnvironment, DockerUnavailableError, container_spec_for_task
 from agent_benchmark.runner.run import _summarize
 from agent_benchmark.scorers import ScoreResult, score_run
+from agent_benchmark.screening import build_screening_report, classify_selection_status
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.reports.matrix import build_matrix_leaderboard
 from agent_benchmark.status import format_status, load_status
@@ -63,6 +64,41 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(fullstack["environment"], "container_required")
         imaging = next(task for task in catalog["tasks"] if task["id"] == "optics-imaging-pipeline")
         self.assertEqual(imaging["environment"], "container_required")
+
+    def test_selection_ladder_is_ordered_hard_to_easy(self) -> None:
+        suite = load_suite(ROOT / "benchmarks" / "suites" / "selection-ladder.json")
+
+        self.assertEqual(suite.tasks[:3], ["c-systems-programming", "project-generation", "python-fullstack"])
+        self.assertEqual(suite.tasks[-2:], ["c-bugfix", "python-bugfix"])
+
+    def test_screening_report_excludes_smoke_tasks_from_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = build_screening_report(ROOT / "benchmarks" / "tasks", Path(tmp))
+        tasks = {task["id"]: task for task in report["tasks"]}
+
+        self.assertEqual(tasks["python-bugfix"]["selection_status"], "warmup_only")
+        self.assertEqual(tasks["c-bugfix"]["selection_status"], "warmup_only")
+        self.assertEqual(report["summary"]["selection_ready_count"], 0)
+        self.assertEqual(report["tasks"][0]["difficulty"], "expert")
+
+    def test_screening_status_requires_evidence_or_official_evaluator(self) -> None:
+        self.assertEqual(
+            classify_selection_status(
+                {
+                    "benchmark_role": "comparative_candidate",
+                    "provenance_type": "custom_seed",
+                    "corpus_audit": {"classification": "passes"},
+                    "empirical_calibration": {"classification": "discriminative_candidate"},
+                }
+            ),
+            "selection_ready_local_seed",
+        )
+        self.assertEqual(
+            classify_selection_status(
+                {"benchmark_role": "comparative_candidate", "provenance_type": "external_imported"}
+            ),
+            "official_evaluator_pending",
+        )
 
     def test_outcome_taxonomy_aggregates_capability_axes(self) -> None:
         self.assertIn("systems_embedded", axes_for_task(["c_engineering", "embedded_engineering"]))

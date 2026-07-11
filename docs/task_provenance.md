@@ -48,6 +48,10 @@ When external benchmark importers are added, each imported task must record thes
 
 For custom seed tasks, use `provenance.type: custom_seed`, `domain_seed`, or `inspired_by_external` plus a project source description.
 
+## Approved Authoritative Sources
+
+`config/authoritative_corpora.json` records approved upstream benchmark contracts. It currently names SWE-bench Verified and Terminal-Bench Core, their official repositories, dataset/version labels, and evaluator entrypoints. Registry membership is a plan, not provenance: only a task with preserved upstream instance metadata and evaluator output may use `external_imported`.
+
 ## Next Iteration Recommendation
 
-The metadata layer and validation are now implemented. The next step is a real Docker-backed importer/evaluator bridge, not hand-labeling local tasks as external.
+The metadata layer, selection gate, and source registry are now implemented. The next step is a real Docker-backed importer/evaluator bridge, not hand-labeling local tasks as external.
