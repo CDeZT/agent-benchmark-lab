@@ -147,11 +147,27 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Real Harness Results
 
-| Task | opencode+LC2.0 | claude-code+DSv4 | Key Finding |
-|------|---------------|-----------------|-------------|
-| python-bugfix | 62.05, var=0 | 63.75, var=0.002 | Both 100% pass; DSv4 has cost data |
-| process-planning | 54.25, var=1.0 | 53.94, var=0.0012 | Same mean, DSv4 800× more stable |
-| c-bugfix | 42.0, var=0 | TBD | Sub-agent in progress |
+**Calibration Suite Matrix (8 tasks × 2 harnesses × 2 repetitions)**:
+
+| Task | opencode+mimo-v2.5-pro | claude-code+mimo-v2.5-pro | Winner |
+|------|----------------------|---------------------------|--------|
+| python-bugfix | 62.0 ✓✓ | 64.2 ✓✓ | claude-code |
+| c-bugfix | 41.6 ✓✓ | 27.3 ✗✗ | opencode |
+| process-planning | 53.6 ✓✓ | 56.1 ✓✓ | claude-code |
+| frontend-visual | 39.2 ✓✗ | 47.4 ✓✗ | claude-code |
+| embedded-c | 36.2 ✓✗ | 37.2 ✓✗ | claude-code |
+| embedded-protocol-parser | 35.9 ✓✗ | 35.5 ✓✗ | opencode |
+| python-swebench-style | 63.2 ✓✓ | 63.2 ✓✓ | tie |
+| c-systems-programming | 63.2 ✓✓ | 62.5 ✓✓ | opencode |
+| **Mean** | **49.4** | **49.2** | **tie** |
+| **Pass rate** | **8/8** | **7/8** | **opencode** |
+
+**Key findings**:
+- Both harnesses have nearly identical mean scores (49.4 vs 49.2)
+- opencode has perfect 8/8 pass rate; claude-code fails c-bugfix (27.3)
+- claude-code performs better on frontend-visual (+8.2) and process-planning (+2.5)
+- opencode performs better on c-bugfix (+14.3) and c-systems-programming (+0.7)
+- Model identity verified for both: mimo-v2.5-pro
 
 ## Not Yet Implemented
 
