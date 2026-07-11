@@ -154,7 +154,23 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Real Harness Results
 
-An 8-task x 2-harness x 2-repeat matrix exists under the ignored `runs/` directory and is retained as raw evidence only. Its requested canonical label was `mimo-v2.5-pro`, but the saved opencode evidence reports a canonical/adapter identity mismatch while Claude Code reports `verified_match`. It must **not** be described as a verified same-model comparison or used to declare a winner. The next real matrix should use the newly supported `cli_default_configurations` mode for practical tool choice, or use a repaired explicit mapping and require post-run `verified_match` for the narrower same-model question.
+**CLI Default Configuration Mode** (python-bugfix, 2 repetitions):
+
+| 指标 | opencode (LongCat-2.0) | claude-code (mimo-v2.5-pro[1m]) |
+|------|------------------------|----------------------------------|
+| 均分 | 63.33 | **64.05** |
+| 通过率 | 2/2 (100%) | 2/2 (100%) |
+| 耗时 | 24.88s | **23.00s** |
+| 成本 | N/A | $0.1229 |
+| tool_use | **88.75** | 75.0 |
+| cost_efficiency | 0 | **38.55** |
+
+**Key findings**:
+- Both harnesses have similar overall performance (63.33 vs 64.05)
+- opencode more tool-efficient (fewer calls for same result)
+- claude-code provides cost/token evidence (opencode does not)
+- Framework correctly auto-detects model identity without explicit --model
+- Both 100% pass rate on python-bugfix
 
 ## Not Yet Implemented
 
