@@ -152,10 +152,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 - Larger registry-clean real Claude Code/opencode benchmark runs beyond smoke tests.
 - Docker-backed external evaluator bridges (SWE-bench Verified, Terminal-Bench).
-- Visual browser automation.
 - Optional LLM judge adjudication.
 - Dashboard.
-- Browser screenshot and pixel-based visual verification.
+- More domain-specific tasks (JS/TS, GUI desktop, long-running autonomous).
 
 ## Known Scoring Limitation
 
