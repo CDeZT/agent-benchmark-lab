@@ -179,8 +179,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 | **Pass rate** | **8/8** | **8/8** | **tie** |
 | **Hidden pass** | **4/8** | **5/8** | **claude-code** |
 
-**Key findings**:
-- **claude-code wins 53.6 vs 50.5** on calibration suite
+**Key findings** (3 repetitions):
+- **claude-code wins 51.9 vs 49.9** on calibration suite (3 repetitions)
+- Both harnesses have zero variance (very stable)
 - claude-code passes more hidden tests (5 vs 4), indicating better edge case handling
 - Biggest difference: frontend-visual (+18.5 for claude-code)
 - Both 100% public test pass rate
