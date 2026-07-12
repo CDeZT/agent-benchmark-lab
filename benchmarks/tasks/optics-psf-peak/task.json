@@ -1,0 +1,22 @@
+{
+  "id": "optics-psf-peak",
+  "title": "Measure PSF peak and FWHM",
+  "instruction": "Implement measure_psf in psf.py. Given a 1D intensity profile (point-spread-like), return (peak_value, fwhm) where peak_value is the maximum intensity and fwhm is the full width at half maximum in sample units. Use linear interpolation between samples for the half-max crossings. If the peak is non-positive or the profile never falls to half max on both sides, return (peak_value, 0.0). Empty input returns (0.0, 0.0). Inspired by common computational-imaging calibration checks (peak/FWHM of a PSF slice), but fully self-contained with no external datasets.",
+  "capabilities": ["optics_engineering", "python_engineering", "numerical_accuracy", "bugfix"],
+  "domains": ["python", "optics"],
+  "difficulty": "hard",
+  "difficulty_rationale": "Requires correct half-max search and interpolation; easy to get off-by-one or wrong baseline handling.",
+  "provenance": {
+    "type": "domain_seed",
+    "source": "inspired by computational imaging PSF calibration metrics (e.g. ImagingBench-style optics tasks); not a direct copy of any external item"
+  },
+  "workspace": "workspace",
+  "test_command": ["python3", "test_psf.py"],
+  "hidden_test_command": ["python3", "test_hidden_psf.py"],
+  "protected_paths": ["test_psf.py"],
+  "process_checks": [
+    {"type": "file_changed", "dimension": "execution_quality", "path": "psf.py"},
+    {"type": "instruction_match", "dimension": "intent_understanding", "expected_changed_files": ["psf.py"]},
+    {"type": "file_exists", "dimension": "planning", "path": ".agent-benchmark/plan.md", "min_bytes": 40}
+  ]
+}

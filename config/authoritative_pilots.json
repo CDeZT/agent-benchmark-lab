@@ -2,16 +2,20 @@
   "schema_version": 1,
   "pilots": [
     {
-      "id": "swe-bench-verified-screening-v1",
+      "id": "swe-bench-verified-hard-v2",
       "corpus_id": "swe-bench-verified",
       "status": "selected_not_imported",
-      "selection_policy": "Ordered from upstream-estimated hardest to easiest; one expert, two hard, two medium, and one easy issue from six distinct repositories.",
+      "selection_policy": "Hard-biased multi-repo pilot: three >4 hours plus six 1-4 hours ranking candidates, then one easy diagnostic tail. Prefer discrimination over smoke.",
       "instances": [
+        {"instance_id": "pydata__xarray-6992", "selection_role": "ranking_candidate", "expected_difficulty": ">4 hours", "expected_base_commit": "45c0a114e2b7b27b83c9618bc05b36afac82183c"},
+        {"instance_id": "sphinx-doc__sphinx-7590", "selection_role": "ranking_candidate", "expected_difficulty": ">4 hours", "expected_base_commit": "2e506c5ab457cba743bb47eb5b8c8eb9dd51d23d"},
         {"instance_id": "sympy__sympy-13878", "selection_role": "ranking_candidate", "expected_difficulty": ">4 hours", "expected_base_commit": "7b127bdf71a36d85216315f80c1b54d22b060818"},
-        {"instance_id": "pytest-dev__pytest-10356", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "3c1534944cbd34e8a41bc9e76818018fadefc9a1"},
+        {"instance_id": "astropy__astropy-13398", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "6500928dc0e57be8f06d1162eacc3ba5e2eff692"},
         {"instance_id": "django__django-10554", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "14d026cccb144c6877294ba4cd4e03ebf0842498"},
-        {"instance_id": "pylint-dev__pylint-4604", "selection_role": "ranking_candidate", "expected_difficulty": "15 min - 1 hour", "expected_base_commit": "1e55ae64624d28c5fe8b63ad7979880ee2e6ef3f"},
-        {"instance_id": "psf__requests-2931", "selection_role": "ranking_candidate", "expected_difficulty": "15 min - 1 hour", "expected_base_commit": "5f7a3a74aab1625c2bb65f643197ee885e3da576"},
+        {"instance_id": "pylint-dev__pylint-4551", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "99589b08de8c5a2c6cc61e13a37420a868c80599"},
+        {"instance_id": "pytest-dev__pytest-10356", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "3c1534944cbd34e8a41bc9e76818018fadefc9a1"},
+        {"instance_id": "scikit-learn__scikit-learn-25102", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "f9a1cf072da9d7375d6c2163f68a6038b13b310f"},
+        {"instance_id": "astropy__astropy-13579", "selection_role": "ranking_candidate", "expected_difficulty": "1-4 hours", "expected_base_commit": "0df94ff7097961e92fd7812036a24b145bc13ca8"},
         {"instance_id": "pallets__flask-5014", "selection_role": "diagnostic_tail", "expected_difficulty": "<15 min fix", "expected_base_commit": "7ee9ceb71e868944a46e1ff00b506772a53a4f1d"}
       ]
     },
@@ -20,7 +24,7 @@
       "corpus_id": "terminal-bench-core",
       "status": "selected_not_imported",
       "source_commit": "91e10457b5410f16c44364da1a34cb6de8c488a5",
-      "selection_policy": "Ordered by real end-to-end engineering scope: hard image reconstruction, long-running kernel build, algorithmic exploration, scientific optics fitting, multi-tool debugging workflow, then the upstream easy task variant. Preserve upstream difficulty labels rather than inventing a numeric scale.",
+      "selection_policy": "Hard-first engineering track: path tracing, kernel/QEMU, hard maze, Raman fitting (optics-adjacent), tmux workflow; easy maze only as diagnostic tail.",
       "instances": [
         {"instance_id": "path-tracing", "selection_role": "ranking_candidate", "expected_difficulty": "hard", "expected_category": "software-engineering", "expected_max_agent_timeout_sec": "360.0"},
         {"instance_id": "build-linux-kernel-qemu", "selection_role": "ranking_candidate", "expected_difficulty": "medium", "expected_category": "system-administration", "expected_max_agent_timeout_sec": "1800.0"},

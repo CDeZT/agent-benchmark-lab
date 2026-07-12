@@ -146,7 +146,7 @@ class FrameworkTests(unittest.TestCase):
 
     def test_swebench_pilot_is_hard_to_easy_and_rejects_upstream_metadata_drift(self) -> None:
         pilot = load_authoritative_pilot(
-            ROOT / "config" / "authoritative_pilots.json", "swe-bench-verified-screening-v1"
+            ROOT / "config" / "authoritative_pilots.json", "swe-bench-verified-hard-v2"
         )
         selected = pilot["instances"]
         snapshot = {
@@ -162,7 +162,7 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(selected[0]["expected_difficulty"], ">4 hours")
         self.assertEqual(selected[-1]["expected_difficulty"], "<15 min fix")
-        self.assertEqual(pilot_selection_summary(pilot)["ranking_candidate_count"], 5)
+        self.assertEqual(pilot_selection_summary(pilot)["ranking_candidate_count"], 9)
         self.assertEqual(pilot_selection_summary(pilot)["diagnostic_tail_ids"], ["pallets__flask-5014"])
         _validate_snapshot(snapshot, selected)
         snapshot["instances"][0]["base_commit"] = "changed"
@@ -659,9 +659,11 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["repetitions"], 2)
             self.assertEqual(summary["model"], "unspecified")
             self.assertEqual(summary["budget_profile"], "open_ended")
-            self.assertEqual(summary["mean_score"], 58.0)
-            self.assertEqual(summary["mean_verified_normalized_score"], 100.0)
-            self.assertEqual(summary["mean_verified_coverage_percent"], 58.0)
+            # Dummy applies the solution (workspace edits) so tool_use is verified via edit evidence.
+            self.assertEqual(summary["mean_score"], 62.0)
+            # tool_use from workspace edits is verified but not a perfect 100.
+            self.assertEqual(summary["mean_verified_normalized_score"], 96.88)
+            self.assertEqual(summary["mean_verified_coverage_percent"], 64.0)
             self.assertEqual(summary["score_confidence_interval_95"]["margin"], 0.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
@@ -677,8 +679,9 @@ class FrameworkTests(unittest.TestCase):
                 result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
                 self.assertEqual(result["score"]["dimensions"]["task_completion"], 100.0)
                 self.assertEqual(result["score"]["dimensions"]["visual_verification"], 0.0)
-                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 58.0)
-                self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 100.0)
+                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 64.0)
+                self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 96.88)
+                self.assertEqual(result["score"]["measurement"]["dimension_status"]["tool_use"], "verified")
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
                 self.assertTrue(result["score"]["evidence"]["test"]["hidden"]["passed"])
 
@@ -1121,7 +1124,7 @@ class FrameworkTests(unittest.TestCase):
                         runs_dir=Path(tmp),
                     ),
                 )
-                self.assertEqual(summary["mean_score"], 58.0)
+                self.assertEqual(summary["mean_score"], 62.0)
                 self.assertEqual(summary["model"], "local-test-model")
                 self.assertEqual(summary["budget_profile"], "oneshot")
                 self.assertIn("generic-command", available_adapters())
@@ -1282,9 +1285,10 @@ class FrameworkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             summary = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
-            self.assertEqual(summary["mean_score"], 66.0)
+            self.assertEqual(summary["mean_score"], 71.0)
             result = json.loads((Path(summary["runs"][0]["run_dir"]) / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["planning"], 100.0)
+            self.assertGreater(result["score"]["dimensions"]["tool_use"], 0.0)
             self.assertTrue(all(check["passed"] for check in result["score"]["evidence"]["process"]["checks"]))
 
     def test_hidden_test_failure_reduces_completion_score(self) -> None:
@@ -2073,6 +2077,22 @@ class FrameworkTests(unittest.TestCase):
         self.assertIsNone(evidence.model)
         self.assertEqual(evidence.tool_calls, [])
 
+    def test_workspace_edit_fallback_gives_verified_tool_use_without_harness_logs(self) -> None:
+        from agent_benchmark.scorers.basic import score_run
+        from agent_benchmark.recorders.jsonl import JsonlRecorder
+
+        task = load_task(ROOT / "benchmarks" / "tasks" / "optics-psf-peak")
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            baseline = Path(tmp) / "baseline"
+            shutil.copytree(task.root / "workspace", workspace)
+            shutil.copytree(task.root / "workspace", baseline)
+            shutil.copy(task.root / "solution" / "psf.py", workspace / "psf.py")
+            result = score_run(task, baseline, workspace, JsonlRecorder(Path(tmp) / "t.jsonl"), harness_evidence=None)
+            self.assertGreater(result.dimensions["tool_use"], 0)
+            self.assertEqual(result.measurement["dimension_status"]["tool_use"], "verified")
+            self.assertEqual(result.evidence["tool_use"]["source"], "workspace_edits")
+
     def test_structured_harness_tool_use_is_verified_evidence(self) -> None:
         """Structured tool telemetry must raise tool_use to verified, not stay heuristic forever."""
         from agent_benchmark.parsers.harness_output import HarnessEvidence
@@ -2129,14 +2149,14 @@ class FrameworkTests(unittest.TestCase):
             self.assertIn("tool_use", score.evidence)
             self.assertEqual(score.evidence["tool_use"]["tool_count"], 3)
 
-    def test_tool_use_zero_without_harness_evidence(self) -> None:
-        """Prove tool_use=0 when no harness evidence is provided."""
+    def test_tool_use_zero_without_harness_or_workspace_edits(self) -> None:
+        """tool_use stays 0 only when there is neither harness telemetry nor file edits."""
         task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
         baseline = task.workspace_path
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
             shutil.copytree(baseline, workspace)
-            shutil.copy(task.root / "solution" / "stats.py", workspace / "stats.py")
+            # Leave workspace identical to baseline (no solution copy).
             recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
             score = score_run(task, baseline, workspace, recorder)
             self.assertEqual(score.dimensions["tool_use"], 0.0)

@@ -8,6 +8,7 @@
     "systems-concurrency",
     "embedded-protocol-parser",
     "optics-python",
+    "optics-psf-peak",
     "code-review",
     "frontend-visual"
   ],
@@ -18,6 +19,7 @@
     "optics_engineering",
     "security",
     "visual_verification",
-    "c_engineering"
+    "c_engineering",
+    "numerical_accuracy"
   ]
 }

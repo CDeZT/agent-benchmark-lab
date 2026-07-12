@@ -16,9 +16,11 @@ class GrokAdapter(ShellCommandAdapter):
     command_env = "AGENT_BENCH_GROK_COMMAND"
     timeout_env = "AGENT_BENCH_GROK_TIMEOUT_SECONDS"
     default_command_template = (
+        # streaming-json can expose tool events; workspace-edit fallback still
+        # scores tool_use when the CLI only emits a final text object.
         'if [ "$AGENT_BENCH_MODEL" = "unspecified" ]; then '
-        "grok --always-approve --output-format json --prompt-file {instruction_file}; "
+        "grok --always-approve --output-format streaming-json --prompt-file {instruction_file}; "
         "else "
-        'grok --always-approve --output-format json -m "$AGENT_BENCH_MODEL" --prompt-file {instruction_file}; '
+        'grok --always-approve --output-format streaming-json -m "$AGENT_BENCH_MODEL" --prompt-file {instruction_file}; '
         "fi"
     )
