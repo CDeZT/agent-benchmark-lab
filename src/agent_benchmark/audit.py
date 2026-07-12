@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -131,9 +132,12 @@ def _check_authoritative_registry(options: AuditOptions) -> AuditCheck:
 
 def _check_command(name: str, command: list[str], options: AuditOptions) -> AuditCheck:
     start = time.monotonic()
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(options.project_root / "src")
     completed = subprocess.run(
         command,
         cwd=options.project_root,
+        env=env,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
