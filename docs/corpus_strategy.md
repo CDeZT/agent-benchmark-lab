@@ -30,6 +30,8 @@ External imports begin in two layers once Docker isolation exists. This order is
 
 Run `agent-benchmark preflight-authoritative` before attempting either bridge. It validates the registry and reports Docker plus the required upstream evaluator module/command without downloading data or treating a ready toolchain as an imported corpus.
 
+Use `scripts/setup_authoritative_evaluators.sh` to provision the toolchain reproducibly: SWE-bench stays in `.agent-benchmark-evaluators/swebench` under Python 3.11, while Terminal-Bench is installed through `uv tool` under Python 3.13. Both locations are intentionally outside the tracked benchmark runtime.
+
 1. **SWE-bench Verified pilot**: import a fixed, stratified subset of real issue-resolution tasks, preserve the upstream instance id, repository base commit, data release, license note, and evaluator output. Use its containerized evaluator rather than rewriting expected patches.
 2. **Terminal-Bench pilot**: run a small fixed subset through the upstream Docker task environment and verifier. Keep terminal-agent scores separate from repository-issue scores.
 3. **WebArena and OSWorld**: add these later as separate web/desktop tracks, not to the coding grand score. They evaluate different interaction surfaces and require browser/VM infrastructure.

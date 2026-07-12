@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 from contextlib import redirect_stdout
 from io import StringIO
@@ -72,7 +73,10 @@ class FrameworkTests(unittest.TestCase):
         sources = {corpus.corpus_id: corpus for corpus in corpora}
 
         self.assertEqual(set(sources), {"swe-bench-verified", "terminal-bench-core"})
-        self.assertEqual(sources["swe-bench-verified"].tool_requirements, ({"kind": "python_module", "value": "swebench"},))
+        self.assertEqual(
+            sources["swe-bench-verified"].tool_requirements,
+            ({"kind": "python_module", "value": "swebench", "interpreter": ".agent-benchmark-evaluators/swebench/bin/python"},),
+        )
         self.assertEqual(sources["terminal-bench-core"].tool_requirements, ({"kind": "command", "value": "tb"},))
 
     def test_authoritative_preflight_requires_tools_and_docker_without_claiming_import(self) -> None:
@@ -95,6 +99,36 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(ready["execution_ready_count"], 2)
         self.assertTrue(all(source["execution_ready"] for source in ready["sources"]))
         self.assertTrue(all(not source["imported"] for source in ready["sources"]))
+
+    def test_authoritative_preflight_checks_a_dedicated_python_interpreter(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "registry.json"
+            registry.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "sources": [
+                            {
+                                "id": "dedicated-python",
+                                "status": "planned_official_import",
+                                "official_repository": "https://example.test/source",
+                                "dataset": "example/dataset",
+                                "official_evaluator": "python -m evaluator",
+                                "license_note": "test",
+                                "pilot_policy": "test",
+                                "tool_requirements": [
+                                    {"kind": "python_module", "value": "json", "interpreter": sys.executable}
+                                ],
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = preflight_authoritative_corpora(registry, docker_status=lambda: (True, "test daemon"))
+
+        self.assertEqual(report["execution_ready_count"], 1)
+        self.assertTrue(report["sources"][0]["tool_requirements"][0]["ready"])
 
     def test_selection_ladder_is_ordered_hard_to_easy(self) -> None:
         suite = load_suite(ROOT / "benchmarks" / "suites" / "selection-ladder.json")

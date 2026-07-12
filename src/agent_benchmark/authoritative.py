@@ -5,6 +5,7 @@ from importlib.util import find_spec
 import json
 from pathlib import Path
 import shutil
+import subprocess
 from typing import Any, Callable
 
 from agent_benchmark.runner.container import docker_ready
@@ -58,11 +59,17 @@ def load_authoritative_corpora(path: Path) -> list[AuthoritativeCorpus]:
                 raise ValueError(f"Authoritative corpus '{source['id']}' has an invalid tool requirement.")
             kind = requirement.get("kind")
             value = requirement.get("value")
+            interpreter = requirement.get("interpreter")
             if kind not in {"python_module", "command"} or not isinstance(value, str) or not value.strip():
                 raise ValueError(
                     f"Authoritative corpus '{source['id']}' tool requirements need kind=python_module|command and value."
                 )
-            normalized_requirements.append({"kind": kind, "value": value})
+            if interpreter is not None and (kind != "python_module" or not isinstance(interpreter, str) or not interpreter.strip()):
+                raise ValueError(f"Authoritative corpus '{source['id']}' has an invalid tool requirement interpreter.")
+            normalized = {"kind": kind, "value": value}
+            if isinstance(interpreter, str):
+                normalized["interpreter"] = interpreter
+            normalized_requirements.append(normalized)
         corpus_id = source["id"].strip()
         if corpus_id in seen_ids:
             raise ValueError(f"Duplicate authoritative corpus id '{corpus_id}'.")
@@ -100,7 +107,6 @@ def preflight_authoritative_corpora(
     separate importer must still freeze upstream instance identifiers and retain
     official evaluator output before a task can be marked external_imported.
     """
-    module_available = module_available or (lambda name: find_spec(name) is not None)
     corpora = load_authoritative_corpora(registry_path)
     selected = [corpus for corpus in corpora if corpus_id is None or corpus.corpus_id == corpus_id]
     if corpus_id is not None and not selected:
@@ -110,7 +116,14 @@ def preflight_authoritative_corpora(
     for corpus in selected:
         requirements = []
         for requirement in corpus.tool_requirements:
-            ready = module_available(requirement["value"]) if requirement["kind"] == "python_module" else bool(command_exists(requirement["value"]))
+            if requirement["kind"] == "python_module":
+                ready = (
+                    module_available(requirement["value"])
+                    if module_available is not None
+                    else _module_is_available(requirement["value"], requirement.get("interpreter"), registry_path)
+                )
+            else:
+                ready = bool(command_exists(requirement["value"]))
             requirements.append({**requirement, "ready": ready})
         execution_ready = docker_is_ready and all(requirement["ready"] for requirement in requirements)
         sources.append(
@@ -141,3 +154,25 @@ def preflight_authoritative_corpora(
         "execution_ready_count": sum(1 for source in sources if source["execution_ready"]),
         "sources": sources,
     }
+
+
+def _module_is_available(module: str, interpreter: str | None, registry_path: Path) -> bool:
+    if interpreter is None:
+        return find_spec(module) is not None
+    executable = Path(interpreter)
+    if not executable.is_absolute():
+        executable = registry_path.parent.parent / executable
+    if not executable.is_file():
+        return False
+    try:
+        completed = subprocess.run(
+            [str(executable), "-c", f"import {module}"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return completed.returncode == 0

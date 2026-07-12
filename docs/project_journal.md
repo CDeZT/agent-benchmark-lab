@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-12 (iteration 28)
+
+- Added a reproducible `scripts/setup_authoritative_evaluators.sh` installer. SWE-bench uses an ignored dedicated Python 3.11 environment so it does not contaminate the framework interpreter; Terminal-Bench uses an isolated Python 3.13 `uv tool`.
+- Upgraded authoritative preflight to support a dedicated evaluator interpreter, then installed both official toolchains and verified a live `2/2` execution-ready result. Tool readiness remains distinct from task import; no external task is yet counted or ranked.
+
 ## 2026-07-12 (iteration 27)
 
 - Added a validated authoritative-corpus registry contract and `preflight-authoritative` CLI. It checks Docker plus each official source's required upstream module or command without downloading data or claiming imports.

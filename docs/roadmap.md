@@ -117,7 +117,7 @@ Goals:
 
 Current readiness:
 
-- Docker is available and project-owned container evaluation records image identifiers. `preflight-authoritative` now validates the official source registry and reports missing upstream tools without claiming an import. The current machine still needs the `swebench` Python module and Terminal-Bench `tb` CLI before either official bridge can run.
+- Docker is available and project-owned container evaluation records image identifiers. `preflight-authoritative` validates the official source registry and the local `swebench` / `tb` toolchain without claiming an import. The next blocker is a frozen upstream pilot and its official evaluator bridge, not local tool installation.
 
 ## Phase 6: Dashboard
 

@@ -10,7 +10,7 @@
       "license_note": "Upstream SWE-bench repository is MIT; preserve per-instance source metadata and upstream evaluator output.",
       "pilot_policy": "Start with a fixed stratified pilot and run the upstream Docker evaluator; do not translate instances into project-authored tasks.",
       "tool_requirements": [
-        {"kind": "python_module", "value": "swebench"}
+        {"kind": "python_module", "value": "swebench", "interpreter": ".agent-benchmark-evaluators/swebench/bin/python"}
       ]
     },
     {
