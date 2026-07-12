@@ -15,6 +15,11 @@
   "artifact_ignore_globs": ["test_clamp"],
   "process_checks": [
     {
+      "type": "file_changed",
+      "dimension": "execution_quality",
+      "path": "clamp.c"
+    },
+    {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": ["clamp.c"]

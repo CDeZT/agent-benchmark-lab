@@ -13,6 +13,11 @@
   "protected_paths": ["test_page.py"],
   "process_checks": [
     {
+      "type": "file_changed",
+      "dimension": "execution_quality",
+      "path": "index.html"
+    },
+    {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": ["index.html"]

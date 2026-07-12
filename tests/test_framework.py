@@ -1021,7 +1021,7 @@ class FrameworkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             summary = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
-            self.assertEqual(summary["mean_score"], 50.0)
+            self.assertEqual(summary["mean_score"], 62.0)
             run_dir = Path(summary["runs"][0]["run_dir"])
             result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["visual_verification"], 100.0)
@@ -1054,7 +1054,7 @@ class FrameworkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             summary = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
-            self.assertEqual(summary["mean_score"], 54.0)
+            self.assertEqual(summary["mean_score"], 66.0)
             result = json.loads((Path(summary["runs"][0]["run_dir"]) / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["planning"], 100.0)
             self.assertTrue(all(check["passed"] for check in result["score"]["evidence"]["process"]["checks"]))

@@ -13,6 +13,11 @@
   "protected_paths": ["test_math_ops.py"],
   "process_checks": [
     {
+      "type": "file_changed",
+      "dimension": "execution_quality",
+      "path": "math_ops.py"
+    },
+    {
       "type": "file_exists",
       "dimension": "planning",
       "path": ".agent-benchmark/plan.md"
