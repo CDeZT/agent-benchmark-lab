@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-12 (iteration 40b)
+
+- Completed hard-discrimination suite with claude-code (coverage ~76% with verified tool_use+planning).
+- First **scoreable official SWE-bench** result: `pallets__flask-5014` opencode bridge → resolved=true (diagnostic_tail, external track).
+
 ## 2026-07-12 (iteration 40)
 
 - User feedback: too few/easy tasks; strong evidence seemed "disabled"; want harder authoritative-style discrimination.

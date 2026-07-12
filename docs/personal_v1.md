@@ -92,3 +92,12 @@ Evidence from real runs (workspace files actually changed; tests executed):
 - suite mean ~55.5 on personal-probe
 
 If it were a fake adapter, tests would not go green after real file edits.
+
+
+## Hard discrimination + evidence fix (2026-07-12)
+
+- Suite `hard-discrimination` (7 hard-biased tasks) run with claude-code default `LongCat-2.0[1m]`.
+- Structured tool telemetry is now **verified** (not stuck heuristic); planning verified when agents write plan.md.
+- Typical verified coverage on hard suite tasks rose to ~76% when tool+cost+planning evidence exist.
+- Official SWE-bench diagnostic `pallets__flask-5014` completed via bridge: **resolved=true, scorable=true** (external track; not mixed into local totals).
+
