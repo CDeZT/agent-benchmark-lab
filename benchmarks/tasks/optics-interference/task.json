@@ -1,19 +1,19 @@
 {
-  "id": "optics-python",
-  "title": "Normalize an optical intensity profile",
-  "instruction": "Fix normalize_profile so an optical intensity profile is shifted to remove negative baseline, normalized to unit peak, and remains all zeros when the input has no positive dynamic range.",
+  "id": "optics-interference",
+  "title": "Young double-slit fringe spacing and path difference",
+  "instruction": "Implement young_fringe_spacing and path_difference in interference.py. young_fringe_spacing(wavelength_m, slit_separation_m, screen_distance_m) returns the fringe spacing Delta y = lambda * L / d on a far screen. path_difference(slit_separation_m, angle_rad) returns d*sin(theta). Raise ValueError if wavelength, slit separation, or screen distance is not positive.",
   "capabilities": [
     "optics_engineering",
     "python_engineering",
-    "bugfix",
-    "numerical_accuracy"
+    "numerical_accuracy",
+    "bugfix"
   ],
   "domains": [
     "python",
     "optics"
   ],
   "difficulty": "medium",
-  "difficulty_rationale": "Small numerical bug fix that requires domain-aware treatment of zero dynamic range.",
+  "difficulty_rationale": "Simple formulas but buggy baseline mixes units/order and skips validation.",
   "provenance": {
     "type": "domain_seed",
     "source": "agent-benchmark optics engineering seed corpus"
@@ -29,26 +29,26 @@
   "workspace": "workspace",
   "test_command": [
     "python3",
-    "test_optics.py"
+    "test_interference.py"
   ],
   "hidden_test_command": [
     "python3",
-    "test_hidden_optics.py"
+    "test_hidden_interference.py"
   ],
   "protected_paths": [
-    "test_optics.py"
+    "test_interference.py"
   ],
   "process_checks": [
     {
       "type": "file_changed",
       "dimension": "execution_quality",
-      "path": "optics.py"
+      "path": "interference.py"
     },
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": [
-        "optics.py"
+        "interference.py"
       ]
     },
     {

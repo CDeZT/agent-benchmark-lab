@@ -1,14 +1,16 @@
 {
   "id": "hard-discrimination",
   "title": "Hard discrimination suite (prefer hard/expert local tasks)",
-  "description": "Local comparative tasks biased hard for harness separation. Includes systems, embedded, SWE-style multi-module, optics, concurrency, and security review. Not smoke-only. Use with 1-3 repetitions.",
+  "description": "Local comparative tasks biased hard for harness separation. Includes systems, embedded, SWE-style multi-module, optics ladder items, concurrency, and security review. Not smoke-only. Use with 1-3 repetitions.",
   "tasks": [
     "python-swebench-style",
     "c-systems-programming",
     "systems-concurrency",
     "embedded-protocol-parser",
-    "optics-python",
     "optics-psf-peak",
+    "optics-gaussian-beam",
+    "optics-abcd",
+    "optics-imaging-pipeline",
     "code-review",
     "frontend-visual"
   ],

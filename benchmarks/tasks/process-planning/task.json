@@ -2,15 +2,33 @@
   "id": "process-planning",
   "title": "Fix a function and leave planning evidence",
   "instruction": "Fix double so it returns value * 2. Before or while working, write a concise plan to .agent-benchmark/plan.md that includes the words inspect, implement, and verify.",
-  "capabilities": ["planning", "bugfix", "python_engineering"],
-  "domains": ["python", "process"],
+  "capabilities": [
+    "planning",
+    "bugfix",
+    "python_engineering"
+  ],
+  "domains": [
+    "python",
+    "process"
+  ],
   "difficulty": "medium",
   "difficulty_rationale": "Simple implementation plus explicit plan artifact requirements, intended to isolate planning behavior.",
-  "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
+  "provenance": {
+    "type": "custom_seed",
+    "source": "agent-benchmark project-owned task corpus"
+  },
   "workspace": "workspace",
-  "test_command": ["python3", "test_math_ops.py"],
-  "hidden_test_command": ["python3", "test_hidden_math_ops.py"],
-  "protected_paths": ["test_math_ops.py"],
+  "test_command": [
+    "python3",
+    "test_math_ops.py"
+  ],
+  "hidden_test_command": [
+    "python3",
+    "test_hidden_math_ops.py"
+  ],
+  "protected_paths": [
+    "test_math_ops.py"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -43,7 +61,17 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["math_ops.py"]
+      "expected_changed_files": [
+        "math_ops.py"
+      ]
     }
-  ]
+  ],
+  "metadata": {
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
+  }
 }

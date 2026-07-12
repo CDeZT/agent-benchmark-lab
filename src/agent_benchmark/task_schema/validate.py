@@ -117,9 +117,13 @@ def _validate_catalog_metadata(task: TaskSpec, result: ValidationResult) -> None
             f"{task.task_id}: metadata.environment must be local, container_required, or external_evaluator_only"
         )
     if environment == "container_required":
-        packages = task.metadata.get("required_python_packages")
-        if not isinstance(packages, list) or not packages:
-            result.errors.append(f"{task.task_id}: container_required tasks need required_python_packages")
+        # Empty package list is allowed for stdlib-only container tasks
+        # (problem workspace + hidden tests still isolated via Docker mounts).
+        packages = task.metadata.get("required_python_packages", [])
+        if packages is None:
+            packages = []
+        if not isinstance(packages, list):
+            result.errors.append(f"{task.task_id}: required_python_packages must be a list")
         elif any(not isinstance(package, str) or "==" not in package for package in packages):
             result.errors.append(f"{task.task_id}: container packages must be exact-version strings")
         container = task.metadata.get("container", {})

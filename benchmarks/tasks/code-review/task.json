@@ -18,7 +18,13 @@
     "source": "agent-benchmark project-owned task corpus"
   },
   "metadata": {
-    "benchmark_role": "comparative_candidate"
+    "benchmark_role": "comparative_candidate",
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
   },
   "workspace": "workspace",
   "test_command": [

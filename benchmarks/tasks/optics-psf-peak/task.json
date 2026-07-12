@@ -10,6 +10,14 @@
     "type": "domain_seed",
     "source": "inspired by computational imaging PSF calibration metrics (e.g. ImagingBench-style optics tasks); not a direct copy of any external item"
   },
+  "metadata": {
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
+  },
   "workspace": "workspace",
   "test_command": ["python3", "test_psf.py"],
   "hidden_test_command": ["python3", "test_hidden_psf.py"],

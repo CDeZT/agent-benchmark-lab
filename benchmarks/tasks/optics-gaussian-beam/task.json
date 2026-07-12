@@ -1,19 +1,19 @@
 {
-  "id": "optics-python",
-  "title": "Normalize an optical intensity profile",
-  "instruction": "Fix normalize_profile so an optical intensity profile is shifted to remove negative baseline, normalized to unit peak, and remains all zeros when the input has no positive dynamic range.",
+  "id": "optics-gaussian-beam",
+  "title": "Gaussian beam waist, Rayleigh range, and radius",
+  "instruction": "Implement gaussian_beam in beam.py. Given wavelength wavelength_m (meters), waist_radius_m w0 (1/e^2 intensity radius at waist), and axial position z_m, return a dict with keys: 'rayleigh_m' (z_R = pi*w0^2/lambda), 'w_m' (beam radius w(z)=w0*sqrt(1+(z/z_R)^2)), 'curvature_m' (wavefront radius R(z)=z*(1+(z_R/z)^2) for z!=0, and math.inf at z=0). Raise ValueError if wavelength_m or w0 is not positive.",
   "capabilities": [
     "optics_engineering",
     "python_engineering",
-    "bugfix",
-    "numerical_accuracy"
+    "numerical_accuracy",
+    "feature_implementation"
   ],
   "domains": [
     "python",
     "optics"
   ],
-  "difficulty": "medium",
-  "difficulty_rationale": "Small numerical bug fix that requires domain-aware treatment of zero dynamic range.",
+  "difficulty": "hard",
+  "difficulty_rationale": "Multiple coupled Gaussian-beam formulas with z=0 singularity handling.",
   "provenance": {
     "type": "domain_seed",
     "source": "agent-benchmark optics engineering seed corpus"
@@ -29,26 +29,26 @@
   "workspace": "workspace",
   "test_command": [
     "python3",
-    "test_optics.py"
+    "test_beam.py"
   ],
   "hidden_test_command": [
     "python3",
-    "test_hidden_optics.py"
+    "test_hidden_beam.py"
   ],
   "protected_paths": [
-    "test_optics.py"
+    "test_beam.py"
   ],
   "process_checks": [
     {
       "type": "file_changed",
       "dimension": "execution_quality",
-      "path": "optics.py"
+      "path": "beam.py"
     },
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": [
-        "optics.py"
+        "beam.py"
       ]
     },
     {

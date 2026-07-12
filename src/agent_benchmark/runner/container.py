@@ -58,15 +58,19 @@ def ensure_docker_ready() -> None:
 
 
 def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
-    """Build a deterministic task environment contract from manifest metadata."""
+    """Build a deterministic task environment contract from manifest metadata.
+
+    Problem/answer isolation model:
+    - Agent only edits the mounted /workspace (problem side).
+    - Hidden tests mount /hidden:ro only for the evaluator (answer side).
+    - Stdlib-only tasks may omit packages; third-party deps must be exact pins.
+    """
     metadata = task.metadata
     raw = metadata.get("container", {})
     if not isinstance(raw, dict):
         raise ValueError(f"Task '{task.task_id}' metadata.container must be an object")
     base_image = str(raw.get("base_image", "python:3.12.8-slim-bookworm"))
-    packages = tuple(str(item) for item in metadata.get("required_python_packages", []))
-    if not packages:
-        raise ValueError(f"Task '{task.task_id}' is container_required but has no pinned Python packages")
+    packages = tuple(str(item) for item in (metadata.get("required_python_packages") or []))
     unpinned = [package for package in packages if "==" not in package]
     if unpinned:
         raise ValueError(
@@ -77,14 +81,17 @@ def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
     if cpus <= 0 or not memory:
         raise ValueError(f"Task '{task.task_id}' has invalid container CPU or memory limits")
 
-    dockerfile = "\n".join(
-        [
-            f"FROM {base_image}",
-            "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1",
-            "RUN python3 -m pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple " + " ".join(packages),
-            "WORKDIR /workspace",
-        ]
-    ) + "\n"
+    lines = [
+        f"FROM {base_image}",
+        "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1",
+    ]
+    if packages:
+        lines.append(
+            "RUN python3 -m pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple "
+            + " ".join(packages)
+        )
+    lines.append("WORKDIR /workspace")
+    dockerfile = "\n".join(lines) + "\n"
     fingerprint = hashlib.sha256(dockerfile.encode("utf-8")).hexdigest()[:16]
     return ContainerSpec(
         base_image=base_image,
@@ -96,6 +103,63 @@ def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
     )
 
 
+def _docker_stage_root() -> Path:
+    """Colima/Docker Desktop often cannot bind-mount /var/folders temp dirs.
+
+    Stage bind sources under $HOME so problem workspaces created in pytest tmp
+    paths still score correctly with problem/answer isolation.
+    """
+    root = Path.home() / ".cache" / "agent-benchmark" / "docker-binds"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _path_is_docker_bindable(path: Path) -> bool:
+    resolved = path.resolve()
+    home = Path.home().resolve()
+    try:
+        resolved.relative_to(home)
+        return True
+    except ValueError:
+        pass
+    # Common macOS host paths Colima/Docker usually can mount.
+    for prefix in (Path("/Users"), Path("/home"), Path("/tmp"), Path("/private/tmp")):
+        try:
+            resolved.relative_to(prefix)
+            # /var/folders is under /private/var on macOS, not /tmp.
+            if str(resolved).startswith("/private/var/") or str(resolved).startswith("/var/"):
+                return False
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def _stage_bind_tree(source: Path, stage_name: str) -> Path:
+    """Mirror *source* into a home-cache bind path and return the staged path.
+
+    Always use a fresh directory name. Colima/Docker Desktop can show stale or
+    empty trees when the same bind path is deleted/recreated or heavily
+    rewritten between consecutive `docker run` calls (public then hidden).
+    """
+    source = source.resolve()
+    if _path_is_docker_bindable(source):
+        return source
+    root = _docker_stage_root()
+    stage = root / f"{stage_name}-{time.time_ns()}"
+    shutil.copytree(source, stage)
+    # Best-effort prune older stages for this logical name (keep last few).
+    prefix = f"{stage_name}-"
+    prior = sorted(
+        (path for path in root.iterdir() if path.name.startswith(prefix) and path != stage),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for stale in prior[3:]:
+        shutil.rmtree(stale, ignore_errors=True)
+    return stage
+
+
 @dataclass
 class DockerTaskEnvironment:
     task: TaskSpec
@@ -104,6 +168,7 @@ class DockerTaskEnvironment:
     spec: ContainerSpec
     image_id: str
     build_reused: bool
+    stage_key: str = ""
 
     @property
     def evidence(self) -> dict[str, object]:
@@ -118,6 +183,7 @@ class DockerTaskEnvironment:
             "workspace_mount": "/workspace:rw",
             "hidden_tests_mount": "/hidden:ro" if self.task.hidden_test_command else None,
             "build_reused": self.build_reused,
+            "bind_stage_key": self.stage_key or None,
         }
 
     def agent_instruction(self) -> str:
@@ -204,16 +270,26 @@ class DockerTaskEnvironment:
         return result
 
     def _docker_command(self, kind: str, command: list[str]) -> list[str]:
+        # Re-stage workspace each call so agent edits after prepare are visible.
+        key = self.stage_key or hashlib.sha256(str(self.workspace.resolve()).encode()).hexdigest()[:16]
+        staged_workspace = _stage_bind_tree(self.workspace, f"{key}-workspace")
         hidden_dir = self.task.root / "hidden"
+        staged_hidden = (
+            _stage_bind_tree(hidden_dir, f"{key}-hidden")
+            if kind == "hidden" and hidden_dir.exists()
+            else hidden_dir
+        )
         target_cwd = "/workspace" if kind == "public" else "/hidden"
         docker_command = [
             "docker", "run", "--rm",
             "--cpus", str(self.spec.cpus), "--memory", self.spec.memory,
-            "--mount", f"type=bind,source={self.workspace.resolve()},target=/workspace,readonly=false",
+            "--mount", f"type=bind,source={staged_workspace.resolve()},target=/workspace,readonly=false",
             "--env", "AGENT_BENCH_WORKSPACE=/workspace",
         ]
         if kind == "hidden":
-            docker_command.extend(["--mount", f"type=bind,source={hidden_dir.resolve()},target=/hidden,readonly=true"])
+            docker_command.extend(
+                ["--mount", f"type=bind,source={staged_hidden.resolve()},target=/hidden,readonly=true"]
+            )
         docker_command.extend(["--workdir", target_cwd, self.spec.image_tag, *command])
         return docker_command
 
@@ -221,11 +297,22 @@ class DockerTaskEnvironment:
 def prepare_docker_environment(task: TaskSpec, workspace: Path, run_dir: Path) -> DockerTaskEnvironment:
     ensure_docker_ready()
     spec = container_spec_for_task(task)
-    dockerfile_path = run_dir / "environment.Dockerfile"
+    # Dockerfile context must also be bindable/readable for docker build; write
+    # under home-cache when run_dir is a pytest temp path.
+    build_dir = run_dir
+    if not _path_is_docker_bindable(run_dir):
+        build_dir = _docker_stage_root() / f"build-{hashlib.sha256(str(run_dir.resolve()).encode()).hexdigest()[:16]}"
+        build_dir.mkdir(parents=True, exist_ok=True)
+    dockerfile_path = build_dir / "environment.Dockerfile"
     dockerfile_path.write_text(spec.dockerfile, encoding="utf-8")
+    # Keep a copy in the original run_dir for evidence.
+    (run_dir / "environment.Dockerfile").write_text(spec.dockerfile, encoding="utf-8")
     build_log_path = run_dir / "environment-build.log"
     image_id, reused = _ensure_image(spec, dockerfile_path, build_log_path)
-    environment = DockerTaskEnvironment(task, workspace, run_dir, spec, image_id, reused)
+    stage_key = hashlib.sha256(f"{task.task_id}:{workspace.resolve()}:{run_dir.resolve()}".encode()).hexdigest()[:16]
+    environment = DockerTaskEnvironment(
+        task, workspace, run_dir, spec, image_id, reused, stage_key=stage_key
+    )
     (run_dir / "environment.json").write_text(
         json.dumps({**environment.evidence, "spec": asdict(spec)}, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -277,8 +364,14 @@ def _ensure_image(spec: ContainerSpec, dockerfile_path: Path, build_log_path: Pa
 
 
 def _write_agent_helper(environment: DockerTaskEnvironment) -> None:
+    """Write a host-side helper that re-stages the workspace before docker run.
+
+    Agents edit the host workspace; the helper mirrors it into a Colima-safe
+    bind path under $HOME when needed (e.g. pytest temp dirs).
+    """
     helper = environment.run_dir / "container-test.sh"
-    workspace_mount = shlex.quote(f"type=bind,source={environment.workspace.resolve()},target=/workspace,readonly=false")
+    stage_root = _docker_stage_root()
+    key = environment.stage_key or "agent"
     script = "\n".join(
         [
             "#!/bin/sh",
@@ -287,9 +380,16 @@ def _write_agent_helper(environment: DockerTaskEnvironment) -> None:
             "  public) shift ;;",
             "  *) echo 'usage: container-test.sh public <test command...>' >&2; exit 64 ;;",
             "esac",
+            f"HOST_WS={shlex.quote(str(environment.workspace.resolve()))}",
+            f"STAGE_ROOT={shlex.quote(str(stage_root))}",
+            # Fresh stage path each invocation avoids Colima stale bind mounts.
+            f"STAGE_WS=\"$STAGE_ROOT/{key}-workspace-$$-$(python3 -c 'import time;print(time.time_ns())')\"",
+            "mkdir -p \"$STAGE_ROOT\"",
+            "cp -a \"$HOST_WS\" \"$STAGE_WS\"",
             "exec docker run --rm "
             f"--cpus {environment.spec.cpus} --memory {shlex.quote(environment.spec.memory)} "
-            f"--mount {workspace_mount} --env AGENT_BENCH_WORKSPACE=/workspace "
+            "--mount \"type=bind,source=$STAGE_WS,target=/workspace,readonly=false\" "
+            "--env AGENT_BENCH_WORKSPACE=/workspace "
             f"--workdir /workspace {shlex.quote(environment.spec.image_tag)} \"$@\"",
             "",
         ]

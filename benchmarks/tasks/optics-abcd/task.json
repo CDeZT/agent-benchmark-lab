@@ -1,19 +1,19 @@
 {
-  "id": "optics-python",
-  "title": "Normalize an optical intensity profile",
-  "instruction": "Fix normalize_profile so an optical intensity profile is shifted to remove negative baseline, normalized to unit peak, and remains all zeros when the input has no positive dynamic range.",
+  "id": "optics-abcd",
+  "title": "Ray transfer (ABCD) matrix cascade",
+  "instruction": "Implement free_space, thin_lens_matrix, and cascade in abcd.py. Matrices are 2x2 as nested lists [[A,B],[C,D]] acting on [y, u] where u is the ray angle. free_space(d) -> [[1, d],[0, 1]]. thin_lens_matrix(f) -> [[1, 0],[-1/f, 1]] for f!=0. cascade(matrices) multiplies matrices left-to-right as optical elements encountered by the ray (first element is leftmost / first encountered). Use M_total = M_n @ ... @ M_2 @ M_1. Raise ValueError for empty cascade or f==0.",
   "capabilities": [
     "optics_engineering",
     "python_engineering",
-    "bugfix",
-    "numerical_accuracy"
+    "numerical_accuracy",
+    "feature_implementation"
   ],
   "domains": [
     "python",
     "optics"
   ],
-  "difficulty": "medium",
-  "difficulty_rationale": "Small numerical bug fix that requires domain-aware treatment of zero dynamic range.",
+  "difficulty": "hard",
+  "difficulty_rationale": "Matrix multiplication order is a common trap; cascade semantics must match optical convention.",
   "provenance": {
     "type": "domain_seed",
     "source": "agent-benchmark optics engineering seed corpus"
@@ -29,26 +29,26 @@
   "workspace": "workspace",
   "test_command": [
     "python3",
-    "test_optics.py"
+    "test_abcd.py"
   ],
   "hidden_test_command": [
     "python3",
-    "test_hidden_optics.py"
+    "test_hidden_abcd.py"
   ],
   "protected_paths": [
-    "test_optics.py"
+    "test_abcd.py"
   ],
   "process_checks": [
     {
       "type": "file_changed",
       "dimension": "execution_quality",
-      "path": "optics.py"
+      "path": "abcd.py"
     },
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": [
-        "optics.py"
+        "abcd.py"
       ]
     },
     {

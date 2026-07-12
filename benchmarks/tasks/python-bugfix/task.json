@@ -2,16 +2,41 @@
   "id": "python-bugfix",
   "title": "Fix edge-case average calculation",
   "instruction": "Fix the average function so it returns the arithmetic mean for non-empty inputs and returns 0.0 for an empty input without raising an exception. Preserve the public function name.",
-  "capabilities": ["bugfix", "test_discipline", "python_engineering"],
-  "domains": ["python"],
+  "capabilities": [
+    "bugfix",
+    "test_discipline",
+    "python_engineering"
+  ],
+  "domains": [
+    "python"
+  ],
   "difficulty": "easy",
   "difficulty_rationale": "Single-file bug fix with a precise contract and public plus hidden edge-case tests.",
-  "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
-  "metadata": {"benchmark_role": "smoke_only"},
+  "provenance": {
+    "type": "custom_seed",
+    "source": "agent-benchmark project-owned task corpus"
+  },
+  "metadata": {
+    "benchmark_role": "smoke_only",
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
+  },
   "workspace": "workspace",
-  "test_command": ["python3", "test_stats.py"],
-  "hidden_test_command": ["python3", "test_hidden_stats.py"],
-  "protected_paths": ["test_stats.py"],
+  "test_command": [
+    "python3",
+    "test_stats.py"
+  ],
+  "hidden_test_command": [
+    "python3",
+    "test_hidden_stats.py"
+  ],
+  "protected_paths": [
+    "test_stats.py"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -21,7 +46,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["stats.py"]
+      "expected_changed_files": [
+        "stats.py"
+      ]
     },
     {
       "type": "code_quality",

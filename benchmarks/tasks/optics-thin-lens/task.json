@@ -1,19 +1,19 @@
 {
-  "id": "optics-python",
-  "title": "Normalize an optical intensity profile",
-  "instruction": "Fix normalize_profile so an optical intensity profile is shifted to remove negative baseline, normalized to unit peak, and remains all zeros when the input has no positive dynamic range.",
+  "id": "optics-thin-lens",
+  "title": "Thin-lens image distance and lateral magnification",
+  "instruction": "Implement thin_lens in lens.py. Given focal length f and object distance u (same sign convention: positive for real object to the left of a converging lens, positive f for converging), return (v, m) where 1/f = 1/u + 1/v and lateral magnification m = -v/u. If f or u is zero, or the computed v is non-finite, raise ValueError. Return floats.",
   "capabilities": [
     "optics_engineering",
     "python_engineering",
-    "bugfix",
-    "numerical_accuracy"
+    "numerical_accuracy",
+    "bugfix"
   ],
   "domains": [
     "python",
     "optics"
   ],
-  "difficulty": "medium",
-  "difficulty_rationale": "Small numerical bug fix that requires domain-aware treatment of zero dynamic range.",
+  "difficulty": "easy",
+  "difficulty_rationale": "Single formula with edge cases; baseline has wrong magnification sign and zero checks.",
   "provenance": {
     "type": "domain_seed",
     "source": "agent-benchmark optics engineering seed corpus"
@@ -29,26 +29,26 @@
   "workspace": "workspace",
   "test_command": [
     "python3",
-    "test_optics.py"
+    "test_lens.py"
   ],
   "hidden_test_command": [
     "python3",
-    "test_hidden_optics.py"
+    "test_hidden_lens.py"
   ],
   "protected_paths": [
-    "test_optics.py"
+    "test_lens.py"
   ],
   "process_checks": [
     {
       "type": "file_changed",
       "dimension": "execution_quality",
-      "path": "optics.py"
+      "path": "lens.py"
     },
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": [
-        "optics.py"
+        "lens.py"
       ]
     },
     {

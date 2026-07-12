@@ -45,7 +45,20 @@ def _audit_task(task: Any) -> dict[str, Any]:
             }
         )
         return result
-    if environment != "local":
+    # container_required stdlib tasks are audited on host (baseline vs reference).
+    # Tasks with pinned third-party packages need the Docker evaluator; host-only
+    # audit would false-fail when numpy/scipy/etc. are missing from the host.
+    if environment == "container_required":
+        packages = task.metadata.get("required_python_packages") or []
+        if packages:
+            result.update(
+                {
+                    "classification": "skipped_environment",
+                    "reason": "container packages require docker evaluator for corpus audit",
+                }
+            )
+            return result
+    elif environment != "local":
         result.update({"classification": "skipped_environment", "reason": "requires non-local environment"})
         return result
 

@@ -2,16 +2,41 @@
   "id": "python-test-writing",
   "title": "Write tests to expose bugs in a statistics module",
   "instruction": "stats.py contains several bugs in its functions (mean, median, mode, std_dev, percentile). Do NOT fix the code. Instead, write test_stats.py with tests that expose these bugs. Each test should directly assert the EXPECTED correct behavior (e.g., assert median([1,2,3,4]) == 2.5). Do NOT use try/except to catch errors — that masks the bug. Good tests will FAIL when run against the buggy code because they expect correct behavior that the code doesn't deliver. Run verify_tests.py to check your tests.",
-  "capabilities": ["test_discipline", "python_engineering"],
-  "domains": ["python"],
+  "capabilities": [
+    "test_discipline",
+    "python_engineering"
+  ],
+  "domains": [
+    "python"
+  ],
   "difficulty": "medium",
   "difficulty_rationale": "Tests must expose several independent defects without repairing the implementation.",
-  "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
-  "metadata": {"benchmark_role": "comparative_candidate"},
+  "provenance": {
+    "type": "custom_seed",
+    "source": "agent-benchmark project-owned task corpus"
+  },
+  "metadata": {
+    "benchmark_role": "comparative_candidate",
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
+  },
   "workspace": "workspace",
-  "test_command": ["python3", "verify_tests.py"],
-  "hidden_test_command": ["python3", "test_hidden_test_quality.py"],
-  "protected_paths": ["stats.py", "verify_tests.py"],
+  "test_command": [
+    "python3",
+    "verify_tests.py"
+  ],
+  "hidden_test_command": [
+    "python3",
+    "test_hidden_test_quality.py"
+  ],
+  "protected_paths": [
+    "stats.py",
+    "verify_tests.py"
+  ],
   "process_checks": [
     {
       "type": "test_file_quality",
@@ -24,7 +49,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["test_stats.py"]
+      "expected_changed_files": [
+        "test_stats.py"
+      ]
     }
   ]
 }

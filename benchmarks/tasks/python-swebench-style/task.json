@@ -50,5 +50,13 @@
       "path": ".agent-benchmark/plan.md",
       "min_bytes": 40
     }
-  ]
+  ],
+  "metadata": {
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
+  }
 }

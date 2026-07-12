@@ -1,0 +1,22 @@
+{
+  "id": "optics-discrimination",
+  "title": "Optics discrimination ladder (easy → hard)",
+  "description": "Docker-isolated optics tasks with problem/answer separation (workspace vs hidden). Ladder: thin-lens → normalize → interference → snell → psf/FWHM → gaussian-beam → imaging-pipeline → ABCD cascade. Use to get a real scientific_computing axis and difficulty separation.",
+  "tasks": [
+    "optics-thin-lens",
+    "optics-python",
+    "optics-interference",
+    "optics-snell",
+    "optics-psf-peak",
+    "optics-gaussian-beam",
+    "optics-imaging-pipeline",
+    "optics-abcd"
+  ],
+  "capability_focus": [
+    "optics_engineering",
+    "numerical_accuracy",
+    "python_engineering",
+    "bugfix",
+    "feature_implementation"
+  ]
+}

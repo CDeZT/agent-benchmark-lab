@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from agent_benchmark.reports.html import _radar_svg
+
 
 def write_suite_summary(run_dir: Path, suite_summary: dict[str, Any]) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -12,6 +14,7 @@ def write_suite_summary(run_dir: Path, suite_summary: dict[str, Any]) -> None:
         encoding="utf-8",
     )
     _write_suite_markdown(run_dir / "suite_report.md", suite_summary)
+    _write_suite_html(run_dir / "suite_report.html", suite_summary)
 
 
 def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
@@ -62,6 +65,127 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
                 ]
             )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_suite_html(path: Path, suite_summary: dict[str, Any]) -> None:
+    """Suite HTML with domain-axis radar (optics/C/embedded axes), not only 10 process dims."""
+    scorecard = suite_summary.get("evaluation_axis_scorecard", {})
+    axes = scorecard.get("axes", {}) if isinstance(scorecard, dict) else {}
+    domain_values: dict[str, float] = {}
+    for axis, values in axes.items():
+        if isinstance(values, dict) and values.get("mean_strict_score") is not None:
+            title = str(values.get("title") or axis)
+            domain_values[title] = float(values["mean_strict_score"])
+    domain_radar = _radar_svg(domain_values) if domain_values else "<p class='muted'>No domain axes yet (suite may lack optics/C/embedded tags).</p>"
+
+    # Also show mean of per-task 10-dimension radars when available.
+    dim_means: dict[str, list[float]] = {}
+    for task in suite_summary.get("tasks", []):
+        dims = task.get("mean_dimensions") or task.get("dimensions")
+        if not isinstance(dims, dict):
+            # Fall back to averaging dimensions from embedded run records.
+            runs = task.get("runs") if isinstance(task.get("runs"), list) else []
+            per_dim: dict[str, list[float]] = {}
+            for run in runs:
+                if not isinstance(run, dict):
+                    continue
+                run_dims = run.get("dimensions")
+                if not isinstance(run_dims, dict):
+                    continue
+                for key, value in run_dims.items():
+                    if isinstance(value, (int, float)):
+                        per_dim.setdefault(str(key), []).append(float(value))
+            dims = {
+                key: sum(vals) / len(vals) for key, vals in per_dim.items() if vals
+            }
+        if isinstance(dims, dict):
+            for key, value in dims.items():
+                if isinstance(value, (int, float)):
+                    dim_means.setdefault(str(key), []).append(float(value))
+    process_values = {
+        key: round(sum(vals) / len(vals), 2) for key, vals in dim_means.items() if vals
+    }
+    process_radar = _radar_svg(process_values) if process_values else "<p class='muted'>No process-dimension averages available on this suite summary.</p>"
+
+    domain_total = scorecard.get("domain_weighted_total") if isinstance(scorecard, dict) else None
+    domain_total_html = ""
+    if isinstance(domain_total, dict) and domain_total.get("usable"):
+        domain_total_html = (
+            f"<p><b>Domain-weighted strict total:</b> {domain_total.get('strict')} "
+            f"(missing axes renormalized: {', '.join(domain_total.get('missing_axes') or []) or 'none'})</p>"
+        )
+
+    rows = []
+    for task in suite_summary.get("tasks", []):
+        rows.append(
+            "<tr>"
+            f"<td><code>{task.get('task_id')}</code></td>"
+            f"<td>{task.get('mean_score')}</td>"
+            f"<td>{task.get('mean_verified_normalized_score')}</td>"
+            f"<td>{task.get('mean_verified_coverage_percent')}%</td>"
+            f"<td>{task.get('mean_duration_seconds')}</td>"
+            "</tr>"
+        )
+    axis_rows = []
+    for axis, values in axes.items():
+        axis_rows.append(
+            "<tr>"
+            f"<td>{values.get('title')} (<code>{axis}</code>)</td>"
+            f"<td>{values.get('task_count')}</td>"
+            f"<td>{values.get('mean_strict_score')}</td>"
+            f"<td>{values.get('mean_verified_normalized_score')}</td>"
+            f"<td>{values.get('mean_verified_coverage_percent')}%</td>"
+            "</tr>"
+        )
+
+    document = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Suite Report {suite_summary.get('suite_id')}</title>
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #1f2933; }}
+    main {{ max-width: 1000px; margin: 0 auto; }}
+    .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }}
+    .radar {{ max-width: 420px; }}
+    .radar svg {{ width: 100%; height: auto; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 16px 0 28px; }}
+    th, td {{ border-bottom: 1px solid #d8dee4; padding: 8px; text-align: left; }}
+    .muted {{ color: #52606d; }}
+    @media (max-width: 800px) {{ .grid {{ grid-template-columns: 1fr; }} }}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Suite: {suite_summary.get('suite_id')}</h1>
+  <p class="muted">adapter=<code>{suite_summary.get('adapter')}</code>
+    model=<code>{suite_summary.get('model')}</code>
+    mean_score=<b>{suite_summary.get('mean_score')}</b>
+    tasks={suite_summary.get('task_count')}</p>
+  {domain_total_html}
+  <div class="grid">
+    <section>
+      <h2>Domain-axis radar</h2>
+      <p class="muted">Outcome axes (software / systems+embedded / scientific+optics / web / security…)</p>
+      <div class="radar">{domain_radar}</div>
+    </section>
+    <section>
+      <h2>Process-dimension radar</h2>
+      <p class="muted">Mean of 10 scoring dimensions across suite tasks (when present)</p>
+      <div class="radar">{process_radar}</div>
+    </section>
+  </div>
+  <h2>Domain axes</h2>
+  <table><thead><tr><th>Axis</th><th>Tasks</th><th>Strict</th><th>Verified</th><th>Coverage</th></tr></thead>
+  <tbody>{''.join(axis_rows) or '<tr><td colspan="5">none</td></tr>'}</tbody></table>
+  <h2>Tasks</h2>
+  <table><thead><tr><th>Task</th><th>Strict</th><th>Verified</th><th>Coverage</th><th>Duration</th></tr></thead>
+  <tbody>{''.join(rows)}</tbody></table>
+</main>
+</body>
+</html>
+"""
+    path.write_text(document, encoding="utf-8")
 
 
 def _format_interval(interval: object) -> str:

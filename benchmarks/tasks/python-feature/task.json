@@ -2,15 +2,32 @@
   "id": "python-feature",
   "title": "Implement a sorted list merge function",
   "instruction": "Implement merge_sorted in sort_utils.py. It should merge two sorted lists into one sorted list in O(n) time. Do not use Python's built-in sort or sorted.",
-  "capabilities": ["feature_implementation", "python_engineering", "test_discipline"],
-  "domains": ["python"],
+  "capabilities": [
+    "feature_implementation",
+    "python_engineering",
+    "test_discipline"
+  ],
+  "domains": [
+    "python"
+  ],
   "difficulty": "easy",
   "difficulty_rationale": "One bounded algorithmic implementation with an explicit complexity constraint and hidden tests.",
-  "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
+  "provenance": {
+    "type": "custom_seed",
+    "source": "agent-benchmark project-owned task corpus"
+  },
   "workspace": "workspace",
-  "test_command": ["python3", "test_merge.py"],
-  "hidden_test_command": ["python3", "test_hidden_merge.py"],
-  "protected_paths": ["test_merge.py"],
+  "test_command": [
+    "python3",
+    "test_merge.py"
+  ],
+  "hidden_test_command": [
+    "python3",
+    "test_hidden_merge.py"
+  ],
+  "protected_paths": [
+    "test_merge.py"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -20,7 +37,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["sort_utils.py"]
+      "expected_changed_files": [
+        "sort_utils.py"
+      ]
     },
     {
       "type": "code_quality",
@@ -40,8 +59,19 @@
       "type": "performance_check",
       "dimension": "execution_quality",
       "path": "test_merge.py",
-      "command": ["python3", "test_merge.py"],
+      "command": [
+        "python3",
+        "test_merge.py"
+      ],
       "max_seconds": 5.0
     }
-  ]
+  ],
+  "metadata": {
+    "environment": "container_required",
+    "required_python_packages": [],
+    "container": {
+      "memory": "1g",
+      "cpus": 1.0
+    }
+  }
 }

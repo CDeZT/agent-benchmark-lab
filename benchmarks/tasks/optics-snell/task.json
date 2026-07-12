@@ -1,19 +1,19 @@
 {
-  "id": "optics-python",
-  "title": "Normalize an optical intensity profile",
-  "instruction": "Fix normalize_profile so an optical intensity profile is shifted to remove negative baseline, normalized to unit peak, and remains all zeros when the input has no positive dynamic range.",
+  "id": "optics-snell",
+  "title": "Snell's law refraction and critical angle",
+  "instruction": "Implement snell_refract and critical_angle in snell.py. snell_refract(n1, n2, theta1_deg) returns the transmission angle in degrees using n1*sin(theta1)=n2*sin(theta2). Angles are from the surface normal, in degrees. If total internal reflection occurs, return None. critical_angle(n1, n2) returns the critical incidence angle in degrees for light from medium n1 into n2 when n1>n2; if n1<=n2 return None. Raise ValueError for non-positive indices or incidence angles outside [0, 90].",
   "capabilities": [
     "optics_engineering",
     "python_engineering",
-    "bugfix",
-    "numerical_accuracy"
+    "numerical_accuracy",
+    "feature_implementation"
   ],
   "domains": [
     "python",
     "optics"
   ],
   "difficulty": "medium",
-  "difficulty_rationale": "Small numerical bug fix that requires domain-aware treatment of zero dynamic range.",
+  "difficulty_rationale": "Unit conversions and TIR branch; easy to confuse degrees/radians or critical-angle domain.",
   "provenance": {
     "type": "domain_seed",
     "source": "agent-benchmark optics engineering seed corpus"
@@ -29,26 +29,26 @@
   "workspace": "workspace",
   "test_command": [
     "python3",
-    "test_optics.py"
+    "test_snell.py"
   ],
   "hidden_test_command": [
     "python3",
-    "test_hidden_optics.py"
+    "test_hidden_snell.py"
   ],
   "protected_paths": [
-    "test_optics.py"
+    "test_snell.py"
   ],
   "process_checks": [
     {
       "type": "file_changed",
       "dimension": "execution_quality",
-      "path": "optics.py"
+      "path": "snell.py"
     },
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": [
-        "optics.py"
+        "snell.py"
       ]
     },
     {
