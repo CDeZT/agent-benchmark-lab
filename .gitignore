@@ -25,6 +25,9 @@ tmp/
 # Local model registry may contain provider-specific mappings.
 config/model_registry.json
 
+# Local harness command overrides (copy from harnesses.example.json).
+config/harnesses.json
+
 # C compilation artifacts
 *.o
 *.so

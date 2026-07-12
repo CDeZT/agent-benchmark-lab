@@ -39,9 +39,21 @@ Adapter shell implemented. Configure with `AGENT_BENCH_OPENCODE_COMMAND`. The ta
 
 Adapter shell implemented. Configure with `AGENT_BENCH_CLAUDE_CODE_COMMAND`. The task instruction is passed on stdin from inside the isolated workspace, and is also available through command placeholders. Permission and interaction handling must be refined after testing against the user's local Claude Code CLI.
 
+### grok
+
+Implemented. Built-in default uses Grok Build headless mode:
+
+`grok --always-approve --output-format json --prompt-file {instruction_file}`
+
+When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `-m "$AGENT_BENCH_MODEL"`. Override with `AGENT_BENCH_GROK_COMMAND`.
+
 ### generic-command
 
 Implemented. A configurable adapter for experimental local harness commands. Configure it with `AGENT_BENCH_COMMAND`; the task instruction is passed on stdin from the isolated workspace, and is also available through command placeholders.
+
+### Config registry (any headless CLI)
+
+`config/harnesses.example.json` documents command templates for grok/gemini/opencode/claude-code. Copy to `config/harnesses.json` (gitignored) or set `AGENT_BENCH_HARNESSES_FILE` to register additional adapter names without writing Python. Built-in code adapters always win on name collision. CLI flag churn should be fixed by editing the command string, not the scoring system.
 
 Command templates support these shell-quoted placeholders:
 

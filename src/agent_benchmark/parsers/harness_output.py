@@ -29,6 +29,8 @@ def parse_harness_output(adapter: str, stdout: str, stderr: str) -> HarnessEvide
         return _parse_opencode(stdout, stderr)
     if adapter == "claude-code":
         return _parse_claude_code(stdout, stderr)
+    if adapter == "grok":
+        return _parse_grok(stdout, stderr)
     return HarnessEvidence()
 
 
@@ -136,6 +138,84 @@ def _extract_token_cost(line: str, evidence: HarnessEvidence) -> None:
             evidence.cost_usd = float(cost_match.group(1))
         except ValueError:
             pass
+
+
+def _parse_grok(stdout: str, stderr: str) -> HarnessEvidence:
+    """Parse Grok Build headless JSON/plain output.
+
+    Documented JSON success shape includes ``text`` / ``sessionId``. Usage fields
+    are optional and only scored when present so missing telemetry degrades
+    gracefully instead of inventing cost or tool evidence.
+    """
+    evidence = HarnessEvidence()
+    for blob in (stdout, stderr):
+        payload = _load_json_object(blob)
+        if payload is None:
+            continue
+        if payload.get("type") == "error":
+            continue
+        model = payload.get("model") or payload.get("modelId") or payload.get("model_id")
+        if isinstance(model, str) and model.strip():
+            evidence.model = model.strip()
+        usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+        for key, attr in (
+            ("input_tokens", "input_tokens"),
+            ("inputTokens", "input_tokens"),
+            ("prompt_tokens", "input_tokens"),
+            ("output_tokens", "output_tokens"),
+            ("outputTokens", "output_tokens"),
+            ("completion_tokens", "output_tokens"),
+        ):
+            value = usage.get(key) if key in usage else payload.get(key)
+            if isinstance(value, (int, float)) and getattr(evidence, attr) is None:
+                setattr(evidence, attr, int(value))
+        for key in ("cost_usd", "total_cost_usd", "cost"):
+            value = usage.get(key) if key in usage else payload.get(key)
+            if isinstance(value, (int, float)) and evidence.cost_usd is None:
+                evidence.cost_usd = float(value)
+        tools = payload.get("toolCalls") or payload.get("tool_calls") or payload.get("tools")
+        if isinstance(tools, list):
+            for item in tools:
+                if isinstance(item, dict):
+                    evidence.tool_calls.append(
+                        {
+                            "type": str(item.get("type") or item.get("name") or "tool"),
+                            "detail": str(item.get("name") or item.get("id") or item)[:200],
+                        }
+                    )
+                elif isinstance(item, str) and item.strip():
+                    evidence.tool_calls.append({"type": "tool", "detail": item.strip()[:200]})
+        if evidence.model or evidence.tool_calls or evidence.input_tokens is not None:
+            return evidence
+    # Streaming-json: collect tool-ish event types without inventing scores.
+    for line in (stdout or "").splitlines():
+        event = _load_json_object(line)
+        if not isinstance(event, dict):
+            continue
+        event_type = str(event.get("type") or "")
+        if event_type in {"tool", "tool_call", "toolCall", "function_call"}:
+            evidence.tool_calls.append({"type": event_type, "detail": str(event)[:200]})
+        if event_type == "end" and isinstance(event.get("model"), str):
+            evidence.model = event["model"]
+    return evidence
+
+
+def _load_json_object(text: str) -> dict | None:
+    if not text or not text.strip():
+        return None
+    try:
+        payload = json.loads(text)
+    except (TypeError, json.JSONDecodeError):
+        # Some CLIs print logs before the final JSON object.
+        start = text.find("{")
+        end = text.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            payload = json.loads(text[start : end + 1])
+        except (TypeError, json.JSONDecodeError):
+            return None
+    return payload if isinstance(payload, dict) else None
 
 
 def _parse_claude_code(stdout: str, stderr: str) -> HarnessEvidence:

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "description": "Optional local harness registry. Copy to harnesses.json (gitignored) or set AGENT_BENCH_HARNESSES_FILE. Built-in adapters win when names collide; unknown names are loaded from this file as thin shell commands.",
+  "harnesses": {
+    "grok": {
+      "display_name": "Grok Build CLI",
+      "binary": "grok",
+      "version_command": ["grok", "--version"],
+      "model_selection": "cli",
+      "command_env": "AGENT_BENCH_GROK_COMMAND",
+      "timeout_env": "AGENT_BENCH_GROK_TIMEOUT_SECONDS",
+      "default_command": "if [ \"$AGENT_BENCH_MODEL\" = \"unspecified\" ]; then grok --always-approve --output-format json --prompt-file {instruction_file}; else grok --always-approve --output-format json -m \"$AGENT_BENCH_MODEL\" --prompt-file {instruction_file}; fi",
+      "notes": "Headless multi-turn with tools. Pin the grok CLI version in reports when comparing."
+    },
+    "gemini": {
+      "display_name": "Gemini CLI",
+      "binary": "gemini",
+      "version_command": ["gemini", "--version"],
+      "model_selection": "cli",
+      "command_env": "AGENT_BENCH_GEMINI_COMMAND",
+      "timeout_env": "AGENT_BENCH_GEMINI_TIMEOUT_SECONDS",
+      "default_command": "if [ \"$AGENT_BENCH_MODEL\" = \"unspecified\" ]; then gemini -y -p \"$(cat {instruction_file})\"; else gemini -y -m \"$AGENT_BENCH_MODEL\" -p \"$(cat {instruction_file})\"; fi",
+      "notes": "Example only; adjust flags after checking your installed gemini CLI."
+    },
+    "opencode": {
+      "display_name": "opencode",
+      "binary": "opencode",
+      "model_selection": "configured_default_only",
+      "command_env": "AGENT_BENCH_OPENCODE_COMMAND",
+      "default_command": "opencode run --auto \"$(cat {instruction_file})\"",
+      "notes": "Built-in adapter preferred. Registry entry documents the template for forks."
+    },
+    "claude-code": {
+      "display_name": "Claude Code",
+      "binary": "claude",
+      "model_selection": "cli",
+      "command_env": "AGENT_BENCH_CLAUDE_CODE_COMMAND",
+      "default_command": "if [ \"$AGENT_BENCH_MODEL\" = \"unspecified\" ]; then claude -p --output-format json --dangerously-skip-permissions --no-session-persistence \"$(cat {instruction_file})\"; else claude -p --output-format json --dangerously-skip-permissions --no-session-persistence --model \"$AGENT_BENCH_MODEL\" \"$(cat {instruction_file})\"; fi",
+      "notes": "Built-in adapter preferred."
+    }
+  }
+}

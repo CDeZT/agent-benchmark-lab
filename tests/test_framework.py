@@ -22,6 +22,8 @@ from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_config, main
 from agent_benchmark.dashboard import build_dashboard, write_dashboard
 from agent_benchmark.doctor import format_doctor, run_doctor
+from agent_benchmark.harness_registry import load_harness_registry
+from agent_benchmark.parsers.harness_output import parse_harness_output
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.model_identity import summarize_model_identity
@@ -1442,14 +1444,75 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("playwright", rendered)
         self.assertIn("opencode", rendered)
         self.assertIn("claude-code", rendered)
+        self.assertIn("grok", rendered)
 
     def test_real_harness_adapters_have_default_templates(self) -> None:
         from agent_benchmark.adapters.claude_code import ClaudeCodeAdapter
+        from agent_benchmark.adapters.grok import GrokAdapter
         from agent_benchmark.adapters.opencode import OpencodeAdapter
 
         self.assertIn("opencode run", OpencodeAdapter().command_template() or "")
         self.assertIn("claude -p", ClaudeCodeAdapter().command_template() or "")
         self.assertIn("--output-format json", ClaudeCodeAdapter().command_template() or "")
+        self.assertIn("grok --always-approve", GrokAdapter().command_template() or "")
+        self.assertIn("--prompt-file", GrokAdapter().command_template() or "")
+        self.assertIn("grok", available_adapters())
+
+    def test_harness_registry_example_loads_and_exposes_configured_adapters(self) -> None:
+        registry = load_harness_registry(ROOT / "config" / "harnesses.example.json")
+        self.assertIn("gemini", registry)
+        self.assertIn("default_command", registry["gemini"])
+        # Built-in names still resolve to code adapters; configured-only names use JSON.
+        self.assertEqual(adapter_by_name("grok").name, "grok")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "harnesses.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "harnesses": {
+                            "toy-cli": {
+                                "default_command": "echo toy > used.txt",
+                                "model_selection": "cli",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            old = os.environ.get("AGENT_BENCH_HARNESSES_FILE")
+            os.environ["AGENT_BENCH_HARNESSES_FILE"] = str(path)
+            try:
+                adapter = adapter_by_name("toy-cli")
+                self.assertEqual(adapter.name, "toy-cli")
+                self.assertIn("echo toy", adapter.command_template() or "")
+                self.assertIn("toy-cli", available_adapters())
+            finally:
+                if old is None:
+                    os.environ.pop("AGENT_BENCH_HARNESSES_FILE", None)
+                else:
+                    os.environ["AGENT_BENCH_HARNESSES_FILE"] = old
+
+    def test_grok_parser_reads_json_usage_without_inventing_missing_fields(self) -> None:
+        evidence = parse_harness_output(
+            "grok",
+            json.dumps(
+                {
+                    "text": "done",
+                    "model": "grok-code",
+                    "usage": {"input_tokens": 11, "output_tokens": 7, "cost_usd": 0.01},
+                    "tool_calls": [{"name": "edit"}],
+                }
+            ),
+            "",
+        )
+        self.assertEqual(evidence.model, "grok-code")
+        self.assertEqual(evidence.input_tokens, 11)
+        self.assertEqual(evidence.output_tokens, 7)
+        self.assertEqual(evidence.cost_usd, 0.01)
+        self.assertEqual(len(evidence.tool_calls), 1)
+        empty = parse_harness_output("grok", '{"text":"hi","sessionId":"abc"}', "")
+        self.assertIsNone(empty.model)
+        self.assertIsNone(empty.cost_usd)
 
     def test_next_agent_prompt_contains_required_handoff_rules(self) -> None:
         prompt = load_next_agent_prompt(ROOT / "docs" / "next_agent_prompt.md")

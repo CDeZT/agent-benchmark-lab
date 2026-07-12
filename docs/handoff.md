@@ -146,6 +146,9 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Iteration (2026-07-12)
 
+- Added first-class `grok` adapter (Grok Build CLI headless: `--always-approve --output-format json --prompt-file`).
+- Added `config/harnesses.example.json` + dynamic configured adapters so new headless CLIs can be registered without Python when not built-in.
+- User policy: routine validation uses a **single** harness; dual-harness matrices only for deliberate comparisons. Interrupted dual matrix: `runs/matrix-20260712T094706Z-39b0f8c0`.
 - Removed the false `longcat-2.0` → Claude Code `mimo` registry mapping. Registry now only contains honest same-model candidate mappings for mimo identifiers.
 - Added `agent-benchmark dashboard`: scans saved matrix/suite/task/SWE-bench bridge artifacts, writes `runs/dashboard/index.html` + `dashboard.json`, and labels fingerprint match/mismatch plus provisional CLI-default identity. It does not invent scores.
 - Dashboard status item moved from planned to implemented.

@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 37)
+
+- User clarified product goal: open-source standard for arbitrary harness×model scoring; routine validation is single-harness only.
+- Added built-in `grok` adapter for Grok Build CLI headless mode and optional JSON usage parsing that degrades cleanly when telemetry is absent.
+- Added `config/harnesses.example.json` and `ConfiguredHarnessAdapter` so unknown adapter names can resolve from JSON command templates (CLI flag churn = config edit).
+- Doctor now checks `grok` and documents recommended command templates for opencode/claude-code/grok.
+
 ## 2026-07-12 (iteration 36)
 
 - Started a real fingerprinted CLI-default calibration matrix: opencode vs claude-code × `unspecified` × oneshot × 3 repetitions (`matrix-20260712T094706Z-39b0f8c0`).

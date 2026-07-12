@@ -34,7 +34,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 当前有 5 个 SWE-bench 冻结元数据记录，但它们没有本地仓库环境或官方 evaluator 原始结果，不能运行、计分或进入排行榜；`external_imported` 仍未完成。详见 `docs/task_provenance.md`。
 - `calibration` suite 从易到专家级覆盖本机可运行任务；依赖 Flask、NumPy、SciPy 或 pandas 的任务明确标记为 `container_required`，不会混进默认本机比较。
 - Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。当前 Colima Docker daemon 已可用，且已有 `python-fullstack` 容器运行证据；SWE-bench 官方 evaluator 已完成一次端到端启动，但首个环境镜像构建错误只能作为基础设施证据，不是外部跑分。
-- 4 种适配器（dummy/generic-command/opencode/claude-code）
+- 5 种内置适配器（dummy/generic-command/opencode/claude-code/grok）+ `config/harnesses.example.json` 配置化登记任意 headless CLI
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 两种明确的模型模式：默认的 `cli_default_configurations` 直接比较两个 CLI 此刻的真实默认配置；显式同模型模式才使用 registry，且跨 harness 的“同模型”结论必须是 `verified_match`，不能只看用户标签。详见 `docs/model_modes.md`。
 - `config/model_registry.example.json` 是可选的高级能力：把同一规范模型名映射为 Claude Code / opencode 各自需要的 CLI 参数，避免不同 CLI 命名导致伪同模型比较。
@@ -102,6 +102,8 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter claude-code --repetitions 1
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter grok --repetitions 1
+# Any headless CLI without a built-in adapter: copy config/harnesses.example.json → config/harnesses.json and add a command template.
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-dir runs/<matrix-run-id>

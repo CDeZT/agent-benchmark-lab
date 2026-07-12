@@ -19,6 +19,7 @@ class DoctorCheck:
 RECOMMENDED_COMMANDS = {
     "opencode": "built-in default uses opencode run --auto (--model intentionally omitted: opencode 1.17.15 crashes with any --model value)",
     "claude-code": "built-in default uses claude -p --dangerously-skip-permissions --no-session-persistence, adding --model only when AGENT_BENCH_MODEL is not unspecified",
+    "grok": "built-in default uses grok --always-approve --output-format json --prompt-file {instruction_file}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
 }
 
 
@@ -29,11 +30,13 @@ def run_doctor() -> dict[str, Any]:
         _command_check("cc", ["cc", "--version"]),
         _command_check("opencode", ["opencode", "--version"]),
         _command_check("claude", ["claude", "--version"]),
+        _command_check("grok", ["grok", "--version"]),
         _docker_check(),
         _playwright_check(),
         _env_check("AGENT_BENCH_COMMAND"),
         _env_check("AGENT_BENCH_OPENCODE_COMMAND", recommended=RECOMMENDED_COMMANDS["opencode"]),
         _env_check("AGENT_BENCH_CLAUDE_CODE_COMMAND", recommended=RECOMMENDED_COMMANDS["claude-code"]),
+        _env_check("AGENT_BENCH_GROK_COMMAND", recommended=RECOMMENDED_COMMANDS["grok"]),
     ]
     return {
         "ok": all(check.status != "error" for check in checks),
@@ -58,6 +61,7 @@ def format_doctor(summary: dict[str, Any]) -> str:
             "Recommended command templates:",
             f"- opencode: `{summary['recommended_commands']['opencode']}`",
             f"- claude-code: `{summary['recommended_commands']['claude-code']}`",
+            f"- grok: `{summary['recommended_commands']['grok']}`",
         ]
     )
     return "\n".join(lines)
