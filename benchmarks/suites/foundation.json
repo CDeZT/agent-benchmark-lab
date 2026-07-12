@@ -1,20 +1,20 @@
 {
   "id": "foundation",
   "title": "Foundation seed suite",
-  "description": "Small seed tasks used to validate the benchmark framework and preserve the project's long-term coverage direction.",
+  "description": "Core seed tasks validating framework coverage: Python, C, frontend, embedded, optics ladder head, process, systems. Prefer Docker problem/answer isolation.",
   "tasks": [
     "python-bugfix",
     "c-bugfix",
     "frontend-visual",
     "embedded-c",
+    "optics-thin-lens",
     "optics-python",
     "process-planning",
     "python-feature",
     "python-refactor",
     "ci-debugging",
     "code-review",
-    "repo-understanding",
-    "systems-concurrency"
+    "repo-understanding"
   ],
   "capability_focus": [
     "bugfix",
@@ -27,8 +27,6 @@
     "planning",
     "numerical_accuracy",
     "protocol_design",
-    "safety_boundary",
-    "data_engineering",
-    "performance"
+    "safety_boundary"
   ]
 }

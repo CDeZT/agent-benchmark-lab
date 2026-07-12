@@ -22,6 +22,7 @@ class DockerUnavailableError(RuntimeError):
 class ContainerSpec:
     base_image: str
     packages: tuple[str, ...]
+    apt_packages: tuple[str, ...]
     cpus: float
     memory: str
     image_tag: str
@@ -76,6 +77,12 @@ def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
         raise ValueError(
             f"Task '{task.task_id}' container packages must use exact versions: {', '.join(unpinned)}"
         )
+    apt_raw = raw.get("apt_packages", []) or []
+    if not isinstance(apt_raw, list):
+        raise ValueError(f"Task '{task.task_id}' metadata.container.apt_packages must be a list")
+    apt_packages = tuple(str(item) for item in apt_raw)
+    if any(not package or any(ch in package for ch in " \t\n;&|") for package in apt_packages):
+        raise ValueError(f"Task '{task.task_id}' apt_packages must be simple package names")
     cpus = float(raw.get("cpus", 2.0))
     memory = str(raw.get("memory", "2g"))
     if cpus <= 0 or not memory:
@@ -85,6 +92,12 @@ def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
         f"FROM {base_image}",
         "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1",
     ]
+    if apt_packages:
+        lines.append(
+            "RUN apt-get update && apt-get install -y --no-install-recommends "
+            + " ".join(apt_packages)
+            + " && rm -rf /var/lib/apt/lists/*"
+        )
     if packages:
         lines.append(
             "RUN python3 -m pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple "
@@ -96,6 +109,7 @@ def container_spec_for_task(task: TaskSpec) -> ContainerSpec:
     return ContainerSpec(
         base_image=base_image,
         packages=packages,
+        apt_packages=apt_packages,
         cpus=cpus,
         memory=memory,
         image_tag=f"agent-benchmark/{task.task_id}:{fingerprint}",
@@ -178,6 +192,7 @@ class DockerTaskEnvironment:
             "image_id": self.image_id,
             "base_image": self.spec.base_image,
             "packages": list(self.spec.packages),
+            "apt_packages": list(self.spec.apt_packages),
             "cpus": self.spec.cpus,
             "memory": self.spec.memory,
             "workspace_mount": "/workspace:rw",

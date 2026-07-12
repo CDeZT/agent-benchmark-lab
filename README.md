@@ -15,7 +15,10 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，**不是已经做完**的权威排行榜。本地可评测任务持续扩充（含 **8 道光学梯子题**、多数纯 Python 题已 `container_required` 做题/答分离）、冻结外部元数据、多 suite（含 `optics-discrimination` / `hard-discrimination` / `unified-hard`）、dashboard、SWE-bench/Terminal-Bench 官方 bridge。白话说明见 `docs/user_guide_plain.md`。
+当前仓库是**可个人使用**的早期 benchmark framework，**不是**做完的权威排行榜。  
+本地可评测任务含 **8 道光学梯子**；多数纯 Python/光学为 `container_required`（Docker 题/答分离）；C/嵌入式本机编译。  
+SWE bridge 已修：`patch_missing` 禁止无意义 resume、harness 硬超时。  
+白话与推荐命令：`docs/user_guide_plain.md`。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：

@@ -2,17 +2,40 @@
   "id": "c-bugfix",
   "title": "Fix C clamp function",
   "instruction": "Fix clamp_int so values below the lower bound return the lower bound, values above the upper bound return the upper bound, and values inside the range are unchanged.",
-  "capabilities": ["bugfix", "c_engineering", "test_discipline"],
-  "domains": ["c"],
+  "capabilities": [
+    "bugfix",
+    "c_engineering",
+    "test_discipline"
+  ],
+  "domains": [
+    "c"
+  ],
   "difficulty": "easy",
   "difficulty_rationale": "Single-file C bug fix with a small API surface and deterministic tests.",
-  "provenance": {"type": "custom_seed", "source": "agent-benchmark project-owned task corpus"},
-  "metadata": {"benchmark_role": "smoke_only"},
+  "provenance": {
+    "type": "custom_seed",
+    "source": "agent-benchmark project-owned task corpus"
+  },
+  "metadata": {
+    "benchmark_role": "smoke_only"
+  },
   "workspace": "workspace",
-  "test_command": ["sh", "test.sh"],
-  "hidden_test_command": ["sh", "test_hidden_clamp.sh"],
-  "protected_paths": ["test.sh", "test_clamp.c", "clamp.h"],
-  "artifact_ignore_globs": ["test_clamp"],
+  "test_command": [
+    "sh",
+    "test.sh"
+  ],
+  "hidden_test_command": [
+    "sh",
+    "test_hidden_clamp.sh"
+  ],
+  "protected_paths": [
+    "test.sh",
+    "test_clamp.c",
+    "clamp.h"
+  ],
+  "artifact_ignore_globs": [
+    "test_clamp"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -22,7 +45,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["clamp.c"]
+      "expected_changed_files": [
+        "clamp.c"
+      ]
     }
   ]
 }

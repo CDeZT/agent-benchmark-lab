@@ -38,9 +38,13 @@ class SWEbenchBridgeConfig:
     model: str = "unspecified"
     budget_profile: str = "open_ended"
     evaluator_timeout_seconds: int = 1800
+    # Safety cap for the harness stage. open_ended alone used to hang forever.
+    harness_timeout_seconds: int = 2400
     max_workers: int = 1
     namespace: str = ""
     bridge_dir: Path | None = None
+    # Without this flag, patch_missing bridge dirs refuse to re-run the harness.
+    retry_harness: bool = False
 
 
 def prepare_swebench_bridge(config: SWEbenchBridgeConfig) -> dict[str, Any]:
@@ -131,6 +135,14 @@ def run_swebench_bridge(config: SWEbenchBridgeConfig) -> dict[str, Any]:
     patch_path = bridge_dir / "model.patch"
     prediction_path = bridge_dir / "predictions.jsonl"
     if not patch_path.exists():
+        # Do not silently re-burn tokens when a previous attempt already failed
+        # with no patch (this is what left opencode hung for hours).
+        if manifest.get("status") == "patch_missing" and not config.retry_harness:
+            raise RuntimeError(
+                f"Bridge '{bridge_dir.name}' already ended with patch_missing. "
+                "Refusing to re-run the harness without --retry-harness. "
+                "Start a fresh --bridge-dir or pass --retry-harness intentionally."
+            )
         adapter_result = _run_harness(config, instance_snapshot, workspace, bridge_dir)
         patch = _workspace_patch(workspace)
         if not patch.strip():
@@ -138,11 +150,19 @@ def run_swebench_bridge(config: SWEbenchBridgeConfig) -> dict[str, Any]:
                 manifest_path,
                 manifest,
                 "harness",
-                {"exit_code": adapter_result["exit_code"], "patch_generated": False},
+                {
+                    "exit_code": adapter_result["exit_code"],
+                    "patch_generated": False,
+                    "timed_out": adapter_result.get("timed_out", False),
+                    "duration_seconds": adapter_result.get("duration_seconds"),
+                },
             )
             manifest["status"] = "patch_missing"
             _write_json(manifest_path, manifest)
-            raise RuntimeError("Harness produced no git patch; official evaluation was not started.")
+            raise RuntimeError(
+                "Harness produced no git patch; official evaluation was not started. "
+                "Resume will not retry unless you pass --retry-harness."
+            )
         patch_path.write_text(patch, encoding="utf-8")
         _mark_stage(manifest_path, manifest, "harness", {**adapter_result, "patch_generated": True, "patch_path": str(patch_path)})
     else:
@@ -220,6 +240,8 @@ def run_swebench_bridge(config: SWEbenchBridgeConfig) -> dict[str, Any]:
 def _validated_config(config: SWEbenchBridgeConfig) -> SWEbenchBridgeConfig:
     if config.evaluator_timeout_seconds <= 0:
         raise ValueError("evaluator_timeout_seconds must be positive")
+    if config.harness_timeout_seconds <= 0:
+        raise ValueError("harness_timeout_seconds must be positive")
     if config.max_workers != 1:
         raise ValueError("SWE-bench bridge intentionally permits exactly one evaluator worker per run.")
     ExperimentConfig(
@@ -365,13 +387,20 @@ def _run_harness(config: SWEbenchBridgeConfig, snapshot: dict[str, Any], workspa
     )
     recorder = JsonlRecorder(bridge_dir / "harness_trace.jsonl")
     adapter = adapter_by_name(config.adapter)
+    # Always enforce a hard harness timeout for official bridges so open_ended
+    # cannot hang a resume forever (seen with multi-hour empty opencode runs).
+    profile_cap = experiment.profile.max_duration_seconds
+    harness_cap = float(config.harness_timeout_seconds)
+    if profile_cap is not None:
+        harness_cap = min(harness_cap, float(profile_cap))
     injected = {
         "AGENT_BENCH_MODEL": experiment.invocation_model,
         "AGENT_BENCH_CANONICAL_MODEL": experiment.model,
         "AGENT_BENCH_BUDGET_PROFILE": experiment.budget_profile,
         "AGENT_BENCH_LABEL": experiment.label,
         "AGENT_BENCH_BUDGET_MAX_ATTEMPTS": str(experiment.profile.max_attempts or ""),
-        "AGENT_BENCH_BUDGET_MAX_SECONDS": str(experiment.profile.max_duration_seconds or ""),
+        "AGENT_BENCH_BUDGET_MAX_SECONDS": str(harness_cap),
+        "AGENT_BENCH_TIMEOUT_SECONDS": str(int(harness_cap)),
     }
     previous = {key: os.environ.get(key) for key in injected}
     os.environ.update(injected)
@@ -386,10 +415,13 @@ def _run_harness(config: SWEbenchBridgeConfig, snapshot: dict[str, Any], workspa
     (bridge_dir / "harness_stdout.log").write_text(result.stdout, encoding="utf-8")
     (bridge_dir / "harness_stderr.log").write_text(result.stderr, encoding="utf-8")
     evidence = parse_harness_output(config.adapter, result.stdout, result.stderr)
+    timed_out = int(result.exit_code or 0) == 124 or "timed out" in (result.stderr or "").lower()
     return {
         "adapter": config.adapter,
         "exit_code": result.exit_code,
         "duration_seconds": result.duration_seconds,
+        "timed_out": timed_out,
+        "harness_timeout_seconds": harness_cap,
         "detected_model": evidence.model,
         "tool_call_count": len(evidence.tool_calls),
         "cost_usd": evidence.cost_usd,

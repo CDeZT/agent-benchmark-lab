@@ -1,18 +1,15 @@
 {
   "id": "swebench-pilot",
-  "title": "SWE-bench Verified frozen metadata pilot",
-  "description": "Five preserved SWE-bench issue records for evaluator-bridge development. They are not locally runnable tasks and are excluded from ranking until an official evaluator result is preserved.",
+  "title": "SWE-bench Verified pilot (official bridge ids only)",
+  "description": "Runnable authoritative ids only (swebench: prefix). Frozen metadata folders under benchmarks/tasks/swebench-* are NOT runnable here. Prefer instances that already proved scorable; hard ranking items may still fail at evaluator infrastructure. Run via run-suite --suite swebench-pilot or swebench-bridge for one-at-a-time control.",
   "tasks": [
-    "swebench-astropy-astropy-13398",
-    "swebench-astropy-astropy-12907",
-    "swebench-astropy-astropy-13033",
-    "swebench-astropy-astropy-14309",
-    "swebench-pydata-xarray-6992"
+    "swebench:pallets__flask-5014",
+    "swebench:pylint-dev__pylint-4551"
   ],
   "capability_focus": [
     "bugfix",
     "code_understanding",
-    "debugging",
-    "cross_module_reasoning"
+    "cross_module_reasoning",
+    "python_engineering"
   ]
 }

@@ -1,13 +1,13 @@
 {
   "id": "personal-probe",
-  "title": "Personal probe suite (sampled tasks)",
-  "description": "Small sampled ladder for personal harness comparisons. Not a full calibration matrix: smoke + planning + visual + embedded + optics. Use 1-2 repetitions for cost control.",
+  "title": "Personal probe suite (sampled usable path)",
+  "description": "Small sampled ladder for personal harness smoke: easy Python, planning, visual, embedded, optics easy+hard. All Docker-isolated except frontend-visual. Use 1 repetition first.",
   "tasks": [
     "python-bugfix",
     "process-planning",
     "frontend-visual",
     "embedded-protocol-parser",
-    "optics-python",
+    "optics-thin-lens",
     "optics-psf-peak"
   ],
   "capability_focus": [

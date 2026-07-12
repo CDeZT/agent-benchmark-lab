@@ -113,8 +113,19 @@ def main(argv: list[str] | None = None) -> int:
     swebench_bridge_parser.add_argument("--model", default="unspecified", help="Canonical model label; unspecified uses the harness default.")
     swebench_bridge_parser.add_argument("--budget-profile", default="open_ended")
     swebench_bridge_parser.add_argument("--evaluator-timeout-seconds", type=int, default=1800)
+    swebench_bridge_parser.add_argument(
+        "--harness-timeout-seconds",
+        type=int,
+        default=2400,
+        help="Hard timeout for the harness stage (prevents open_ended from hanging forever).",
+    )
     swebench_bridge_parser.add_argument("--namespace", default="", help="Official image namespace; empty builds images locally on ARM Macs.")
     swebench_bridge_parser.add_argument("--bridge-dir", help="Resume an existing bridge directory.")
+    swebench_bridge_parser.add_argument(
+        "--retry-harness",
+        action="store_true",
+        help="Allow re-running the harness after a previous patch_missing result (default: refuse).",
+    )
     swebench_bridge_parser.add_argument("--pilots-file", default=str(DEFAULT_AUTHORITATIVE_PILOTS_PATH))
     swebench_bridge_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
     swebench_bridge_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
@@ -459,8 +470,10 @@ def _swebench_bridge(args: argparse.Namespace) -> int:
         model=args.model,
         budget_profile=args.budget_profile,
         evaluator_timeout_seconds=args.evaluator_timeout_seconds,
+        harness_timeout_seconds=args.harness_timeout_seconds,
         namespace=args.namespace,
         bridge_dir=Path(args.bridge_dir) if args.bridge_dir else None,
+        retry_harness=bool(getattr(args, "retry_harness", False)),
     )
     result = run_swebench_bridge(config) if args.execute else prepare_swebench_bridge(config)
     if args.json:

@@ -129,6 +129,14 @@ def _validate_catalog_metadata(task: TaskSpec, result: ValidationResult) -> None
         container = task.metadata.get("container", {})
         if container and not isinstance(container, dict):
             result.errors.append(f"{task.task_id}: metadata.container must be an object")
+        elif isinstance(container, dict):
+            apt = container.get("apt_packages", [])
+            if apt is None:
+                apt = []
+            if not isinstance(apt, list):
+                result.errors.append(f"{task.task_id}: metadata.container.apt_packages must be a list")
+            elif any(not isinstance(item, str) or not item or any(ch in item for ch in " \t\n;&|") for item in apt):
+                result.errors.append(f"{task.task_id}: apt_packages must be simple package name strings")
 
     if not task.provenance:
         result.warnings.append(f"{task.task_id}: missing provenance metadata")

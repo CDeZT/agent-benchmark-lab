@@ -2,16 +2,39 @@
   "id": "embedded-c",
   "title": "Parse a framed sensor packet safely",
   "instruction": "Fix parse_packet so it validates a 4-byte embedded-style packet: byte 0 must be 0xAA, byte 3 must equal the low 8 bits of byte1 + byte2, and the parsed output should combine byte1 and byte2 into a 16-bit big-endian value. Invalid input must return -1.",
-  "capabilities": ["embedded_engineering", "c_engineering", "bugfix", "safety_boundary"],
-  "domains": ["c", "embedded"],
+  "capabilities": [
+    "embedded_engineering",
+    "c_engineering",
+    "bugfix",
+    "safety_boundary"
+  ],
+  "domains": [
+    "c",
+    "embedded"
+  ],
   "difficulty": "medium",
   "difficulty_rationale": "Embedded-style C state and boundary handling with hidden safety tests.",
-  "provenance": {"type": "domain_seed", "source": "agent-benchmark embedded engineering seed corpus"},
+  "provenance": {
+    "type": "domain_seed",
+    "source": "agent-benchmark embedded engineering seed corpus"
+  },
   "workspace": "workspace",
-  "test_command": ["sh", "test.sh"],
-  "hidden_test_command": ["sh", "test_hidden_packet.sh"],
-  "protected_paths": ["test.sh", "test_packet.c", "packet.h"],
-  "artifact_ignore_globs": ["test_packet"],
+  "test_command": [
+    "sh",
+    "test.sh"
+  ],
+  "hidden_test_command": [
+    "sh",
+    "test_hidden_packet.sh"
+  ],
+  "protected_paths": [
+    "test.sh",
+    "test_packet.c",
+    "packet.h"
+  ],
+  "artifact_ignore_globs": [
+    "test_packet"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -21,7 +44,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["packet.c"]
+      "expected_changed_files": [
+        "packet.c"
+      ]
     }
   ]
 }
