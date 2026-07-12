@@ -10,6 +10,7 @@
   "metadata": {"environment": "container_required", "required_python_packages": ["flask==3.1.0", "pytest==8.3.4"]},
   "workspace": "workspace",
   "test_command": ["python3", "test_app.py"],
+  "hidden_test_command": ["python3", "test_hidden_app.py"],
   "protected_paths": ["README.md"],
   "process_checks": [
     {
