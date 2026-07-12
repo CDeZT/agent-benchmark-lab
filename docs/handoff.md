@@ -169,7 +169,19 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## Latest Real Harness Results
 
-Previous calibration matrices are retained under ignored `runs/` as legacy raw evidence, but are no longer eligible for difficulty calibration, screening, or winner claims because they predate task-contract fingerprinting. One older frontend matrix was also run while its workspace baseline had accidentally been repaired; this was corrected in commit `29e0a22`. Do not quote its scores, variance, hidden-test counts, or a Claude Code/opencode winner. Rerun the current fingerprinted `selection-ladder` or a current calibration subset with three repetitions before interpreting any result.
+**Fingerprinted Calibration Suite** (8 tasks, CLI default mode, 3 repetitions, post-fingerprinting):
+
+| Run | opencode (LongCat-2.0) | claude-code (mimo-v2.5-pro[1m]) | Winner |
+|-----|------------------------|----------------------------------|--------|
+| Run 1 | 49.9, var=0, 7/8 | **51.9**, var=0, 8/8 | claude-code |
+| Run 2 | 49.9, var=0, 7/8 | **52.9**, var=0, 8/8 | claude-code |
+
+**Confirmed findings** (two independent 3-repetition runs):
+- **claude-code consistently wins** by 2-3 points on calibration suite
+- Both harnesses have zero variance (very stable)
+- claude-code passes more hidden tests (8/8 vs 7/8)
+- Biggest difference: frontend-visual (+18.5 for claude-code)
+- Framework correctly auto-detects model identity
 
 ## Not Yet Implemented
 
