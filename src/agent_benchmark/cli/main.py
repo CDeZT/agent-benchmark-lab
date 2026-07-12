@@ -23,6 +23,7 @@ from agent_benchmark.reports.suite import write_suite_summary
 from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_supported, run_task
 from agent_benchmark.screening import build_screening_report
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
+from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, prepare_swebench_bridge, run_swebench_bridge
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
@@ -91,6 +92,23 @@ def main(argv: list[str] | None = None) -> int:
     freeze_pilot_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
     freeze_pilot_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
     freeze_pilot_parser.add_argument("--json", action="store_true")
+
+    swebench_bridge_parser = subparsers.add_parser(
+        "swebench-bridge",
+        help="Prepare or explicitly run one frozen SWE-bench instance through its official evaluator.",
+    )
+    swebench_bridge_parser.add_argument("--instance-id", required=True, help="One instance selected by the SWE-bench authoritative pilot.")
+    swebench_bridge_parser.add_argument("--adapter", required=True, help="Harness adapter that generates the patch.")
+    swebench_bridge_parser.add_argument("--model", default="unspecified", help="Canonical model label; unspecified uses the harness default.")
+    swebench_bridge_parser.add_argument("--budget-profile", default="open_ended")
+    swebench_bridge_parser.add_argument("--evaluator-timeout-seconds", type=int, default=1800)
+    swebench_bridge_parser.add_argument("--namespace", default="", help="Official image namespace; empty builds images locally on ARM Macs.")
+    swebench_bridge_parser.add_argument("--bridge-dir", help="Resume an existing bridge directory.")
+    swebench_bridge_parser.add_argument("--pilots-file", default=str(DEFAULT_AUTHORITATIVE_PILOTS_PATH))
+    swebench_bridge_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
+    swebench_bridge_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    swebench_bridge_parser.add_argument("--execute", action="store_true", help="Actually invoke the harness and official Docker evaluator.")
+    swebench_bridge_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -203,6 +221,8 @@ def main(argv: list[str] | None = None) -> int:
         return _preflight_authoritative(args)
     if args.command == "freeze-authoritative-pilot":
         return _freeze_authoritative_pilot(args)
+    if args.command == "swebench-bridge":
+        return _swebench_bridge(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -382,6 +402,32 @@ def _freeze_authoritative_pilot(args: argparse.Namespace) -> int:
         print(f"Frozen {manifest['instance_count']} upstream instances for {manifest['pilot_id']}")
         print(f"Snapshot SHA-256: {manifest['snapshot_sha256']}")
         print(f"Evidence: {manifest['output_dir']}")
+    return 0
+
+
+def _swebench_bridge(args: argparse.Namespace) -> int:
+    config = SWEbenchBridgeConfig(
+        pilot_file=Path(args.pilots_file),
+        registry_path=Path(args.registry),
+        runs_dir=Path(args.runs_dir),
+        instance_id=args.instance_id,
+        adapter=args.adapter,
+        model=args.model,
+        budget_profile=args.budget_profile,
+        evaluator_timeout_seconds=args.evaluator_timeout_seconds,
+        namespace=args.namespace,
+        bridge_dir=Path(args.bridge_dir) if args.bridge_dir else None,
+    )
+    result = run_swebench_bridge(config) if args.execute else prepare_swebench_bridge(config)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    elif args.execute:
+        print(f"SWE-bench bridge status: {result['manifest']['status']}")
+        print(f"Evidence: {result['bridge_dir']}")
+        print(f"Resolved: {result['official_summary']['resolved']}")
+    else:
+        print(f"SWE-bench bridge plan: {result['instance_id']} ({result['selection_role']})")
+        print("Run again with --execute only when ready to spend harness tokens and build official images.")
     return 0
 
 

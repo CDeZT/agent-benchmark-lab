@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 131 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 133 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current locally runnable corpus is custom seed/inspired work. The five SWE-bench records preserve metadata only and the generic runner rejects them. No authoritative external benchmark has been scored or imported yet. See `docs/task_provenance.md`.
 
@@ -144,7 +144,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 ## In Progress
 
-- Run more real harness combinations to make tasks selection-ready (currently 0/19 ready, 13 awaiting evidence).
+- Run more real harness combinations to make tasks selection-ready (currently 0/20 local tasks ready, 14 awaiting evidence; five external records are evaluator-pending).
 - The screening report shows python-bugfix and c-bugfix are `warmup_only` (too easy for ranking).
 
 ## Screening Status
@@ -176,17 +176,19 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 | Run 1 | 49.9, var=0, 7/8 | **51.9**, var=0, 8/8 | claude-code |
 | Run 2 | 49.9, var=0, 7/8 | **52.9**, var=0, 8/8 | claude-code |
 
-**Confirmed findings** (two independent 3-repetition runs):
-- **claude-code consistently wins** by 2-3 points on calibration suite
+**Historical configuration observation** (two independent 3-repetition CLI-default runs):
+- Claude Code was 2-3 points higher on this calibration suite under the then-current, different CLI defaults.
 - Both harnesses have zero variance (very stable)
 - claude-code passes more hidden tests (8/8 vs 7/8)
 - Biggest difference: frontend-visual (+18.5 for claude-code)
 - Framework correctly auto-detects model identity
 
+This is not a same-model conclusion and must be rerun after either CLI default changes. The selection gate remains zero-ready because its per-task discriminability policy requires a broader identified evidence set.
+
 ## Not Yet Implemented
 
 - Larger repeated real Claude Code/opencode matrices beyond smoke tests, starting with CLI-default configuration mode.
-- Docker-backed external evaluator bridges (SWE-bench Verified, Terminal-Bench).
+- Terminal-Bench external evaluator bridge. SWE-bench now has `swebench-bridge`, but no official instance result is claimed until an explicit `--execute` run finishes.
 - Optional LLM judge adjudication.
 - Dashboard.
 - More domain-specific tasks (JS/TS, GUI desktop, long-running autonomous).
@@ -210,14 +212,14 @@ No dimension should be faked. Tool-call count belongs to `tool_use`, not `cost_e
 
 Protected paths are now checked with SHA-256 hashes against the baseline workspace. Missing or modified protected paths set `safety_boundary` to 0.
 
-`python-bugfix` scores 58.0 with the dummy adapter in the current implementation because task completion, safety, execution quality, and intent-understanding evidence are present. The full `foundation` suite averages across 11 locally runnable tasks.
+`python-bugfix` scores 58.0 with the dummy adapter in the current implementation because task completion, safety, execution quality, and intent-understanding evidence are present. The full `foundation` suite averages across 12 locally runnable tasks.
 
 ## Verified Commands
 
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 130 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 133 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -229,6 +231,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models unspecified --repetitions 3
+PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit      # 5 checks, all pass
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --repetitions 1
@@ -239,13 +242,13 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation
 PYTHONPATH=src python3 -m compileall -q src tests
 ```
 
-The local `foundation` suite has 11 tasks. Do not claim any container-required dependency task has passed locally until `doctor` reports a ready Docker daemon and a saved container run exists.
+The local `foundation` suite has 12 tasks. Do not claim any external SWE-bench result until `swebench-bridge --execute` has preserved its official report; one bridge invocation is one instance, not a corpus score.
 
 ## Recommended Next Phase
 
 1. Run a three-repeat real `cli_default_configurations` matrix on `calibration` (opencode vs claude-code with `--models unspecified`) and preserve observed identities. It answers the practical tool-selection question but is not a same-model claim. Use the registry only for a separate explicit same-model matrix, and interpret only `verified_match` rows for that claim.
 2. Test the remaining project-owned Flask/NumPy container tasks and pin base-image digests.
-3. Bridge the frozen SWE-bench Verified pilot from harness patches to the official evaluator, then bridge the frozen Terminal-Bench pilot through its official harness. The official evaluator tools are installed and verified by `preflight-authoritative`.
+3. Run one selected SWE-bench bridge instance through the official evaluator, inspect its evidence, then bridge the frozen Terminal-Bench pilot through its official harness. The official evaluator tools are installed and verified by `preflight-authoritative`.
 4. Add more domain-specific tasks (embedded, optics, full-stack).
 5. Build dashboard for historical results.
 

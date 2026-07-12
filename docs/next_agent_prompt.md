@@ -59,6 +59,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 只有明确想测“同一模型不同 harness”时，才使用 canonical model + adapter-specific model registry；检查 `model_identity.status`，只有 `verified_match` 才能做同模型结论。不要把 CLI 参数标签、registry 或旧配置当作模型身份事实。
 - 在调用真实 harness 前先执行 `preflight-matrix`。如果它报告 registry identity hint mismatch，配置可以用于调试但不可用于公平排名；先修正映射，再花费 token。
 - 当前 opencode 1.17.15 的 `--model` 会崩溃，因此其 CLI 默认模型模式是正常且受支持的；即使 registry 写了 opencode 映射，也不能宣称该命令选中了某个模型。
+- `swebench-bridge` 是唯一允许把 harness patch 交给官方 SWE-bench evaluator 的路径。默认计划模式不花 token；只有用户明确允许的情况下才加 `--execute`。一次只跑一个 pilot-selected instance；中断时保留 bridge 目录并用同一参数加 `--bridge-dir` 恢复。ARM Mac 必须保持默认空 `--namespace`，让官方镜像本地构建。
 - 矩阵的主排名是任务级共同证据维度的 comparable score；严格总分只作诊断。模型身份不是 `verified_match` 的行必须称为 provisional，不能写成同模型结论。
 - `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
 - `calibrate-difficulty` 只能按实际检测到的模型身份聚合；默认要求每个 adapter/observed-model/profile 组合至少 3 次、至少 3 个组合和 9 个 eligible run。身份未知或混合的历史 run 只能保留审计，不能凑统计结论。
@@ -91,14 +92,14 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 131 个 unittest 测试函数，应该全部通过。
+- 133 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
 - 优先运行 `calibration` 的三次重复 CLI 默认配置矩阵（opencode vs claude-code × `unspecified`），作为用户实际工具选择证据；显式同模型矩阵仅解释 `verified_match` 行。
 - `bounded` 的时间上限现在会真正限制 adapter 子进程；`open_ended` 无上限。Ctrl-C 后检查 `interruption.json` 和 `checkpoint.json`，再用 `resume` 重跑未保存 result 的 repetition。
 - 官方 evaluator 工具现可用：SWE-bench 使用 `.agent-benchmark-evaluators/swebench` 的 Python 3.11，Terminal-Bench 使用 Python 3.13 的 `uv tool`。其他机器先运行 `scripts/setup_authoritative_evaluators.sh` 和 `preflight-authoritative`。工具可执行不等于题目已导入：仍必须冻结上游实例列表并保存官方 evaluator 原始结果。
-- 已冻结 `swe-bench-verified-screening-v1` 六题 pilot（上游难度从 `>4 hours` 到 `<15 min`），但它只是 metadata snapshot。下一步必须做 harness patch -> 官方 `swebench.harness.run_evaluation` 桥接；没有官方 evaluator 输出不得记分、不得标记 `external_imported`。
+- 已冻结 `swe-bench-verified-screening-v1` 六题 pilot（上游难度从 `>4 hours` 到 `<15 min`）。`swebench-bridge` 已实现 harness patch -> 官方 `swebench.harness.run_evaluation` 的单题可恢复链路；还没有官方 evaluator 输出，因此不得记分、不得标记 `external_imported`。先用计划命令检查，再由用户明确决定是否 `--execute`。
 - `swebench-pilot` 中另有 5 个历史导入尝试留下的任务记录；它们已被修正为 `external_frozen` + `external_evaluator_only`，用于开发桥接，不是可运行题库。不得重新把通用 `run_evaluation` 写成 task 的 `test_command`。
 - 已冻结独立 `terminal-bench-core-engineering-v1` 六题 pilot，涵盖 kernel/QEMU、C 图像、Raman 光谱、算法与 tmux 工作流；它必须通过官方 `tb run` 接入，结果绝不能和 SWE-bench repository-issue 轨道合并。
 - 两个外部 pilot 都是 5 道 `ranking_candidate` + 1 道 `diagnostic_tail`。不得把 tail 题用于排名、平均分或“题库难度”结论；任何新增 pilot 都必须保持复杂候选在前、简单诊断在末尾且至少三道候选。

@@ -9,6 +9,7 @@
     "provenance": {"type": "custom_seed", "source": "agent-benchmark systems engineering seed corpus"},
     "workspace": "workspace",
     "test_command": ["sh", "test.sh"],
+    "hidden_test_command": ["python3", "verify_thread_pool.py"],
     "protected_paths": ["test_thread_pool.c", "thread_pool.h", "test.sh"],
     "artifact_ignore_globs": ["test_thread_pool"],
     "process_checks": [

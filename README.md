@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、131 个 unittest 测试函数、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、133 个 unittest 测试函数、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -53,6 +53,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - `preflight-authoritative`：校验 SWE-bench Verified 与 Terminal-Bench 的官方 evaluator 契约、Docker 和本机所需上游工具；它不会把“可执行”误报为“已导入”。
 - `scripts/setup_authoritative_evaluators.sh`：在隔离 SWE-bench Python 环境与 Terminal-Bench `uv tool` 环境中安装官方工具，再执行预检。
 - 已冻结一个真实 SWE-bench Verified 六题 pilot：前五道复杂真实 issue 才是 `ranking_candidate`，最后一道 `<15 min` 题仅作 `diagnostic_tail`；冻结元数据不是 agent 跑分，仍不计入排行榜。
+- `swebench-bridge`：单实例地将 harness 生成的 git patch 交给官方 SWE-bench Docker evaluator，并保存上游快照、patch、harness 日志、官方原始日志和 report。默认只输出执行计划；必须显式加 `--execute` 才会消耗模型额度或构建大镜像。
 - 已冻结一个独立 Terminal-Bench Core 六题工程 pilot：前五道涵盖 C path tracing、Linux kernel/QEMU、盲迷宫算法、Raman 光谱拟合、tmux 调试工作流；`.easy` variant 仅诊断，不参与排名。
 - 每次任务、suite 和 matrix run 都记录完整题目契约指纹；题目内容变化后旧 run 自动退出难度校准和筛选统计，恢复操作也会拒绝混用新旧任务
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
@@ -82,6 +83,9 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
 PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-authoritative
 PYTHONPATH=src python3 -m agent_benchmark.cli.main freeze-authoritative-pilot --pilot swe-bench-verified-screening-v1
 PYTHONPATH=src python3 -m agent_benchmark.cli.main freeze-authoritative-pilot --pilot terminal-bench-core-engineering-v1
+PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode
+# Confirmed and resource-intensive: one instance only, resume with --bridge-dir if interrupted.
+PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode --execute
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status

@@ -34,6 +34,7 @@ from agent_benchmark.screening import build_screening_report, classify_selection
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.reports.matrix import build_matrix_leaderboard
 from agent_benchmark.status import format_status, load_status
+from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, _evaluator_command, _official_summary, _prediction_record
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import axes_for_task, build_scorecard
@@ -227,6 +228,54 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(audit_item["classification"], "external_evaluator_pending")
         with self.assertRaisesRegex(ValueError, "official evaluator bridge"):
             ensure_task_environment_supported(task)
+
+    def test_swebench_bridge_builds_a_single_instance_arm_safe_official_command(self) -> None:
+        config = SWEbenchBridgeConfig(
+            pilot_file=ROOT / "config" / "authoritative_pilots.json",
+            registry_path=ROOT / "config" / "authoritative_corpora.json",
+            runs_dir=ROOT / "runs",
+            instance_id="sympy__sympy-13878",
+            adapter="opencode",
+            namespace="",
+        )
+        prediction = _prediction_record(config, "diff --git a/example.py b/example.py\n")
+        command = _evaluator_command(
+            config,
+            Path("/tmp/swebench-python"),
+            "SWE-bench/SWE-bench_Verified",
+            Path("/tmp/predictions.jsonl"),
+            "bridge-run",
+        )
+
+        self.assertEqual(prediction["instance_id"], config.instance_id)
+        self.assertIn("model_patch", prediction)
+        self.assertEqual(command[0], "/tmp/swebench-python")
+        self.assertEqual(command[command.index("--instance_ids") + 1], config.instance_id)
+        self.assertEqual(command[command.index("--max_workers") + 1], "1")
+        self.assertEqual(command[command.index("--namespace") + 1], "")
+        self.assertEqual(command[command.index("--cache_level") + 1], "env")
+
+    def test_swebench_bridge_reads_official_instance_and_run_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir = Path(tmp)
+            instance_id = "sympy__sympy-13878"
+            model = "agent-benchmark/opencode/unspecified"
+            report_path = official_dir / "logs" / "run_evaluation" / "bridge-run" / model.replace("/", "__") / instance_id / "report.json"
+            report_path.parent.mkdir(parents=True)
+            report_path.write_text(json.dumps({instance_id: {"resolved": True, "tests_status": {}}}), encoding="utf-8")
+            run_report = official_dir / f"{model.replace('/', '__')}.bridge-run.json"
+            run_report.write_text(json.dumps({"resolved_instances": 1, "resolved_ids": [instance_id]}), encoding="utf-8")
+
+            summary = _official_summary(
+                official_dir,
+                "bridge-run",
+                {"instance_id": instance_id, "model_name_or_path": model, "model_patch": "patch"},
+                0,
+            )
+
+        self.assertTrue(summary["completed"])
+        self.assertTrue(summary["resolved"])
+        self.assertEqual(summary["run_report_summary"]["resolved_ids"], [instance_id])
 
     def test_outcome_taxonomy_aggregates_capability_axes(self) -> None:
         self.assertIn("systems_embedded", axes_for_task(["c_engineering", "embedded_engineering"]))

@@ -32,7 +32,7 @@ Run `agent-benchmark preflight-authoritative` before attempting either bridge. I
 
 Use `scripts/setup_authoritative_evaluators.sh` to provision the toolchain reproducibly: SWE-bench stays in `.agent-benchmark-evaluators/swebench` under Python 3.11, while Terminal-Bench is installed through `uv tool` under Python 3.13. Both locations are intentionally outside the tracked benchmark runtime.
 
-1. **SWE-bench Verified pilot**: import a fixed, stratified subset of real issue-resolution tasks, preserve the upstream instance id, repository base commit, data release, license note, and evaluator output. Use its containerized evaluator rather than rewriting expected patches.
+1. **SWE-bench Verified pilot**: the implemented `swebench-bridge` runs exactly one pilot-selected instance at a time. It re-fetches and saves upstream metadata, checks out the frozen base commit, asks a configured harness for a git patch, writes the standard prediction JSONL, then invokes `swebench.harness.run_evaluation`. It saves raw harness and evaluator logs plus reports under ignored `runs/`. The command is plan-only unless `--execute` is supplied; on ARM Macs its empty namespace builds official images locally. A saved bridge directory may be resumed with `--bridge-dir`.
 2. **Terminal-Bench pilot**: run a small fixed subset through the upstream Docker task environment and verifier. Keep terminal-agent scores separate from repository-issue scores.
 3. **WebArena and OSWorld**: add these later as separate web/desktop tracks, not to the coding grand score. They evaluate different interaction surfaces and require browser/VM infrastructure.
 

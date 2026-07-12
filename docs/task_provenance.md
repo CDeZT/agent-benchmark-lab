@@ -58,6 +58,8 @@ For custom seed tasks, use `provenance.type: custom_seed`, `domain_seed`, or `in
 
 `config/authoritative_pilots.json` may freeze an upstream selection before any agent sees the task. The SWE-bench freezer validates each selected instance's upstream difficulty and base commit, then saves a raw metadata snapshot plus SHA-256 under ignored `runs/`. The five task records in `swebench-pilot` are also explicitly `external_frozen`; both forms are `metadata_frozen_not_imported`. Only an official evaluator result after a harness patch changes the evidence level.
 
+`swebench-bridge --execute` is the only repository path allowed to produce that SWE-bench evidence. It runs one selected instance, keeps its working checkout, harness patch, prediction JSONL, official evaluator stdout/stderr, instance report, and bridge manifest together under `runs/`. A successful command is evidence for that one instance only; it does not automatically reclassify the separate metadata record or merge SWE-bench results into local seed scores.
+
 The Terminal-Bench freezer uses the Core task set's pinned upstream commit and validates the selected task YAML fields (`difficulty`, `category`, and agent timeout) before storing raw YAML hashes. It has the same metadata-only status and cannot be averaged with repository-issue scores.
 
 ## Next Iteration Recommendation

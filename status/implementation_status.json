@@ -3,7 +3,7 @@
   "updated_at": "2026-07-12",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation: 20 locally evaluable tasks, five SWE-bench metadata records quarantined as external_frozen, and eight suites. Frozen records are not locally runnable, cannot enter a leaderboard, and require a corpus-specific official evaluator bridge plus preserved raw evaluator evidence before promotion to external_imported. The normal matrix is a current-CLI-default comparison because model selections behind Claude Code and opencode are dynamic; explicit same-model comparison remains separate and needs verified identity. The local selection gate currently has zero selection-ready tasks, which is intentionally honest. A multi-repeat real matrix and the official external evaluator bridges remain the two main paths to a usable comparative result."
+    "plain_language": "The repository has a working benchmark framework foundation: 20 locally evaluable tasks, five SWE-bench metadata records quarantined as external_frozen, and eight suites. A single-instance SWE-bench bridge now persists the frozen source metadata, clean checkout, harness patch, standard prediction JSONL, and official evaluator evidence, but requires explicit --execute before it spends tokens or builds images. Frozen records are not locally runnable and cannot enter a leaderboard before that official evidence exists. The local selection gate remains zero-ready; a multi-repeat real matrix and the first completed official bridge result are the two main remaining paths to a usable comparative result."
   },
   "items": [
     {
@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "131 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "133 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {
@@ -73,8 +73,8 @@
       "id": "public_and_hidden_tests",
       "title": "Public tests plus hidden/private acceptance tests",
       "status": "implemented",
-      "evidence": ["hidden_test_command is supported", "16 of 20 locally evaluable task definitions currently include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
-      "remaining": ["Add independent hidden tests to every comparable task"]
+      "evidence": ["hidden_test_command is supported", "17 of 20 locally evaluable task definitions currently include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
+      "remaining": ["Add independent hidden tests to the remaining comparable tasks"]
     },
     {
       "id": "test_timeouts",
@@ -206,8 +206,8 @@
       "id": "external_benchmark_imports",
       "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
       "status": "partial",
-      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import", "SWE-bench and Terminal-Bench toolchains are installed in isolated local environments and live preflight reports both execution-ready", "freeze-authoritative-pilot verifies both six-instance pilots against upstream commit/revision metadata and records hashed raw snapshots", "external_frozen records require external_evaluator_only and cannot be scored by the generic runner", "external pilot schema permits ranking_candidate tasks only before a diagnostic_tail and requires at least three ranking candidates"],
-      "remaining": ["Bridge the selected frozen SWE-bench pilot to its upstream evaluator", "Bridge the frozen Terminal-Bench pilot to its upstream harness"]
+      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import", "SWE-bench and Terminal-Bench toolchains are installed in isolated local environments and live preflight reports both execution-ready", "freeze-authoritative-pilot verifies both six-instance pilots against upstream commit/revision metadata and records hashed raw snapshots", "swebench-bridge creates a resumable per-instance harness-patch to official evaluator evidence chain only after explicit execution", "external_frozen records require external_evaluator_only and cannot be scored by the generic runner", "external pilot schema permits ranking_candidate tasks only before a diagnostic_tail and requires at least three ranking candidates"],
+      "remaining": ["Run and inspect one selected SWE-bench bridge result", "Bridge the frozen Terminal-Bench pilot to its upstream harness"]
     },
     {
       "id": "dashboard",

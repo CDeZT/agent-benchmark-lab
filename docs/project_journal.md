@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 33)
+
+- Implemented `swebench-bridge`: an explicit single-instance bridge from a frozen pilot item through clean upstream checkout, configured harness patch generation, standard SWE-bench prediction JSONL, and the official Docker evaluator.
+- The bridge is plan-only by default and persists a manifest, upstream snapshot, workspace, patch, harness logs, evaluator stdout/stderr, and official reports under ignored `runs/`. It uses an empty official-image namespace by default for local ARM Mac image builds and supports resuming the same bridge directory.
+- Added command/report parsing regression coverage. Docker and the isolated SWE-bench 4.1.0 evaluator were live-preflighted; no expensive official instance evaluation was silently started.
+- Full audit exposed a flaky baseline in the new systems-concurrency task. Added a private mutex/condition-variable structural gate alongside its runtime test; the baseline now reliably fails and the reference passes, including when audit runs from a temporary project copy.
+
 ## 2026-07-12 (iteration 32)
 
 - Reviewed a later agent's five-file SWE-bench addition and found that it only copied issue text while declaring `external_imported` and a generic evaluator test command. It lacked the pinned upstream workspace/image, a harness patch, and raw official evaluator output, so it could have created false authoritative scores.
