@@ -15,6 +15,7 @@ from unittest.mock import patch
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.authoritative import load_authoritative_corpora, preflight_authoritative_corpora
+from agent_benchmark.authoritative_pilot import _validate_snapshot, load_authoritative_pilot
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
@@ -129,6 +130,29 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(report["execution_ready_count"], 1)
         self.assertTrue(report["sources"][0]["tool_requirements"][0]["ready"])
+
+    def test_swebench_pilot_is_hard_to_easy_and_rejects_upstream_metadata_drift(self) -> None:
+        pilot = load_authoritative_pilot(
+            ROOT / "config" / "authoritative_pilots.json", "swe-bench-verified-screening-v1"
+        )
+        selected = pilot["instances"]
+        snapshot = {
+            "instances": [
+                {
+                    "instance_id": item["instance_id"],
+                    "difficulty": item["expected_difficulty"],
+                    "base_commit": item["expected_base_commit"],
+                }
+                for item in selected
+            ]
+        }
+
+        self.assertEqual(selected[0]["expected_difficulty"], ">4 hours")
+        self.assertEqual(selected[-1]["expected_difficulty"], "<15 min fix")
+        _validate_snapshot(snapshot, selected)
+        snapshot["instances"][0]["base_commit"] = "changed"
+        with self.assertRaisesRegex(ValueError, "base_commit"):
+            _validate_snapshot(snapshot, selected)
 
     def test_selection_ladder_is_ordered_hard_to_easy(self) -> None:
         suite = load_suite(ROOT / "benchmarks" / "suites" / "selection-ladder.json")

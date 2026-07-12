@@ -38,6 +38,8 @@ Use `scripts/setup_authoritative_evaluators.sh` to provision the toolchain repro
 
 For every external task, the importer must emit a manifest with `provenance.type=external_imported` and all required source fields. The project must retain the raw upstream evaluator result beside its normalized report.
 
+The first selection is `swe-bench-verified-screening-v1` in `config/authoritative_pilots.json`: six real issue-resolution tasks ordered by the upstream `difficulty` field (`>4 hours`, `1-4 hours`, `15 min - 1 hour`, `<15 min fix`) across six repositories. `freeze-authoritative-pilot` re-downloads only their upstream metadata, verifies the expected base commits/difficulties, records the resolved dataset revision, and writes a SHA-256 snapshot under `runs/`. This is a frozen pilot selection, not an imported or scored task set.
+
 The implementation should follow the upstream projects rather than a third-party reimplementation: [SWE-bench's evaluation guide](https://github.com/SWE-bench/SWE-bench/blob/main/docs/guides/quickstart.md), [Terminal-Bench's announcement and harness description](https://www.tbench.ai/news/announcement), [WebArena](https://github.com/web-arena-x/webarena), and [OSWorld](https://github.com/xlang-ai/OSWorld).
 
 ## Project-Owned Task Policy

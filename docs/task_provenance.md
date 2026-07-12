@@ -54,6 +54,8 @@ For custom seed tasks, use `provenance.type: custom_seed`, `domain_seed`, or `in
 
 `agent-benchmark preflight-authoritative` verifies that the registry is structurally valid and checks its Docker and upstream-tool prerequisites. A ready preflight is still only permission to begin a controlled import; it never changes a task's provenance.
 
+`config/authoritative_pilots.json` may freeze an upstream selection before any agent sees the task. The SWE-bench freezer validates each selected instance's upstream difficulty and base commit, then saves a raw metadata snapshot plus SHA-256 under ignored `runs/`. Even this evidence is still `metadata_frozen_not_imported`: only an official evaluator result after a harness patch changes the evidence level.
+
 ## Next Iteration Recommendation
 
 The metadata layer, selection gate, and source registry are now implemented. The next step is a real Docker-backed importer/evaluator bridge, not hand-labeling local tasks as external.

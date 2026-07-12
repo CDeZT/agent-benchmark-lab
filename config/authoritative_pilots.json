@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "pilots": [
+    {
+      "id": "swe-bench-verified-screening-v1",
+      "corpus_id": "swe-bench-verified",
+      "status": "selected_not_imported",
+      "selection_policy": "Ordered from upstream-estimated hardest to easiest; one expert, two hard, two medium, and one easy issue from six distinct repositories.",
+      "instances": [
+        {"instance_id": "sympy__sympy-13878", "expected_difficulty": ">4 hours", "expected_base_commit": "7b127bdf71a36d85216315f80c1b54d22b060818"},
+        {"instance_id": "pytest-dev__pytest-10356", "expected_difficulty": "1-4 hours", "expected_base_commit": "3c1534944cbd34e8a41bc9e76818018fadefc9a1"},
+        {"instance_id": "django__django-10554", "expected_difficulty": "1-4 hours", "expected_base_commit": "14d026cccb144c6877294ba4cd4e03ebf0842498"},
+        {"instance_id": "pylint-dev__pylint-4604", "expected_difficulty": "15 min - 1 hour", "expected_base_commit": "1e55ae64624d28c5fe8b63ad7979880ee2e6ef3f"},
+        {"instance_id": "psf__requests-2931", "expected_difficulty": "15 min - 1 hour", "expected_base_commit": "5f7a3a74aab1625c2bb65f643197ee885e3da576"},
+        {"instance_id": "pallets__flask-5014", "expected_difficulty": "<15 min fix", "expected_base_commit": "7ee9ceb71e868944a46e1ff00b506772a53a4f1d"}
+      ]
+    }
+  ]
+}

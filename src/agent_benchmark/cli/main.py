@@ -10,6 +10,7 @@ import uuid
 
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.authoritative import preflight_authoritative_corpora
+from agent_benchmark.authoritative_pilot import freeze_swebench_pilot
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.comparability import preflight_matrix
@@ -31,6 +32,7 @@ DEFAULT_TASKS_DIR = Path("benchmarks/tasks")
 DEFAULT_RUNS_DIR = Path("runs")
 DEFAULT_SUITES_DIR = Path("benchmarks/suites")
 DEFAULT_AUTHORITATIVE_CORPORA_PATH = Path("config/authoritative_corpora.json")
+DEFAULT_AUTHORITATIVE_PILOTS_PATH = Path("config/authoritative_pilots.json")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -79,6 +81,16 @@ def main(argv: list[str] | None = None) -> int:
     authoritative_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
     authoritative_parser.add_argument("--corpus", help="Optional authoritative corpus id to inspect.")
     authoritative_parser.add_argument("--json", action="store_true")
+
+    freeze_pilot_parser = subparsers.add_parser(
+        "freeze-authoritative-pilot",
+        help="Freeze selected SWE-bench upstream metadata before any harness evaluation.",
+    )
+    freeze_pilot_parser.add_argument("--pilot", required=True)
+    freeze_pilot_parser.add_argument("--pilots-file", default=str(DEFAULT_AUTHORITATIVE_PILOTS_PATH))
+    freeze_pilot_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
+    freeze_pilot_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    freeze_pilot_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -189,6 +201,8 @@ def main(argv: list[str] | None = None) -> int:
         return _audit_corpus(args)
     if args.command == "preflight-authoritative":
         return _preflight_authoritative(args)
+    if args.command == "freeze-authoritative-pilot":
+        return _freeze_authoritative_pilot(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -349,6 +363,22 @@ def _preflight_authoritative(args: argparse.Namespace) -> int:
             f"{source['id']}\texecution_ready={source['execution_ready']}\t"
             f"imported={source['imported']}\t{tools}"
         )
+    return 0
+
+
+def _freeze_authoritative_pilot(args: argparse.Namespace) -> int:
+    manifest = freeze_swebench_pilot(
+        Path(args.pilots_file),
+        args.pilot,
+        Path(args.registry),
+        Path(args.runs_dir),
+    )
+    if args.json:
+        print(json.dumps(manifest, ensure_ascii=False, indent=2))
+    else:
+        print(f"Frozen {manifest['instance_count']} upstream instances for {manifest['pilot_id']}")
+        print(f"Snapshot SHA-256: {manifest['snapshot_sha256']}")
+        print(f"Evidence: {manifest['output_dir']}")
     return 0
 
 

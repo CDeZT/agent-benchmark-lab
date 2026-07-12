@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-12 (iteration 29)
+
+- Added a fixed six-instance SWE-bench Verified screening pilot from real upstream issue-resolution tasks. It spans all upstream difficulty strata from `>4 hours` to `<15 min fix` and six distinct repositories.
+- Added `freeze-authoritative-pilot`, which re-fetches selected upstream metadata through the dedicated evaluator, validates difficulty/base commit drift, records the resolved dataset revision, and hashes the raw snapshot. The first successful snapshot is metadata-only and cannot receive a benchmark score.
+
 ## 2026-07-12 (iteration 28)
 
 - Added a reproducible `scripts/setup_authoritative_evaluators.sh` installer. SWE-bench uses an ignored dedicated Python 3.11 environment so it does not contaminate the framework interpreter; Terminal-Bench uses an isolated Python 3.13 `uv tool`.
