@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 133 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 135 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current locally runnable corpus is custom seed/inspired work. The five SWE-bench records preserve metadata only and the generic runner rejects them. No authoritative external benchmark has been scored or imported yet. See `docs/task_provenance.md`.
 

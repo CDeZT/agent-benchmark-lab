@@ -108,12 +108,25 @@ def run_swebench_bridge(config: SWEbenchBridgeConfig) -> dict[str, Any]:
         _mark_stage(manifest_path, manifest, "upstream_metadata", {"path": str(snapshot_path)})
 
     workspace = bridge_dir / "workspace"
-    if not (workspace / ".git").is_dir():
+    instance = instance_snapshot["instance"]
+    if not _workspace_at_commit(workspace, str(instance["base_commit"])):
         if workspace.exists():
             shutil.rmtree(workspace)
-        instance = instance_snapshot["instance"]
-        _clone_checkout(str(instance["repo"]), str(instance["base_commit"]), workspace)
-        _mark_stage(manifest_path, manifest, "workspace", {"path": str(workspace), "base_commit": instance["base_commit"]})
+        checkout_log = bridge_dir / "workspace_setup.log"
+        try:
+            _clone_checkout(str(instance["repo"]), str(instance["base_commit"]), workspace, checkout_log)
+        except Exception as exc:
+            manifest["status"] = "workspace_setup_failed"
+            manifest["last_error"] = str(exc)
+            manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
+            _write_json(manifest_path, manifest)
+            raise
+        _mark_stage(
+            manifest_path,
+            manifest,
+            "workspace",
+            {"path": str(workspace), "base_commit": instance["base_commit"], "setup_log": str(checkout_log)},
+        )
 
     patch_path = bridge_dir / "model.patch"
     prediction_path = bridge_dir / "predictions.jsonl"
@@ -256,11 +269,37 @@ def _validate_snapshot_against_selection(snapshot: dict[str, Any], selected: dic
             raise ValueError(f"Upstream metadata drift for {selected['instance_id']}: {upstream_key}")
 
 
-def _clone_checkout(repo: str, base_commit: str, workspace: Path) -> None:
+def _clone_checkout(repo: str, base_commit: str, workspace: Path, log_path: Path | None = None) -> None:
+    """Fetch only the frozen commit instead of cloning a repository's history."""
     url = f"https://github.com/{repo}.git"
-    _checked_command(["git", "clone", "--no-checkout", url, str(workspace)], "clone SWE-bench repository")
-    _checked_command(["git", "-C", str(workspace), "checkout", "--detach", base_commit], "checkout SWE-bench base commit")
-    _checked_command(["git", "-C", str(workspace), "clean", "-fdx"], "clean SWE-bench checkout")
+    workspace.mkdir(parents=True, exist_ok=False)
+    _checked_command(["git", "init", str(workspace)], "initialize SWE-bench repository", log_path)
+    _checked_command(["git", "-C", str(workspace), "remote", "add", "origin", url], "configure SWE-bench remote", log_path)
+    fetch = ["git", "-C", str(workspace), "-c", "protocol.version=2", "fetch", "--depth=1", "--filter=blob:none", "origin", base_commit]
+    try:
+        _checked_command(fetch, "fetch frozen SWE-bench base commit", log_path)
+    except RuntimeError as exc:
+        # Some proxies reject Git protocol filters; the exact shallow fetch is
+        # still much smaller and more reproducible than a full-history clone.
+        if "filter" not in str(exc).lower():
+            raise
+        _checked_command(fetch[:7] + ["origin", base_commit], "fetch frozen SWE-bench base commit without filter", log_path)
+    _checked_command(["git", "-C", str(workspace), "checkout", "--detach", "FETCH_HEAD"], "checkout SWE-bench base commit", log_path)
+    _checked_command(["git", "-C", str(workspace), "clean", "-fdx"], "clean SWE-bench checkout", log_path)
+
+
+def _workspace_at_commit(workspace: Path, base_commit: str) -> bool:
+    """Return true only for a complete checkout of the exact frozen revision."""
+    if not (workspace / ".git").exists():
+        return False
+    completed = subprocess.run(
+        ["git", "-C", str(workspace), "rev-parse", "--verify", "HEAD"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    return completed.returncode == 0 and completed.stdout.strip() == base_commit
 
 
 def _run_harness(config: SWEbenchBridgeConfig, snapshot: dict[str, Any], workspace: Path, bridge_dir: Path) -> dict[str, Any]:
@@ -434,10 +473,18 @@ def _mark_stage(manifest_path: Path, manifest: dict[str, Any], name: str, detail
     _write_json(manifest_path, manifest)
 
 
-def _checked_command(command: list[str], action: str) -> None:
+def _checked_command(command: list[str], action: str, log_path: Path | None = None) -> None:
     completed = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if log_path is not None:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write("$ " + " ".join(command) + "\n")
+            handle.write(completed.stdout)
+            handle.write(completed.stderr)
+            handle.write("\n")
     if completed.returncode:
-        raise RuntimeError(f"Failed to {action}: {completed.stderr[-2000:]}")
+        suffix = f" See {log_path}." if log_path is not None else ""
+        raise RuntimeError(f"Failed to {action}:{suffix} {completed.stderr[-2000:]}")
 
 
 def _write_json(path: Path, payload: Any) -> None:

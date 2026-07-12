@@ -6,6 +6,7 @@
 - The bridge is plan-only by default and persists a manifest, upstream snapshot, workspace, patch, harness logs, evaluator stdout/stderr, and official reports under ignored `runs/`. It uses an empty official-image namespace by default for local ARM Mac image builds and supports resuming the same bridge directory.
 - Added command/report parsing regression coverage. Docker and the isolated SWE-bench 4.1.0 evaluator were live-preflighted; no expensive official instance evaluation was silently started.
 - Full audit exposed a flaky baseline in the new systems-concurrency task. Added a private mutex/condition-variable structural gate alongside its runtime test; the baseline now reliably fails and the reference passes, including when audit runs from a temporary project copy.
+- A real expert-instance bridge attempt was intentionally interrupted during its initial full repository clone, before any harness/model call. The resume path had treated a partial `.git` directory as complete, so it was corrected to verify the exact `HEAD` commit and restart only incomplete checkouts; future checkouts fetch only the frozen commit at depth 1, with a filter fallback for proxy compatibility.
 
 ## 2026-07-12 (iteration 32)
 

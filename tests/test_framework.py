@@ -34,7 +34,7 @@ from agent_benchmark.screening import build_screening_report, classify_selection
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.reports.matrix import build_matrix_leaderboard
 from agent_benchmark.status import format_status, load_status
-from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, _evaluator_command, _official_summary, _prediction_record
+from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, _clone_checkout, _evaluator_command, _official_summary, _prediction_record, _workspace_at_commit
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import axes_for_task, build_scorecard
@@ -276,6 +276,31 @@ class FrameworkTests(unittest.TestCase):
         self.assertTrue(summary["completed"])
         self.assertTrue(summary["resolved"])
         self.assertEqual(summary["run_report_summary"]["resolved_ids"], [instance_id])
+
+    def test_swebench_bridge_rebuilds_an_interrupted_or_wrong_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            (workspace / ".git").mkdir(parents=True)
+            self.assertFalse(_workspace_at_commit(workspace, "deadbeef"))
+
+            with patch("agent_benchmark.swebench_bridge._checked_command") as checked:
+                _clone_checkout("example/project", "abc123", Path(tmp) / "checkout")
+
+        commands = [call.args[0] for call in checked.call_args_list]
+        self.assertEqual(commands[0][:2], ["git", "init"])
+        self.assertIn("--depth=1", commands[2])
+        self.assertIn("--filter=blob:none", commands[2])
+
+    def test_swebench_bridge_does_not_retry_a_network_failure_as_a_filter_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch(
+                "agent_benchmark.swebench_bridge._checked_command",
+                side_effect=[None, None, RuntimeError("Failed to fetch: connection timed out")],
+            ) as checked:
+                with self.assertRaisesRegex(RuntimeError, "connection timed out"):
+                    _clone_checkout("example/project", "abc123", Path(tmp) / "checkout")
+
+        self.assertEqual(checked.call_count, 3)
 
     def test_outcome_taxonomy_aggregates_capability_axes(self) -> None:
         self.assertIn("systems_embedded", axes_for_task(["c_engineering", "embedded_engineering"]))

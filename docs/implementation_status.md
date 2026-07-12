@@ -26,7 +26,7 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 20 locally evaluable task definitions plus 5 explicitly quarantined SWE-bench metadata records.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 133 unittest test functions, all expected to pass in the current tree.
+- 135 unittest test functions, all expected to pass in the current tree.
 
 It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima, browser screenshots/pixel evidence work for local static pages, and a project-owned container task has run; external benchmark evaluator bridges and a multi-repeat real matrix with sufficient evidence remain unfinished. Five SWE-bench records are now safely marked metadata-only and rejected by the generic runner, rather than being mistaken for scored imported tasks. Model choices behind both CLIs are dynamic: the normal matrix compares their current defaults, while explicit same-model experiments remain a separate verified mode.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
@@ -43,7 +43,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best/worst, and task-level two-sided 95% Student-t confidence intervals for score, verified score, duration, and available cost. | Add paired significance tests once larger matched matrices exist. |
 | Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints plus task-contract fingerprints; resume reuses saved work only when the current task content exactly matches the saved contract. | Add an optional historical recovery browser. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches, explicit unverified/mismatched requests, and observed CLI defaults. Historical summaries with a missing/mismatched task fingerprint are excluded from selection statistics. 133 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add direct subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches, explicit unverified/mismatched requests, and observed CLI defaults. Historical summaries with a missing/mismatched task fingerprint are excluded from selection statistics. 135 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add direct subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
 | Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 17 of 20 locally evaluable tasks currently have hidden tests. | Add independent hidden tests to the remaining 3 tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
