@@ -40,6 +40,8 @@ For every external task, the importer must emit a manifest with `provenance.type
 
 The first selection is `swe-bench-verified-screening-v1` in `config/authoritative_pilots.json`: six real issue-resolution tasks ordered by the upstream `difficulty` field (`>4 hours`, `1-4 hours`, `15 min - 1 hour`, `<15 min fix`) across six repositories. `freeze-authoritative-pilot` re-downloads only their upstream metadata, verifies the expected base commits/difficulties, records the resolved dataset revision, and writes a SHA-256 snapshot under `runs/`. This is a frozen pilot selection, not an imported or scored task set.
 
+The separate `terminal-bench-core-engineering-v1` pilot freezes six tasks from Core v0.1.1's immutable source commit: path tracing, Linux kernel/QEMU build, blind-maze exploration, Raman fitting, tmux workflow debugging, and an upstream `.easy` variant. It preserves Terminal-Bench's own difficulty/category/timeout metadata and raw task YAML hashes. The ordering expresses operational scope and the declared easy variant; it does not fabricate numeric difficulty where the upstream metadata says `medium`. Terminal results must remain a separate terminal-agent track.
+
 The implementation should follow the upstream projects rather than a third-party reimplementation: [SWE-bench's evaluation guide](https://github.com/SWE-bench/SWE-bench/blob/main/docs/guides/quickstart.md), [Terminal-Bench's announcement and harness description](https://www.tbench.ai/news/announcement), [WebArena](https://github.com/web-arena-x/webarena), and [OSWorld](https://github.com/xlang-ai/OSWorld).
 
 ## Project-Owned Task Policy

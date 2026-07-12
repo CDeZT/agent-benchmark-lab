@@ -56,6 +56,8 @@ For custom seed tasks, use `provenance.type: custom_seed`, `domain_seed`, or `in
 
 `config/authoritative_pilots.json` may freeze an upstream selection before any agent sees the task. The SWE-bench freezer validates each selected instance's upstream difficulty and base commit, then saves a raw metadata snapshot plus SHA-256 under ignored `runs/`. Even this evidence is still `metadata_frozen_not_imported`: only an official evaluator result after a harness patch changes the evidence level.
 
+The Terminal-Bench freezer uses the Core task set's pinned upstream commit and validates the selected task YAML fields (`difficulty`, `category`, and agent timeout) before storing raw YAML hashes. It has the same metadata-only status and cannot be averaged with repository-issue scores.
+
 ## Next Iteration Recommendation
 
 The metadata layer, selection gate, and source registry are now implemented. The next step is a real Docker-backed importer/evaluator bridge, not hand-labeling local tasks as external.

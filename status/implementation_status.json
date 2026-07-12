@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "129 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "130 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {
@@ -206,8 +206,8 @@
       "id": "external_benchmark_imports",
       "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
       "status": "partial",
-      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import", "SWE-bench and Terminal-Bench toolchains are installed in isolated local environments and live preflight reports both execution-ready", "freeze-authoritative-pilot verifies the selected six-instance SWE-bench pilot against upstream difficulty/base commits and records a hashed raw metadata snapshot"],
-      "remaining": ["Bridge the frozen SWE-bench pilot to its upstream evaluator", "Freeze and bridge the Terminal-Bench pilot to its upstream verifier"]
+      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import", "SWE-bench and Terminal-Bench toolchains are installed in isolated local environments and live preflight reports both execution-ready", "freeze-authoritative-pilot verifies both six-instance pilots against upstream commit/revision metadata and records hashed raw snapshots"],
+      "remaining": ["Bridge the frozen SWE-bench pilot to its upstream evaluator", "Bridge the frozen Terminal-Bench pilot to its upstream harness"]
     },
     {
       "id": "dashboard",

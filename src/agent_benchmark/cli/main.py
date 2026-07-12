@@ -10,7 +10,7 @@ import uuid
 
 from agent_benchmark.adapters import available_adapters
 from agent_benchmark.authoritative import preflight_authoritative_corpora
-from agent_benchmark.authoritative_pilot import freeze_swebench_pilot
+from agent_benchmark.authoritative_pilot import freeze_swebench_pilot, freeze_terminal_bench_pilot, load_authoritative_pilot
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.comparability import preflight_matrix
@@ -367,12 +367,15 @@ def _preflight_authoritative(args: argparse.Namespace) -> int:
 
 
 def _freeze_authoritative_pilot(args: argparse.Namespace) -> int:
-    manifest = freeze_swebench_pilot(
-        Path(args.pilots_file),
-        args.pilot,
-        Path(args.registry),
-        Path(args.runs_dir),
-    )
+    pilot_file = Path(args.pilots_file)
+    kwargs = (pilot_file, args.pilot, Path(args.registry), Path(args.runs_dir))
+    corpus_id = load_authoritative_pilot(pilot_file, args.pilot)["corpus_id"]
+    if corpus_id == "swe-bench-verified":
+        manifest = freeze_swebench_pilot(*kwargs)
+    elif corpus_id == "terminal-bench-core":
+        manifest = freeze_terminal_bench_pilot(*kwargs)
+    else:
+        raise ValueError(f"No freezer is implemented for authoritative corpus '{corpus_id}'.")
     if args.json:
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
     else:

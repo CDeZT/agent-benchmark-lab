@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 7 suites, 129 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, a frozen SWE-bench pilot, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 7 suites, 130 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -118,6 +118,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added `preflight-authoritative`: the source registry is schema-validated by the default audit, while this explicit command reports Docker and upstream tool readiness for each official bridge. It never marks a source imported merely because its tools are available.
 - Added `scripts/setup_authoritative_evaluators.sh` and ran it locally. SWE-bench now lives in the ignored dedicated Python 3.11 environment and Terminal-Bench in an ignored Python 3.13 `uv tool`; `preflight-authoritative` reports both sources execution-ready but still `imported=false`.
 - Added `config/authoritative_pilots.json` plus `freeze-authoritative-pilot`. `swe-bench-verified-screening-v1` freezes six real issues from upstream hardest to easiest, verifies their declared difficulty and base commit, and saves raw upstream evidence with a SHA-256 snapshot. The first local manifest is under `runs/authoritative-pilot-swe-bench-verified-screening-v1-20260712T033701Z-f0fa8bdd/`; it is metadata only, not a harness result or imported task claim.
+- Added `terminal-bench-core-engineering-v1` to the same pilot registry. It freezes six Core v0.1.1 tasks at commit `91e10457b5410f16c44364da1a34cb6de8c488a5`: path tracing, Linux kernel/QEMU, blind maze, Raman fitting, tmux debugging, and an `.easy` maze variant. The local snapshot at `runs/authoritative-pilot-terminal-bench-core-engineering-v1-20260712T040320Z-affaea31/` stores raw task YAML and hashes; it is a separate metadata-only terminal track.
 - Added `task_fingerprint` to every new task, suite, and matrix run contract. Fingerprint mismatch now blocks task/suite/matrix resume and excludes historical summaries from difficulty calibration/screening. This invalidates previous unversioned real matrices for selection claims after the frontend baseline was corrected; raw directories remain useful debugging evidence only.
 - `python-bugfix` and `c-bugfix` are deliberately `smoke_only`; use them for adapter wiring and quick regression checks, never as differentiating leaderboard tasks. Their historic real runs predate fingerprints and need rerunning before they can support calibration.
 - Historic `c-bugfix` CLI-default repetitions remain documented in `docs/real_harness_calibration.md` solely for debugging. They cannot establish a harness/model result, selection status, or a winner.
@@ -203,7 +204,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 129 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 130 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -231,7 +232,7 @@ The local `foundation` suite has 11 tasks. Do not claim any container-required d
 
 1. Run a three-repeat real `cli_default_configurations` matrix on `calibration` (opencode vs claude-code with `--models unspecified`) and preserve observed identities. It answers the practical tool-selection question but is not a same-model claim. Use the registry only for a separate explicit same-model matrix, and interpret only `verified_match` rows for that claim.
 2. Test the remaining project-owned Flask/NumPy container tasks and pin base-image digests.
-3. Bridge the frozen SWE-bench Verified pilot from harness patches to the official evaluator, then freeze and bridge Terminal-Bench. The official evaluator tools are installed and verified by `preflight-authoritative`.
+3. Bridge the frozen SWE-bench Verified pilot from harness patches to the official evaluator, then bridge the frozen Terminal-Bench pilot through its official harness. The official evaluator tools are installed and verified by `preflight-authoritative`.
 4. Add more domain-specific tasks (embedded, optics, full-stack).
 5. Build dashboard for historical results.
 

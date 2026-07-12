@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-12 (iteration 30)
+
+- Added a separate six-task Terminal-Bench Core v0.1.1 engineering pilot from the upstream immutable commit. It covers systems/kernel work, C image reconstruction, optics-adjacent Raman fitting, algorithms, and terminal workflow debugging.
+- Extended the authoritative pilot freezer to validate and hash raw Terminal-Bench task YAML independently from SWE-bench. The pilot ordering retains upstream labels and task variants instead of inventing a false common difficulty scale.
+
 ## 2026-07-12 (iteration 29)
 
 - Added a fixed six-instance SWE-bench Verified screening pilot from real upstream issue-resolution tasks. It spans all upstream difficulty strata from `>4 hours` to `<15 min fix` and six distinct repositories.

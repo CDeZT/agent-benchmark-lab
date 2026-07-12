@@ -15,7 +15,7 @@ from unittest.mock import patch
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.authoritative import load_authoritative_corpora, preflight_authoritative_corpora
-from agent_benchmark.authoritative_pilot import _validate_snapshot, load_authoritative_pilot
+from agent_benchmark.authoritative_pilot import _task_yaml_metadata, _validate_snapshot, load_authoritative_pilot
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
@@ -153,6 +153,18 @@ class FrameworkTests(unittest.TestCase):
         snapshot["instances"][0]["base_commit"] = "changed"
         with self.assertRaisesRegex(ValueError, "base_commit"):
             _validate_snapshot(snapshot, selected)
+
+    def test_terminal_bench_pilot_preserves_upstream_metadata_and_easy_variant(self) -> None:
+        pilot = load_authoritative_pilot(
+            ROOT / "config" / "authoritative_pilots.json", "terminal-bench-core-engineering-v1"
+        )
+        metadata = _task_yaml_metadata(
+            "instruction: |-\n  example\ndifficulty: hard\ncategory: software-engineering\nmax_agent_timeout_sec: 360.0\n"
+        )
+
+        self.assertEqual(pilot["instances"][0]["instance_id"], "path-tracing")
+        self.assertEqual(pilot["instances"][-1]["instance_id"], "blind-maze-explorer-algorithm.easy")
+        self.assertEqual(metadata, {"difficulty": "hard", "category": "software-engineering", "max_agent_timeout_sec": "360.0"})
 
     def test_selection_ladder_is_ordered_hard_to_easy(self) -> None:
         suite = load_suite(ROOT / "benchmarks" / "suites" / "selection-ladder.json")
