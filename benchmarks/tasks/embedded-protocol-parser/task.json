@@ -1,7 +1,7 @@
 {
   "id": "embedded-protocol-parser",
   "title": "Implement a UART-style protocol parser with byte stuffing and CRC",
-  "instruction": "Complete the protocol parser in protocol.c. Implement: (1) crc16_ccitt for CRC-16/CCITT-FALSE calculation, (2) protocol_encode to frame a payload with start marker, length, escaped payload, CRC, and end marker, (3) protocol_decode to parse a framed packet with byte unstuffing and CRC verification, (4) protocol_init to initialize a stream parser state machine. Handle edge cases: buffer overflow, malformed packets, CRC errors, zero-length payloads, escape byte at boundaries.",
+  "instruction": "Complete the protocol parser in protocol.c. Before or while working, write a concise implementation and verification plan to .agent-benchmark/plan.md (at least 40 bytes). Implement: (1) crc16_ccitt for CRC-16/CCITT-FALSE calculation, (2) protocol_encode to frame a payload with start marker, length, escaped payload, CRC, and end marker, (3) protocol_decode to parse a framed packet with byte unstuffing and CRC verification, (4) protocol_init to initialize a stream parser state machine. Handle edge cases: buffer overflow, malformed packets, CRC errors, zero-length payloads, escape byte at boundaries.",
   "capabilities": [
     "embedded_engineering",
     "c_engineering",

@@ -4,11 +4,20 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 12 suites, 149 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 153 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the local corpus is custom/domain seed and inspired work; the five legacy SWE-bench records preserve metadata only and the generic runner rejects them. Individual official bridge outcomes remain separate evidence tracks, not proof that an externally representative corpus or global leaderboard is complete. See `docs/task_provenance.md` and `docs/benchmark_readiness_audit.md`.
 
 The first real `swebench-bridge --execute` run is preserved at `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435`: opencode produced a patch, and the official evaluator started, but its environment image failed with `error_ids` and no instance report. Treat that run as `evaluator_error` and not as a model/harness outcome. After increasing the available Docker VM resources, resume with the same `--bridge-dir`; the bridge reuses `model.patch` and must not spend another harness call unless the patch is deliberately discarded.
+
+## Latest Iteration: Comprehensive Cohort And Score Integrity
+
+- Added `comprehensive-screening-v1`: one resumable `run-suite` command runs a fixed 11-task local expert-to-easy cohort plus the frozen 9-task SWE-bench Verified hard ranking cohort and one diagnostic tail. The `preflight-matrix` path now recognizes the official task IDs instead of rejecting them as missing local manifests.
+- Local ten-dimension results and official evaluator results are separate report tracks. Official tasks never enter local means, local radar charts, domain axes, or comparable rankings. Their table records resolved/scorable/attempt counts, per-task resolution rate, variance, CI, evaluator classification, and saved bridge evidence.
+- `run_external_task_as_summary` repeats official bridge attempts independently. `evaluator_error` is unscorable, not a failure. The diagnostic tail is visible but excluded from official ranking rate.
+- Removed the arbitrary global dollar/token-to-points conversion. Raw token/cost telemetry remains saved; `cost_efficiency` becomes verified only when a task declares a positive `metadata.cost_budget_usd` before an experiment. Do not retroactively add a budget to favor an observed result.
+- Tightened process evidence: `instruction_match` is heuristic intent evidence, Claude `num_turns` is heuristic rather than verified tool telemetry, and planning word checks are case-insensitive when the task contract asks for concepts rather than exact casing.
+- Real Claude Code sample audit: post-fix `process-planning` passed public/hidden tests and planning checks; `frontend-visual` exposed a genuine hidden visual failure; `embedded-protocol-parser` passed 8/8 public and 22/22 hidden tests but legitimately received only 50 execution-quality points due to maximum nesting depth 7 > 5. These are pipeline checks, not a 3-repeat comparative conclusion.
 
 ## User Intent Summary
 
@@ -224,7 +233,7 @@ All non-zero scores must have saved evidence. Several dimensions are still early
 - `intent_understanding`: 100 when the agent modified the correct files.
 - `self_repair`: currently heuristic; it uses stdout/stderr retry/fix/correct patterns and is not causal proof of a repair loop.
 - `test_discipline`: 100 when agent-created test files have sufficient test functions and assertions.
-- `cost_efficiency`: scored only from token/cost data when available; otherwise 0.
+- `cost_efficiency`: raw token/cost is recorded whenever available; it is scored only against a predeclared task-level `metadata.cost_budget_usd`, otherwise it remains unavailable/0 in the strict total.
 
 No dimension should be faked. Tool-call count belongs to `tool_use`, not `cost_efficiency`.
 
@@ -237,7 +246,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 147 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 153 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

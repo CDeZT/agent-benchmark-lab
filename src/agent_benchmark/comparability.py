@@ -7,6 +7,7 @@ from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.model_identity import summarize_model_identity
 from agent_benchmark.runner.container import docker_ready
 from agent_benchmark.task_schema import TaskSpec, load_task
+from agent_benchmark.unified_external import external_instance_id, is_external_task_id
 
 
 def comparison_mode_for_specs(combination_specs: list[dict[str, object]]) -> str:
@@ -88,6 +89,28 @@ def preflight_matrix(
     excluded_ids: list[str] = []
     container_tasks: list[str] = []
     for task_id in list(getattr(suite, "tasks", [])):
+        if is_external_task_id(str(task_id)):
+            # A frozen SWE-bench selection is deliberately not a local task
+            # directory. It runs only through the official bridge, so a mixed
+            # suite must not be rejected as if its manifest were missing.
+            instance_id = external_instance_id(str(task_id))
+            task_reports.append(
+                {
+                    "task_id": str(task_id),
+                    "difficulty": "official_pilot",
+                    "benchmark_role": "external_official",
+                    "environment": "official_swebench_bridge",
+                    "has_public_tests": None,
+                    "has_hidden_tests": None,
+                }
+            )
+            excluded_ids.append(str(task_id))
+            add(
+                "warning",
+                "official_evaluator_separate_track",
+                f"Official SWE-bench instance '{instance_id}' will run through its Docker evaluator and report on a separate resolution track.",
+            )
+            continue
         try:
             task = load_task(task_root / task_id)
         except Exception as exc:  # noqa: BLE001 - preflight must explain malformed suites.

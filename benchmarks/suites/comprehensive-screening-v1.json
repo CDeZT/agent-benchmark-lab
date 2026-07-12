@@ -1,0 +1,37 @@
+{
+  "id": "comprehensive-screening-v1",
+  "title": "Comprehensive screening v1 (local ladder + SWE-bench Verified pilot)",
+  "description": "Fixed personal screening cohort. It runs 11 local tasks spanning expert to easy plus the frozen 9-task SWE-bench Verified hard ranking cohort and one easy diagnostic tail. The command is resumable. Local ten-dimension scores and official SWE resolution rates are reported separately; no synthetic global average is produced.",
+  "tasks": [
+    "c-systems-programming",
+    "systems-concurrency",
+    "embedded-protocol-parser",
+    "python-swebench-style",
+    "optics-abcd",
+    "optics-gaussian-beam",
+    "optics-psf-peak",
+    "code-review",
+    "frontend-visual",
+    "process-planning",
+    "optics-thin-lens",
+    "swebench:pydata__xarray-6992",
+    "swebench:sphinx-doc__sphinx-7590",
+    "swebench:sympy__sympy-13878",
+    "swebench:astropy__astropy-13398",
+    "swebench:django__django-10554",
+    "swebench:pylint-dev__pylint-4551",
+    "swebench:pytest-dev__pytest-10356",
+    "swebench:scikit-learn__scikit-learn-25102",
+    "swebench:astropy__astropy-13579",
+    "swebench:pallets__flask-5014"
+  ],
+  "capability_focus": [
+    "systems_programming",
+    "embedded_engineering",
+    "optics_engineering",
+    "security",
+    "cross_module_reasoning",
+    "bugfix",
+    "code_understanding"
+  ]
+}

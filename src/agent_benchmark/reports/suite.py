@@ -35,7 +35,36 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
         "| Task | Strict Score | Score 95% CI | Verified Score | Coverage | Mean Duration | Variance | Experiment |",
         "| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |",
     ]
+    official_track = suite_summary.get("official_tracks")
+    if isinstance(official_track, dict) and official_track.get("task_count"):
+        lines.extend(
+            [
+                "## Official Resolution Track",
+                "",
+                f"- Ranking candidates: {official_track.get('ranking_candidate_task_count')}",
+                f"- Scorable official attempts: {official_track.get('scorable_attempt_count')}",
+                f"- Resolved official attempts: {official_track.get('resolved_attempt_count')}",
+                f"- Official resolution rate: {official_track.get('resolution_rate_percent')}%",
+                f"- Policy: {official_track.get('policy')}",
+                "",
+                "| Official task | Role | Difficulty | Resolved / scorable attempts | Rate | Variance | 95% CI | Evaluator classification | Evidence |",
+                "| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- |",
+            ]
+        )
+        for task in official_track.get("task_outcomes", []):
+            if not isinstance(task, dict):
+                continue
+            lines.append(
+                f"| `{task.get('task_id')}` | {task.get('role')} | {task.get('difficulty')} | "
+                f"{task.get('resolved_attempt_count')} / {task.get('scorable_attempt_count')} / {task.get('attempt_count')} | "
+                f"{task.get('resolution_rate_percent')}% | {task.get('variance')} | "
+                f"{_format_interval(task.get('score_confidence_interval_95'))} | {task.get('classification')} | "
+                f"`{task.get('experiment_dir')}` |"
+            )
+        lines.append("")
     for task in suite_summary["tasks"]:
+        if _is_official_task(task):
+            continue
         lines.append(
             f"| `{task['task_id']}` | {task['mean_score']} | {_format_interval(task.get('score_confidence_interval_95'))} | {task.get('mean_verified_normalized_score')} | "
             f"{task.get('mean_verified_coverage_percent')}% | {task['mean_duration_seconds']} | "
@@ -81,6 +110,8 @@ def _write_suite_html(path: Path, suite_summary: dict[str, Any]) -> None:
     # Also show mean of per-task 10-dimension radars when available.
     dim_means: dict[str, list[float]] = {}
     for task in suite_summary.get("tasks", []):
+        if _is_official_task(task):
+            continue
         dims = task.get("mean_dimensions") or task.get("dimensions")
         if not isinstance(dims, dict):
             # Fall back to averaging dimensions from embedded run records.
@@ -115,8 +146,42 @@ def _write_suite_html(path: Path, suite_summary: dict[str, Any]) -> None:
             f"(missing axes renormalized: {', '.join(domain_total.get('missing_axes') or []) or 'none'})</p>"
         )
 
+    official_track = suite_summary.get("official_tracks")
+    official_track_html = ""
+    if isinstance(official_track, dict) and official_track.get("task_count"):
+        official_track_html = (
+            "<section><h2>Official Resolution Track</h2>"
+            "<p class='muted'>Official evaluator outcomes are deliberately not blended into local strict scores.</p>"
+            f"<p>Ranking candidates: <b>{official_track.get('ranking_candidate_task_count')}</b>; "
+            f"scorable attempts: <b>{official_track.get('scorable_attempt_count')}</b>; "
+            f"resolved attempts: <b>{official_track.get('resolved_attempt_count')}</b>; "
+            f"resolution rate: <b>{official_track.get('resolution_rate_percent')}%</b>.</p>"
+            f"<p class='muted'>{official_track.get('policy')}</p></section>"
+        )
+        official_rows = []
+        for task in official_track.get("task_outcomes", []):
+            if not isinstance(task, dict):
+                continue
+            official_rows.append(
+                "<tr>"
+                f"<td><code>{task.get('task_id')}</code></td>"
+                f"<td>{task.get('role')}</td>"
+                f"<td>{task.get('resolved_attempt_count')} / {task.get('scorable_attempt_count')} / {task.get('attempt_count')}</td>"
+                f"<td>{task.get('resolution_rate_percent')}%</td>"
+                f"<td>{task.get('classification')}</td>"
+                "</tr>"
+            )
+        official_track_html += (
+            "<table><thead><tr><th>Official task</th><th>Role</th><th>Resolved / scorable / attempts</th>"
+            "<th>Rate</th><th>Classification</th></tr></thead><tbody>"
+            + "".join(official_rows)
+            + "</tbody></table>"
+        )
+
     rows = []
     for task in suite_summary.get("tasks", []):
+        if _is_official_task(task):
+            continue
         rows.append(
             "<tr>"
             f"<td><code>{task.get('task_id')}</code></td>"
@@ -163,6 +228,7 @@ def _write_suite_html(path: Path, suite_summary: dict[str, Any]) -> None:
     mean_score=<b>{suite_summary.get('mean_score')}</b>
     tasks={suite_summary.get('task_count')}</p>
   {domain_total_html}
+  {official_track_html}
   <div class="grid">
     <section>
       <h2>Domain-axis radar</h2>
@@ -192,3 +258,7 @@ def _format_interval(interval: object) -> str:
     if not isinstance(interval, dict):
         return "n/a"
     return f"[{interval.get('lower')}, {interval.get('upper')}] (n={interval.get('n')})"
+
+
+def _is_official_task(task: object) -> bool:
+    return isinstance(task, dict) and isinstance(task.get("task_provenance"), dict) and task["task_provenance"].get("type") == "external_official"

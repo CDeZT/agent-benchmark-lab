@@ -1,7 +1,7 @@
 {
   "id": "unified-hard",
-  "title": "Unified hard bank (local hard tasks + scored official SWE items)",
-  "description": "One suite, one average: local hard discrimination tasks plus SWE-bench Verified instances that have a working official bridge path. External ids use prefix swebench: (resolved=100, not_resolved=0). Evaluator infrastructure failures and patch_missing are excluded from the mean, not counted as model zeros. Prefer flask (diagnostic) + pylint (hard ranking) which already have scorable evidence; do not hang on open-ended retries.",
+  "title": "Mixed hard bank (local tasks + official SWE evidence)",
+  "description": "Runs local hard tasks and selected SWE-bench instances in one resumable command. Local strict scores and official SWE resolution rate remain separate report tracks; evaluator failures never become model zeros and diagnostic tails never enter the official ranking rate.",
   "tasks": [
     "python-swebench-style",
     "c-systems-programming",

@@ -19,7 +19,9 @@ Every run also records:
 - `verified_normalized_score`: the weighted result normalized over only verified dimensions.
 - Per-dimension status: `verified`, `heuristic`, or `unavailable`.
 
-Reports must display the strict total and coverage together. Keyword-only self-repair remains heuristic. **Structured harness tool telemetry** (parsed tool events, Claude `num_turns`/tool traces, Codex JSONL command/file events, opencode tool lines) is treated as **verified** `tool_use` evidence. A workspace diff alone is only heuristic editing evidence, not a verified tool trace. Real token/cost fields remain the only path to verified `cost_efficiency`.
+Reports must display the strict total and coverage together. Keyword-only self-repair remains heuristic. **Explicit structured harness tool telemetry** (parsed named tool events, Codex JSONL command/file events, opencode tool lines) is treated as **verified** `tool_use` evidence. Claude `num_turns` without named tool events and a workspace diff alone are only heuristic evidence. Real token/cost fields remain the only path to verified `cost_efficiency`.
+
+`instruction_match` (the expected file was changed) remains visible as an `intent_understanding` strict-score signal, but is heuristic rather than verified: it proves target-file selection, not full semantic understanding.
 
 ## Default Capability Weights
 

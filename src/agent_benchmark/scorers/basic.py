@@ -96,18 +96,24 @@ def _score_tool_use_from_workspace_edits(baseline: Path, workspace: Path) -> tup
     }
 
 
-def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, dict[str, Any]]:
+def _score_cost_efficiency(task: TaskSpec, harness_evidence: HarnessEvidence) -> tuple[float, dict[str, Any]]:
     """Score the cost_efficiency dimension from harness evidence.
 
-    If token/cost data is available, score based on actual cost (lower = better).
-    Otherwise, keep the dimension at zero. Tool-call count is useful evidence
-    for tool_use, but it is not a cost measurement and should not stand in for
-    token/provider billing data.
+    Actual token/cost data is always preserved. It becomes a 0-100 score only
+    when the task contract declares a positive USD budget. Without that budget,
+    a global exchange rate such as "one dollar equals X points" would be an
+    arbitrary provider-pricing judgement rather than a benchmark measurement.
 
     Returns (score, evidence) where score is 0-100.
     """
-    # Priority 1: Real token/cost data.
-    # Guard: zero cost/tokens when nothing happened is not "perfect efficiency".
+    budget_raw = task.metadata.get("cost_budget_usd")
+    try:
+        budget = float(budget_raw) if budget_raw is not None else None
+    except (TypeError, ValueError):
+        budget = None
+
+    # Priority 1: Real provider cost. Guard: zero cost/tokens when nothing
+    # happened is not evidence of perfect efficiency.
     if harness_evidence.cost_usd is not None:
         cost = harness_evidence.cost_usd
         if cost <= 0:
@@ -117,11 +123,18 @@ def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, di
                 "score": 0.0,
                 "reason": "zero cost is not evidence of efficiency",
             }
-        # Score based on cost: lower cost = higher score
-        score = max(0.0, min(100.0, 100.0 - (cost * 500.0)))
+        if budget is None or budget <= 0:
+            return 0.0, {
+                "method": "cost_measured_without_task_budget",
+                "cost_usd": cost,
+                "score": 0.0,
+                "reason": "Task has no positive metadata.cost_budget_usd; cost is reported but excluded from the weighted score.",
+            }
+        score = max(0.0, min(100.0, 100.0 * (1.0 - cost / budget)))
         return round(score, 2), {
-            "method": "cost_usd",
+            "method": "cost_usd_against_task_budget",
             "cost_usd": cost,
+            "cost_budget_usd": budget,
             "score": round(score, 2),
         }
 
@@ -136,14 +149,15 @@ def _score_cost_efficiency(harness_evidence: HarnessEvidence) -> tuple[float, di
                 "score": 0.0,
                 "reason": "zero tokens is not evidence of efficiency",
             }
-        # Score based on token count: fewer tokens = more efficient
-        score = max(0.0, min(100.0, 100.0 - (total_tokens / 200.0)))
-        return round(score, 2), {
-            "method": "token_count",
+        # Tokens remain useful raw evidence but require a task-owned budget
+        # before they are translated into a quality score.
+        return 0.0, {
+            "method": "tokens_measured_without_task_budget",
             "input_tokens": harness_evidence.input_tokens,
             "output_tokens": harness_evidence.output_tokens,
             "total_tokens": total_tokens,
-            "score": round(score, 2),
+            "score": 0.0,
+            "reason": "Task has no positive metadata.cost_budget_usd; token usage is reported but excluded from the weighted score.",
         }
 
     # No evidence available
@@ -287,8 +301,6 @@ def score_run(
             "edit",
             "search",
             "bash",
-            "interaction",
-            "agent_turn",
             "tool",
             "tool_call",
             "toolCall",
@@ -328,7 +340,7 @@ def score_run(
     # cost_efficiency: scored only from real token/cost data. Tool-call counts
     # are preserved under tool_use evidence and must not masquerade as cost.
     if harness_evidence:
-        cost_score, cost_evidence = _score_cost_efficiency(harness_evidence)
+        cost_score, cost_evidence = _score_cost_efficiency(task, harness_evidence)
         dimensions["cost_efficiency"] = cost_score
         evidence["cost_efficiency"] = cost_evidence
         recorder.event("cost_efficiency.scored", cost_evidence)
@@ -417,6 +429,19 @@ def _measurement_summary(
             for name in process_dimensions:
                 if name in statuses:
                     statuses[name] = "verified"
+        # Changing an expected file is useful process evidence, but it is not
+        # causal proof that the agent understood the requested behavior. Keep
+        # the score visible in the strict total while treating this proxy as
+        # heuristic until a richer intent evaluator exists.
+        checks = process_evidence.get("checks")
+        if isinstance(checks, list):
+            intent_checks = [
+                check
+                for check in checks
+                if isinstance(check, dict) and check.get("dimension") == "intent_understanding"
+            ]
+            if intent_checks and all(check.get("type") == "instruction_match" for check in intent_checks):
+                statuses["intent_understanding"] = "heuristic"
 
     self_repair_evidence = evidence.get("self_repair")
     if isinstance(self_repair_evidence, dict) and "error" not in self_repair_evidence:
@@ -433,7 +458,7 @@ def _measurement_summary(
             statuses["tool_use"] = "heuristic"
 
     cost_evidence = evidence.get("cost_efficiency")
-    if isinstance(cost_evidence, dict) and cost_evidence.get("method") not in {None, "no_token_or_cost_evidence"}:
+    if isinstance(cost_evidence, dict) and cost_evidence.get("method") == "cost_usd_against_task_budget":
         statuses["cost_efficiency"] = "verified"
 
     verified_dimensions = [name for name, status in statuses.items() if status == "verified"]

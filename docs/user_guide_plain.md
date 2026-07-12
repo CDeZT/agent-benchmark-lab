@@ -69,7 +69,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge \
 #   --retry-harness
 ```
 
-统一卷（本地难 + 已可计分官方题）：`run-suite --suite unified-hard`。
+完整固定筛选卷：先运行 `preflight-matrix --suite comprehensive-screening-v1`，再运行 `run-suite --suite comprehensive-screening-v1`。它一次执行项目本地题和 SWE-bench Verified cohort，但本地十维分与官方 resolution rate 分轨展示，绝不混成伪造平均分。完整命令、题目列表、重复统计、恢复步骤和抽样审计见 `docs/user_guide.md`。
 
 ## 还没做完（诚实）
 

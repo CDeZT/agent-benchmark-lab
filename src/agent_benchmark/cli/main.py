@@ -963,7 +963,13 @@ def _run_suite_with_config(
         summaries.append(task_summary)
         _write_suite_checkpoint(suite_run_dir, suite.tasks)
 
-    scored = [item for item in summaries if item.get("include_in_aggregate", True)]
+    official_tasks = [
+        item
+        for item in summaries
+        if isinstance(item.get("task_provenance"), dict)
+        and item["task_provenance"].get("type") == "external_official"
+    ]
+    scored = [item for item in summaries if item not in official_tasks and item.get("include_in_aggregate", True)]
     suite_summary = {
         "suite_run_id": suite_run_id,
         "suite_id": suite.suite_id,
@@ -986,14 +992,66 @@ def _run_suite_with_config(
             round(sum(float(item["mean_duration_seconds"]) for item in scored) / len(scored), 4) if scored else 0.0
         ),
         "tasks": summaries,
-        "scoring_policy": "local tests and official SWE-bench resolution share one suite average; unscorable evaluator errors are excluded from the mean",
+        "scoring_policy": "Local strict scores are aggregated only across local tasks. Official evaluator outcomes are reported as a separate resolution track; unscorable evaluator errors are excluded from that track.",
     }
+    suite_summary["official_tracks"] = _official_track_summary(official_tasks)
     suite_summary["evaluation_axis_scorecard"] = build_scorecard(scored)
     suite_summary["suite_run_dir"] = str(suite_run_dir)
     write_suite_summary(suite_run_dir, suite_summary)
     _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "complete")
     _write_suite_checkpoint(suite_run_dir, suite.tasks, complete=True)
     return suite_summary
+
+
+def _official_track_summary(tasks: list[dict[str, object]]) -> dict[str, object]:
+    """Summarize official-resolution evidence without blending it into local scores."""
+    if not tasks:
+        return {"task_count": 0, "scorable_task_count": 0, "resolved_task_count": 0, "resolution_rate_percent": None}
+    ranking = [task for task in tasks if task.get("benchmark_role") == "comparative_candidate"]
+    scorable = [task for task in ranking if int(task.get("official_scorable_attempt_count") or 0) > 0]
+    resolved = [task for task in scorable if int(task.get("official_resolved_attempt_count") or 0) > 0]
+    scorable_attempt_count = sum(int(task.get("official_scorable_attempt_count") or 0) for task in ranking)
+    resolved_attempt_count = sum(int(task.get("official_resolved_attempt_count") or 0) for task in ranking)
+    diagnostics = [task for task in tasks if task.get("benchmark_role") != "comparative_candidate"]
+    outcomes = []
+    for task in tasks:
+        attempts = int(task.get("official_attempt_count") or task.get("repetitions") or 1)
+        scorable_attempts = int(task.get("official_scorable_attempt_count") or (1 if task.get("official_scorable") else 0))
+        resolved_attempts = int(task.get("official_resolved_attempt_count") or (1 if task.get("official_resolved") is True else 0))
+        outcomes.append(
+            {
+                "task_id": str(task.get("task_id")),
+                "role": str(task.get("benchmark_role")),
+                "difficulty": str(task.get("task_difficulty")),
+                "attempt_count": attempts,
+                "scorable_attempt_count": scorable_attempts,
+                "resolved_attempt_count": resolved_attempts,
+                "resolution_rate_percent": task.get("official_resolution_rate_percent"),
+                "classification": task.get("official_classification"),
+                "variance": task.get("variance"),
+                "score_confidence_interval_95": task.get("score_confidence_interval_95"),
+                "experiment_dir": task.get("experiment_dir"),
+            }
+        )
+    return {
+        "task_count": len(tasks),
+        "ranking_candidate_task_count": len(ranking),
+        "diagnostic_task_count": len(diagnostics),
+        "scorable_task_count": len(scorable),
+        "resolved_task_count": len(resolved),
+        "scorable_attempt_count": scorable_attempt_count,
+        "resolved_attempt_count": resolved_attempt_count,
+        "resolution_rate_percent": round(100.0 * resolved_attempt_count / scorable_attempt_count, 2)
+        if scorable_attempt_count
+        else None,
+        "unscorable_task_ids": [
+            str(task.get("task_id"))
+            for task in ranking
+            if int(task.get("official_scorable_attempt_count") or 0) == 0
+        ],
+        "task_outcomes": outcomes,
+        "policy": "Official resolution rate is separate from local strict/verified scores. Diagnostic tails do not enter the official ranking rate.",
+    }
 
 
 def _config_from_saved_data(config_data: dict[str, object], runs_dir: Path) -> ExperimentConfig:

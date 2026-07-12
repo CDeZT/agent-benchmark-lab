@@ -1,14 +1,16 @@
-"""Fold authoritative external results into the same suite scoring shape as local tasks.
+"""Represent authoritative results in suite artifacts without false score mixing.
 
-The user-facing goal is one bank and one score: local tests and official
-evaluators both produce task summaries that a suite can average together.
+Local tasks and official evaluators share resumable suite plumbing, but retain
+their own metrics: local ten-dimension scores versus official resolution rate.
 """
 from __future__ import annotations
 
+import statistics
 from pathlib import Path
 from typing import Any
 
 from agent_benchmark.authoritative_pilot import load_authoritative_pilot
+from agent_benchmark.metrics import confidence_interval_95
 from agent_benchmark.runner import ExperimentConfig
 from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, run_swebench_bridge
 
@@ -60,13 +62,18 @@ def run_external_task_as_summary(
         model=config.model,
         budget_profile=config.budget_profile,
     )
-    result = run_swebench_bridge(bridge_config)
-    return bridge_result_to_task_summary(
-        task_id=task_id,
-        config=config,
-        bridge_result=result,
-        pilots_file=pilots_file,
-    )
+    attempts = []
+    for repetition in range(1, config.repetitions + 1):
+        result = run_swebench_bridge(bridge_config)
+        attempt = bridge_result_to_task_summary(
+            task_id=task_id,
+            config=config,
+            bridge_result=result,
+            pilots_file=pilots_file,
+        )
+        attempt["runs"][0]["repetition"] = repetition
+        attempts.append(attempt)
+    return _aggregate_external_attempts(task_id, config, attempts)
 
 
 def bridge_result_to_task_summary(
@@ -85,8 +92,8 @@ def bridge_result_to_task_summary(
     scorable = bool(official.get("scorable"))
     resolved = official.get("resolved")
 
-    # Official pass/fail becomes task_completion. Other process dims stay 0 unless
-    # harness telemetry was captured on the bridge (optional later enrichment).
+    # The official evaluator establishes only resolution. Do not manufacture
+    # planning, intent, execution, or safety evidence from a resolved patch.
     if not scorable:
         # Infrastructure failure: do not pretend the model scored 0 on the task.
         task_completion = 0.0
@@ -95,29 +102,31 @@ def bridge_result_to_task_summary(
         public_passed = None
         outcome = "evaluator_error_or_incomplete"
     elif resolved is True:
-        # Unified bank: official pass counts as a full task win in the shared average.
+        # A resolution is a 100% external outcome, but only 30% of the local
+        # strict score corresponds to task_completion. It is reported on a
+        # separate official track and never blended into local strict averages.
         task_completion = 100.0
-        mean_score = 100.0
-        include_in_aggregate = True
+        mean_score = 30.0
+        include_in_aggregate = False
         public_passed = True
         outcome = "resolved"
     else:
         task_completion = 0.0
         mean_score = 0.0
-        include_in_aggregate = True
+        include_in_aggregate = False
         public_passed = False
         outcome = "not_resolved"
 
     dimensions = {
         "task_completion": task_completion,
-        "intent_understanding": 100.0 if resolved is True else 0.0,
+        "intent_understanding": 0.0,
         "planning": 0.0,
-        "execution_quality": 100.0 if resolved is True else 0.0,
+        "execution_quality": 0.0,
         "self_repair": 0.0,
         "test_discipline": 0.0,
         "tool_use": 0.0,
         "visual_verification": 0.0,
-        "safety_boundary": 100.0 if scorable else 0.0,
+        "safety_boundary": 0.0,
         "cost_efficiency": 0.0,
     }
 
@@ -153,9 +162,14 @@ def bridge_result_to_task_summary(
         "repetitions": 1,
         "mean_score": mean_score,
         "mean_verified_normalized_score": 100.0 if resolved is True else (0.0 if scorable else None),
-        "mean_verified_coverage_percent": 42.0 if scorable else 0.0,  # completion+exec+intent+safety weights-ish
+        "mean_verified_coverage_percent": 30.0 if scorable else 0.0,
         "mean_duration_seconds": duration,
         "mean_cost_usd": harness.get("cost_usd"),
+        "variance": 0.0,
+        "stdev": 0.0,
+        "best_score": mean_score,
+        "worst_score": mean_score,
+        "score_confidence_interval_95": None,
         "detected_model": detected,
         "detected_models": [detected] if detected else [],
         "model_identity": {
@@ -169,7 +183,11 @@ def bridge_result_to_task_summary(
         "official_classification": classification,
         "official_scorable": scorable,
         "official_resolved": resolved,
-        "scoring_mode": "unified_official_task_completion",
+        "official_attempt_count": 1,
+        "official_scorable_attempt_count": 1 if scorable else 0,
+        "official_resolved_attempt_count": 1 if resolved is True else 0,
+        "official_resolution_rate_percent": 100.0 if resolved is True else (0.0 if scorable else None),
+        "scoring_mode": "official_resolution_separate_track",
         "runs": [
             {
                 "run_id": f"{instance_id}-official",
@@ -179,17 +197,17 @@ def bridge_result_to_task_summary(
                 "measurement": {
                     "dimension_status": {
                         "task_completion": "verified" if scorable else "unavailable",
-                        "intent_understanding": "verified" if resolved is True else "unavailable",
+                        "intent_understanding": "unavailable",
                         "planning": "unavailable",
-                        "execution_quality": "verified" if scorable else "unavailable",
+                        "execution_quality": "unavailable",
                         "self_repair": "unavailable",
                         "test_discipline": "unavailable",
                         "tool_use": "unavailable",
                         "visual_verification": "unavailable",
-                        "safety_boundary": "verified" if scorable else "unavailable",
+                        "safety_boundary": "unavailable",
                         "cost_efficiency": "unavailable",
                     },
-                    "verified_coverage_percent": 42.0 if scorable else 0.0,
+                    "verified_coverage_percent": 30.0 if scorable else 0.0,
                     "verified_normalized_score": 100.0 if resolved is True else (0.0 if scorable else None),
                     "strict_weighted_score": mean_score,
                 },
@@ -204,6 +222,53 @@ def bridge_result_to_task_summary(
             }
         ],
     }
+
+
+def _aggregate_external_attempts(
+    task_id: str,
+    config: ExperimentConfig,
+    attempts: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Aggregate repeated official attempts without converting them to local scores."""
+    if not attempts:
+        raise ValueError(f"No official attempts were recorded for {task_id}.")
+    first = dict(attempts[0])
+    runs = [attempt["runs"][0] for attempt in attempts]
+    scorable = [attempt for attempt in attempts if attempt.get("official_scorable")]
+    scores = [float(attempt["mean_score"]) for attempt in scorable]
+    resolutions = [bool(attempt.get("official_resolved")) for attempt in scorable]
+    durations = [float(attempt.get("mean_duration_seconds") or 0.0) for attempt in attempts]
+    detected = [str(attempt["detected_model"]) for attempt in attempts if attempt.get("detected_model")]
+
+    first.update(
+        {
+            "repetitions": config.repetitions,
+            "runs": runs,
+            "experiment_dir": ",".join(str(attempt.get("experiment_dir") or "") for attempt in attempts),
+            "mean_score": round(statistics.mean(scores), 2) if scores else 0.0,
+            "variance": round(statistics.pvariance(scores), 4) if len(scores) > 1 else 0.0,
+            "stdev": round(statistics.pstdev(scores), 4) if len(scores) > 1 else 0.0,
+            "best_score": max(scores) if scores else 0.0,
+            "worst_score": min(scores) if scores else 0.0,
+            "score_confidence_interval_95": confidence_interval_95(scores),
+            "mean_verified_normalized_score": round(100.0 * sum(resolutions) / len(resolutions), 2)
+            if resolutions
+            else None,
+            "mean_verified_coverage_percent": 30.0 if scorable else 0.0,
+            "mean_duration_seconds": round(statistics.mean(durations), 4) if durations else 0.0,
+            "detected_models": sorted(set(detected)),
+            "include_in_aggregate": False,
+            "official_attempt_count": len(attempts),
+            "official_scorable_attempt_count": len(scorable),
+            "official_resolved_attempt_count": sum(resolutions),
+            "official_resolution_rate_percent": round(100.0 * sum(resolutions) / len(resolutions), 2)
+            if resolutions
+            else None,
+            "official_scorable": bool(scorable),
+            "official_resolved": bool(sum(resolutions)),
+        }
+    )
+    return first
 
 
 def _swe_pilot(pilots_file: Path) -> dict[str, Any]:

@@ -1,5 +1,13 @@
 # Project Journal
 
+## 2026-07-12 (iteration 43)
+
+- Added fixed `comprehensive-screening-v1`: 11 local comparative tasks from expert through easy, nine SWE-bench Verified hard ranking candidates, and one final diagnostic tail. `run-suite` runs all of it with suite resume; `preflight-matrix` now recognizes `swebench:` IDs rather than rejecting a mixed suite as missing local manifests.
+- Corrected a major reporting/scoring integrity risk: official SWE results no longer receive invented planning/intent/execution/safety points and never contribute to local strict averages, axes, or radar charts. They are reported as a separate resolution track with resolved/scorable/attempt counts, variance, CI, evaluator classifications, and bridge evidence paths.
+- Repetition handling for official tasks now invokes independent bridge attempts and aggregates an official resolution rate. Evaluator infrastructure errors are excluded from the rate instead of silently becoming zero-score model failures.
+- Audited three real Claude Code samples under the current default LongCat configuration. Process-plan casing was corrected, frontend hidden visual failure was preserved as a partial failure, and the embedded protocol task passed all 30 public/hidden checks while retaining its real code-quality penalty for nesting depth.
+- Removed the arbitrary global token/dollar efficiency conversion. Raw usage is still saved; scored efficiency now requires a frozen task-level cost budget. Downgraded file-only intent matching and Claude turn counts to heuristic evidence. Expanded the user manual with cohort membership, score semantics, repetitions/variance/CI, resume instructions, and sample-audit evidence.
+
 ## 2026-07-12 (iteration 42)
 
 - Added built-in Codex CLI and Aider adapters with non-interactive, workspace-scoped default commands; doctor now verifies both local binaries and their override environment variables.

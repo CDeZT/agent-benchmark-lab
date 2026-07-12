@@ -19,7 +19,7 @@ from agent_benchmark.authoritative_pilot import _task_yaml_metadata, _validate_s
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
-from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_config, main
+from agent_benchmark.cli.main import _official_track_summary, _run_matrix_with_specs, _run_suite_with_config, main
 from agent_benchmark.dashboard import build_dashboard, write_dashboard
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.harness_registry import load_harness_registry
@@ -51,6 +51,7 @@ from agent_benchmark.unified_external import (
     bridge_result_to_task_summary,
     external_task_fingerprint,
     is_external_task_id,
+    run_external_task_as_summary,
 )
 
 
@@ -669,7 +670,7 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["mean_score"], 62.0)
             # tool_use from workspace edits is heuristic but not a perfect 100.
             self.assertEqual(summary["mean_verified_normalized_score"], 100.0)
-            self.assertEqual(summary["mean_verified_coverage_percent"], 58.0)
+            self.assertEqual(summary["mean_verified_coverage_percent"], 48.0)
             self.assertEqual(summary["score_confidence_interval_95"]["margin"], 0.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
@@ -685,7 +686,7 @@ class FrameworkTests(unittest.TestCase):
                 result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
                 self.assertEqual(result["score"]["dimensions"]["task_completion"], 100.0)
                 self.assertEqual(result["score"]["dimensions"]["visual_verification"], 0.0)
-                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 58.0)
+                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 48.0)
                 self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 100.0)
                 self.assertEqual(result["score"]["measurement"]["dimension_status"]["tool_use"], "heuristic")
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
@@ -2134,7 +2135,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIsNone(evidence.model)
         self.assertEqual(evidence.tool_calls, [])
 
-    def test_unified_external_maps_official_pass_fail_into_suite_scores(self) -> None:
+    def test_unified_external_keeps_official_pass_fail_out_of_local_scores(self) -> None:
         self.assertTrue(is_external_task_id("swebench:pallets__flask-5014"))
         fp = external_task_fingerprint(
             "swebench:pallets__flask-5014", ROOT / "config" / "authoritative_pilots.json"
@@ -2155,9 +2156,10 @@ class FrameworkTests(unittest.TestCase):
             },
             pilots_file=ROOT / "config" / "authoritative_pilots.json",
         )
-        self.assertEqual(passed["mean_score"], 100.0)
-        self.assertTrue(passed["include_in_aggregate"])
+        self.assertEqual(passed["mean_score"], 30.0)
+        self.assertFalse(passed["include_in_aggregate"])
         self.assertEqual(passed["benchmark_role"], "smoke_only")  # diagnostic_tail
+        self.assertEqual(passed["runs"][0]["dimensions"]["intent_understanding"], 0.0)
         failed = bridge_result_to_task_summary(
             task_id="swebench:pylint-dev__pylint-4551",
             config=config,
@@ -2173,7 +2175,7 @@ class FrameworkTests(unittest.TestCase):
             pilots_file=ROOT / "config" / "authoritative_pilots.json",
         )
         self.assertEqual(failed["mean_score"], 0.0)
-        self.assertTrue(failed["include_in_aggregate"])
+        self.assertFalse(failed["include_in_aggregate"])
         self.assertEqual(failed["benchmark_role"], "comparative_candidate")
         broken = bridge_result_to_task_summary(
             task_id="swebench:sympy__sympy-13878",
@@ -2190,6 +2192,65 @@ class FrameworkTests(unittest.TestCase):
             pilots_file=ROOT / "config" / "authoritative_pilots.json",
         )
         self.assertFalse(broken["include_in_aggregate"])
+        track = _official_track_summary([passed, failed, broken])
+        self.assertEqual(track["ranking_candidate_task_count"], 2)
+        self.assertEqual(track["scorable_task_count"], 1)
+        self.assertEqual(track["resolution_rate_percent"], 0.0)
+        self.assertEqual(track["task_outcomes"][0]["resolved_attempt_count"], 1)
+
+    def test_comprehensive_screening_cohort_is_fixed_and_stratified(self) -> None:
+        suite = load_suite(ROOT / "benchmarks" / "suites" / "comprehensive-screening-v1.json")
+        external = [task_id for task_id in suite.tasks if task_id.startswith("swebench:")]
+
+        self.assertEqual(len(external), 10)
+        self.assertEqual(external[-1], "swebench:pallets__flask-5014")
+        self.assertIn("c-systems-programming", suite.tasks)
+        self.assertIn("optics-thin-lens", suite.tasks)
+
+    def test_repeated_official_runs_report_resolution_variance_without_local_aggregation(self) -> None:
+        config = ExperimentConfig(adapter="opencode", model="unspecified", repetitions=2, runs_dir=Path("/tmp"))
+        results = [
+            {
+                "bridge_dir": "runs/official-one",
+                "official_summary": {"classification": "resolved", "scorable": True, "resolved": True},
+                "manifest": {"stages": {"harness": {"duration_seconds": 10}}},
+            },
+            {
+                "bridge_dir": "runs/official-two",
+                "official_summary": {"classification": "not_resolved", "scorable": True, "resolved": False},
+                "manifest": {"stages": {"harness": {"duration_seconds": 20}}},
+            },
+        ]
+        with patch("agent_benchmark.unified_external.run_swebench_bridge", side_effect=results) as bridge:
+            summary = run_external_task_as_summary(
+                "swebench:pylint-dev__pylint-4551",
+                config,
+                pilots_file=ROOT / "config" / "authoritative_pilots.json",
+                registry_path=ROOT / "config" / "authoritative_corpora.json",
+            )
+
+        self.assertEqual(bridge.call_count, 2)
+        self.assertEqual(summary["official_attempt_count"], 2)
+        self.assertEqual(summary["official_resolution_rate_percent"], 50.0)
+        self.assertEqual(summary["variance"], 225.0)
+        self.assertFalse(summary["include_in_aggregate"])
+        track = _official_track_summary([summary])
+        self.assertEqual(track["scorable_attempt_count"], 2)
+        self.assertEqual(track["resolved_attempt_count"], 1)
+        self.assertEqual(track["resolution_rate_percent"], 50.0)
+
+    def test_preflight_accepts_mixed_official_swebench_suite(self) -> None:
+        suite = load_suite(ROOT / "benchmarks" / "suites" / "comprehensive-screening-v1.json")
+        report = preflight_matrix(
+            suite,
+            [{"adapter": "dummy", "model": "unspecified", "adapter_model": "unspecified", "budget_profile": "stress", "repetitions": 3}],
+            ROOT / "benchmarks" / "tasks",
+            registry_used=False,
+        )
+
+        self.assertTrue(report["execution_ready"])
+        self.assertIn("swebench:pydata__xarray-6992", report["excluded_task_ids"])
+        self.assertIn("official_evaluator_separate_track", [item["code"] for item in report["warnings"]])
 
     def test_workspace_edit_fallback_is_heuristic_tool_use_without_harness_logs(self) -> None:
         from agent_benchmark.scorers.basic import score_run
@@ -2235,7 +2296,11 @@ class FrameworkTests(unittest.TestCase):
             result = score_run(task, baseline, workspace, recorder, harness_evidence=evidence)
             self.assertGreater(result.dimensions["tool_use"], 0)
             self.assertEqual(result.measurement["dimension_status"]["tool_use"], "verified")
-            self.assertEqual(result.measurement["dimension_status"]["cost_efficiency"], "verified")
+            self.assertEqual(result.measurement["dimension_status"]["cost_efficiency"], "unavailable")
+            self.assertEqual(
+                result.evidence["cost_efficiency"]["method"],
+                "cost_measured_without_task_budget",
+            )
             self.assertIn("tool_use", result.measurement["verified_dimensions"])
 
     def test_tool_use_scored_from_real_harness_evidence(self) -> None:
@@ -2278,27 +2343,32 @@ class FrameworkTests(unittest.TestCase):
     # ── cost_efficiency tests ──
 
     def test_cost_efficiency_from_token_count(self) -> None:
-        """Prove cost_efficiency scores from real token data."""
+        """Tokens are reported but do not become points without a task budget."""
         from agent_benchmark.scorers.basic import _score_cost_efficiency
         from agent_benchmark.parsers.harness_output import HarnessEvidence
 
         evidence = HarnessEvidence(input_tokens=1000, output_tokens=500)
-        score, ev = _score_cost_efficiency(evidence)
-        self.assertEqual(ev["method"], "token_count")
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        score, ev = _score_cost_efficiency(task, evidence)
+        self.assertEqual(ev["method"], "tokens_measured_without_task_budget")
         self.assertEqual(ev["total_tokens"], 1500)
-        self.assertGreater(score, 0.0)
-        self.assertLess(score, 100.0)
+        self.assertEqual(score, 0.0)
 
     def test_cost_efficiency_from_cost_usd(self) -> None:
-        """Prove cost_efficiency scores from real cost data."""
+        """A task-owned budget, not a global dollar conversion, yields points."""
         from agent_benchmark.scorers.basic import _score_cost_efficiency
         from agent_benchmark.parsers.harness_output import HarnessEvidence
 
         evidence = HarnessEvidence(cost_usd=0.05)
-        score, ev = _score_cost_efficiency(evidence)
-        self.assertEqual(ev["method"], "cost_usd")
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        score, ev = _score_cost_efficiency(task, evidence)
+        self.assertEqual(ev["method"], "cost_measured_without_task_budget")
         self.assertEqual(ev["cost_usd"], 0.05)
-        self.assertGreater(score, 0.0)
+        self.assertEqual(score, 0.0)
+        task.metadata["cost_budget_usd"] = 0.10
+        score, ev = _score_cost_efficiency(task, evidence)
+        self.assertEqual(ev["method"], "cost_usd_against_task_budget")
+        self.assertEqual(score, 50.0)
 
     def test_cost_efficiency_zero_with_only_tool_calls(self) -> None:
         """Prove tool calls alone do not masquerade as cost evidence."""
@@ -2306,7 +2376,8 @@ class FrameworkTests(unittest.TestCase):
         from agent_benchmark.parsers.harness_output import HarnessEvidence
 
         evidence = HarnessEvidence(tool_calls=[{"type": "read"}, {"type": "edit"}])
-        score, ev = _score_cost_efficiency(evidence)
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        score, ev = _score_cost_efficiency(task, evidence)
         self.assertEqual(score, 0.0)
         self.assertEqual(ev["method"], "no_token_or_cost_evidence")
         self.assertEqual(ev["tool_count"], 2)
@@ -2317,7 +2388,8 @@ class FrameworkTests(unittest.TestCase):
         from agent_benchmark.parsers.harness_output import HarnessEvidence
 
         evidence = HarnessEvidence()
-        score, ev = _score_cost_efficiency(evidence)
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        score, ev = _score_cost_efficiency(task, evidence)
         self.assertEqual(score, 0.0)
         self.assertEqual(ev["method"], "no_token_or_cost_evidence")
 
@@ -2540,6 +2612,21 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(result.dimensions["intent_understanding"], 100.0)
             self.assertTrue(result.checks[0]["passed"])
             self.assertEqual(result.checks[0]["files"][0]["status"], "modified")
+
+    def test_file_contains_can_ignore_case_for_semantic_plan_headings(self) -> None:
+        from agent_benchmark.scorers.process import score_process_checks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            workspace.mkdir()
+            (workspace / "plan.md").write_text("# Inspect\n# Implement\n# Verify\n", encoding="utf-8")
+            result = score_process_checks(
+                workspace,
+                [{"type": "file_contains", "dimension": "planning", "path": "plan.md", "text": "inspect", "case_sensitive": False}],
+            )
+
+        self.assertEqual(result.dimensions["planning"], 100.0)
+        self.assertFalse(result.checks[0]["case_sensitive"])
 
     def test_instruction_match_fails_when_expected_file_unchanged(self) -> None:
         """Prove instruction_match fails when none of the expected files were changed."""

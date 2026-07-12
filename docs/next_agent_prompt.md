@@ -65,7 +65,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 当前 opencode 1.17.15 的 `--model` 会崩溃，因此其 CLI 默认模型模式是正常且受支持的；即使 registry 写了 opencode 映射，也不能宣称该命令选中了某个模型。
 - `swebench-bridge` 是唯一允许把 harness patch 交给官方 SWE-bench evaluator 的路径。默认计划模式不花 token；只有用户明确允许的情况下才加 `--execute`。一次只跑一个 pilot-selected instance；中断时保留 bridge 目录并用同一参数加 `--bridge-dir` 恢复。ARM Mac 必须保持默认空 `--namespace`，让官方镜像本地构建。官方汇总里的 `error_ids` 必须分类为 `evaluator_error`，不可当作模型失败或得分；只有 `resolved` / `not_resolved` 的 per-instance report 才可计分。
 - 矩阵的主排名是任务级共同证据维度的 comparable score；严格总分只作诊断。模型身份不是 `verified_match` 的行必须称为 provisional，不能写成同模型结论。
-- `cost_efficiency` 只能来自真实 token/cost 数据；工具调用次数只能作为 `tool_use` 证据。
+- `cost_efficiency` 的真实 token/cost 必须保存，但只有任务在运行前声明正数 `metadata.cost_budget_usd` 时才可换成分数；不得使用任意美元/ token 换分公式。工具调用次数只能作为 `tool_use` 证据。
 - `calibrate-difficulty` 只能按实际检测到的模型身份聚合；默认要求每个 adapter/observed-model/profile 组合至少 3 次、至少 3 个组合和 9 个 eligible run。身份未知或混合的历史 run 只能保留审计，不能凑统计结论。
 - 这是筛选性考试，不是合格性题库：先执行 `screening-report`。只有 `selection_ready_local_seed` 才可进入本地选择排名；`smoke_only`、`awaiting_real_evidence`、`retune_or_replace` 和 `corpus_gate_pending` 都不得混入结论。
 - `selection-ladder` 必须保持 expert -> hard -> medium -> easy。权威题库以 `config/authoritative_corpora.json` 为准；不得把本地 inspired task 写成 SWE-bench 或 Terminal-Bench 已导入任务。
@@ -86,7 +86,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 
 当前已实现的大方向：
 - CLI benchmark lab。
-- task/suite/matrix runner（20 个本地可评测任务、5 个不可运行的 `external_frozen` SWE-bench 元数据记录、8 个套件；`calibration` 覆盖 easy 到 expert，`selection-ladder` 由难到易）。
+- task/suite/matrix runner（26 个本地可评测任务、5 个不可运行的 `external_frozen` SWE-bench 元数据记录、13 个套件；`calibration` 覆盖 easy 到 expert，`selection-ladder` 由难到易，`comprehensive-screening-v1` 是固定本地+官方 cohort）。
 - public tests + hidden tests。
 - SHA-256 protected path integrity。
 - static HTML visual checks。
@@ -96,10 +96,11 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 149 个 unittest 测试函数，应该全部通过。
+- 153 个 unittest 测试函数，应该全部通过。
 - `agent-benchmark dashboard` 已可从 `runs/` 生成历史 HTML/JSON 看板，并标注 fingerprint 与模型身份是否可用于当前结论。
 - `config/model_registry.json` 已去掉 longcat→mimo 伪同模型映射，只保留诚实的 mimo 候选映射。
 - `terminal-bench-bridge` 已实现：默认只出 plan，`--execute` 才调用官方 `tb run`；结果在独立 terminal 轨道，不得并入 SWE-bench 分数。
+- `comprehensive-screening-v1` 是当前的一键完整筛选卷：11 个本地 expert->easy comparative task、9 个 SWE-bench hard ranking candidate、1 个 diagnostic tail。先用 `preflight-matrix`，再 `run-suite`。官方题通过独立 bridge repetition 运行；报告必须保留本地十维/领域分与官方 resolved/scorable/rate 两条轨道，不能把官方 30 分占位、官方任务或 diagnostic tail 混入本地雷达、平均或排行榜。
 - Colima 已提升到 4CPU/8GiB。正在/应继续恢复 `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435` 的官方评测（复用 patch）。
 - 实时 fingerprinted CLI-default calibration 矩阵：`runs/matrix-20260712T094706Z-39b0f8c0`。若中断，用 `resume-matrix --matrix-run-dir` 恢复。
 

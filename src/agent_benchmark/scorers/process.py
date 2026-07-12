@@ -79,6 +79,7 @@ def _file_exists(workspace: Path, check: dict[str, Any]) -> dict[str, Any]:
 def _file_contains(workspace: Path, check: dict[str, Any]) -> dict[str, Any]:
     relative = str(check.get("path", ""))
     expected = str(check.get("text", ""))
+    case_sensitive = bool(check.get("case_sensitive", True))
     path = workspace / relative
     if not path.is_file():
         return {
@@ -90,12 +91,14 @@ def _file_contains(workspace: Path, check: dict[str, Any]) -> dict[str, Any]:
             "error": "File not found.",
         }
     content = path.read_text(encoding="utf-8")
+    passed = expected in content if case_sensitive else expected.casefold() in content.casefold()
     return {
         "type": "file_contains",
         "dimension": check.get("dimension"),
         "path": relative,
         "text": expected,
-        "passed": expected in content,
+        "case_sensitive": case_sensitive,
+        "passed": passed,
     }
 
 

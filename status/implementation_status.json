@@ -3,7 +3,7 @@
   "updated_at": "2026-07-12",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a usable personal benchmark foundation: 26 locally runnable tasks, five SWE-bench metadata records quarantined as external_frozen, and twelve suites. Codex, Aider, Claude Code, opencode, and Grok have built-in adapter contracts; the first two now have doctor checks and conservative telemetry parsing. The corpus has baseline/reference contrast for 21 records, but five dependency-heavy container tasks still need the same Docker-backed corpus audit and no task is empirically selection-ready yet. The local selection gate remains zero-ready; a fixed, multi-repeat real matrix and completed external bridge cohorts remain necessary before any authoritative comparative claim."
+    "plain_language": "The repository has a usable personal benchmark foundation: 26 locally runnable tasks, five SWE-bench metadata records quarantined as external_frozen, and thirteen suites. comprehensive-screening-v1 gives one resumable command for a fixed 11-task local cohort plus a 9-task SWE-bench Verified hard cohort and one diagnostic tail, while deliberately separating local multidimensional scores from official resolution rate. Codex, Aider, Claude Code, opencode, and Grok have built-in adapter contracts. The corpus has baseline/reference contrast for 21 records, but five dependency-heavy container tasks still need the same Docker-backed corpus audit and no task is empirically selection-ready yet."
   },
   "items": [
     {
@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs are heuristic editing evidence, not verified tool telemetry", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "149 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "153 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Complete Docker-backed corpus audit for dependency-heavy tasks"]
     },
     {

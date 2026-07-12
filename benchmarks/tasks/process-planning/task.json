@@ -44,19 +44,22 @@
       "type": "file_contains",
       "dimension": "planning",
       "path": ".agent-benchmark/plan.md",
-      "text": "inspect"
+      "text": "inspect",
+      "case_sensitive": false
     },
     {
       "type": "file_contains",
       "dimension": "planning",
       "path": ".agent-benchmark/plan.md",
-      "text": "implement"
+      "text": "implement",
+      "case_sensitive": false
     },
     {
       "type": "file_contains",
       "dimension": "planning",
       "path": ".agent-benchmark/plan.md",
-      "text": "verify"
+      "text": "verify",
+      "case_sensitive": false
     },
     {
       "type": "instruction_match",
