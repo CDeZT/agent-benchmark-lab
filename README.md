@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、138 个 unittest 测试函数、本地历史 dashboard、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、140 个 unittest 测试函数、本地历史 dashboard、SWE-bench/Terminal-Bench 官方 bridge、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -89,6 +89,9 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main freeze-authoritative-pilot --
 PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode
 # Confirmed and resource-intensive: one instance only, resume with --bridge-dir if interrupted.
 PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode --execute
+PYTHONPATH=src python3 -m agent_benchmark.cli.main terminal-bench-bridge --instance-id path-tracing --adapter opencode
+# Confirmed and resource-intensive: official Terminal-Bench Docker sandbox.
+PYTHONPATH=src python3 -m agent_benchmark.cli.main terminal-bench-bridge --instance-id path-tracing --adapter opencode --execute
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main status

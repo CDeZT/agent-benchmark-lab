@@ -1,5 +1,13 @@
 # Project Journal
 
+## 2026-07-12 (iteration 36)
+
+- Started a real fingerprinted CLI-default calibration matrix: opencode vs claude-code × `unspecified` × oneshot × 3 repetitions (`matrix-20260712T094706Z-39b0f8c0`).
+- Raised Colima from 2CPU/4GiB to 4CPU/8GiB after confirming the previous SWE-bench env image failure was OOM (conda create killed with 137). Resumed the saved sympy patch evaluation without regenerating the harness patch.
+- Implemented `terminal-bench-bridge`: plan-by-default single-task bridge to official `tb run`, maps opencode/claude-code agents, preserves raw official output, and keeps the terminal track separate from SWE-bench scores.
+- Fixed `scripts/run_calibration_matrix.sh` to use the honest CLI-default path (`--models unspecified` + preflight) instead of the old false longcat/mimo same-model invocation.
+- Dashboard now also lists Terminal-Bench bridges.
+
 ## 2026-07-12 (iteration 35)
 
 - Environment re-check: doctor ok, calibration CLI-default preflight ranking-ready, authoritative sources execution-ready but not imported, 136 existing tests green before this change.

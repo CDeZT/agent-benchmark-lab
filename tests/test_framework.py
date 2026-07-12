@@ -36,6 +36,12 @@ from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.reports.matrix import build_matrix_leaderboard
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, _clone_checkout, _evaluator_command, _official_summary, _prediction_record, _workspace_at_commit
+from agent_benchmark.terminal_bench_bridge import (
+    TerminalBenchBridgeConfig,
+    _official_summary as terminal_official_summary,
+    _tb_command,
+    prepare_terminal_bench_bridge,
+)
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import axes_for_task, build_scorecard
@@ -338,6 +344,53 @@ class FrameworkTests(unittest.TestCase):
                     _clone_checkout("example/project", "abc123", Path(tmp) / "checkout")
 
         self.assertEqual(checked.call_count, 3)
+
+    def test_terminal_bench_bridge_plans_without_execution(self) -> None:
+        plan = prepare_terminal_bench_bridge(
+            TerminalBenchBridgeConfig(
+                pilot_file=ROOT / "config" / "authoritative_pilots.json",
+                registry_path=ROOT / "config" / "authoritative_corpora.json",
+                runs_dir=ROOT / "runs",
+                instance_id="path-tracing",
+                adapter="opencode",
+            )
+        )
+        self.assertEqual(plan["instance_id"], "path-tracing")
+        self.assertEqual(plan["tb_agent"], "opencode")
+        self.assertEqual(plan["selection_role"], "ranking_candidate")
+        self.assertIn("plan only", plan["warning"].lower())
+        command = _tb_command(
+            TerminalBenchBridgeConfig(
+                pilot_file=ROOT / "config" / "authoritative_pilots.json",
+                registry_path=ROOT / "config" / "authoritative_corpora.json",
+                runs_dir=ROOT / "runs",
+                instance_id="path-tracing",
+                adapter="claude-code",
+            ),
+            "claude-code",
+            Path("/tmp/tb-out"),
+            "tb-run-id",
+        )
+        self.assertEqual(command[command.index("--agent") + 1], "claude-code")
+        self.assertEqual(command[command.index("--task-id") + 1], "path-tracing")
+        self.assertEqual(command[command.index("--dataset") + 1], "terminal-bench-core==0.1.1")
+        self.assertIn("--no-upload-results", command)
+
+    def test_terminal_bench_bridge_classifies_official_results(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir = Path(tmp)
+            result_path = official_dir / "results.json"
+            result_path.write_text(json.dumps({"is_resolved": False, "task_id": "path-tracing"}), encoding="utf-8")
+            summary = terminal_official_summary(official_dir, "run-1", "path-tracing", 0, ["tb", "run"])
+        self.assertTrue(summary["completed"])
+        self.assertTrue(summary["scorable"])
+        self.assertFalse(summary["resolved"])
+        self.assertEqual(summary["classification"], "not_resolved")
+        self.assertEqual(summary["track"], "terminal-bench")
+
+        missing = terminal_official_summary(Path("/tmp/missing-tb"), "run-2", "path-tracing", 1, ["tb", "run"])
+        self.assertFalse(missing["scorable"])
+        self.assertEqual(missing["classification"], "evaluator_invocation_error")
 
     def test_outcome_taxonomy_aggregates_capability_axes(self) -> None:
         self.assertIn("systems_embedded", axes_for_task(["c_engineering", "embedded_engineering"]))

@@ -25,6 +25,11 @@ from agent_benchmark.runner import ExperimentConfig, ensure_task_environment_sup
 from agent_benchmark.screening import build_screening_report
 from agent_benchmark.status import DEFAULT_STATUS_PATH, format_status, load_status
 from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, prepare_swebench_bridge, run_swebench_bridge
+from agent_benchmark.terminal_bench_bridge import (
+    TerminalBenchBridgeConfig,
+    prepare_terminal_bench_bridge,
+    run_terminal_bench_bridge,
+)
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
@@ -110,6 +115,21 @@ def main(argv: list[str] | None = None) -> int:
     swebench_bridge_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
     swebench_bridge_parser.add_argument("--execute", action="store_true", help="Actually invoke the harness and official Docker evaluator.")
     swebench_bridge_parser.add_argument("--json", action="store_true")
+
+    terminal_bridge_parser = subparsers.add_parser(
+        "terminal-bench-bridge",
+        help="Prepare or explicitly run one frozen Terminal-Bench task through official tb run.",
+    )
+    terminal_bridge_parser.add_argument("--instance-id", required=True, help="One task selected by the Terminal-Bench authoritative pilot.")
+    terminal_bridge_parser.add_argument("--adapter", required=True, help="Harness adapter mapped to a Terminal-Bench agent (opencode or claude-code).")
+    terminal_bridge_parser.add_argument("--model", default="unspecified", help="Optional model override for the Terminal-Bench agent.")
+    terminal_bridge_parser.add_argument("--dataset", default="terminal-bench-core==0.1.1")
+    terminal_bridge_parser.add_argument("--bridge-dir", help="Resume an existing bridge directory.")
+    terminal_bridge_parser.add_argument("--pilots-file", default=str(DEFAULT_AUTHORITATIVE_PILOTS_PATH))
+    terminal_bridge_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
+    terminal_bridge_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    terminal_bridge_parser.add_argument("--execute", action="store_true", help="Actually invoke official Terminal-Bench Docker evaluation.")
+    terminal_bridge_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -238,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
         return _freeze_authoritative_pilot(args)
     if args.command == "swebench-bridge":
         return _swebench_bridge(args)
+    if args.command == "terminal-bench-bridge":
+        return _terminal_bench_bridge(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -448,6 +470,33 @@ def _swebench_bridge(args: argparse.Namespace) -> int:
     return 0
 
 
+def _terminal_bench_bridge(args: argparse.Namespace) -> int:
+    config = TerminalBenchBridgeConfig(
+        pilot_file=Path(args.pilots_file),
+        registry_path=Path(args.registry),
+        runs_dir=Path(args.runs_dir),
+        instance_id=args.instance_id,
+        adapter=args.adapter,
+        model=args.model,
+        dataset=args.dataset,
+        bridge_dir=Path(args.bridge_dir) if args.bridge_dir else None,
+    )
+    result = run_terminal_bench_bridge(config) if args.execute else prepare_terminal_bench_bridge(config)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    elif args.execute:
+        print(f"Terminal-Bench bridge status: {result['manifest']['status']}")
+        print(f"Evidence: {result['bridge_dir']}")
+        print(f"Classification: {result['official_summary'].get('classification')}")
+        print(f"Resolved: {result['official_summary'].get('resolved')}")
+        print("Track: terminal-bench (do not merge with SWE-bench scores).")
+    else:
+        print(f"Terminal-Bench bridge plan: {result['instance_id']} ({result['selection_role']})")
+        print(f"Mapped agent: {result['tb_agent']}")
+        print("Run again with --execute only when ready to invoke official Terminal-Bench Docker evaluation.")
+    return 0
+
+
 def _list_adapters() -> int:
     for adapter in available_adapters():
         print(adapter)
@@ -536,7 +585,8 @@ def _dashboard(args: argparse.Namespace) -> int:
     print(
         "Dashboard built: "
         f"matrices={counts.get('matrices', 0)}, suites={counts.get('suites', 0)}, "
-        f"tasks={counts.get('tasks', 0)}, swebench_bridges={counts.get('swebench_bridges', 0)}"
+        f"tasks={counts.get('tasks', 0)}, swebench_bridges={counts.get('swebench_bridges', 0)}, "
+        f"terminal_bench_bridges={counts.get('terminal_bench_bridges', 0)}"
     )
     print(f"HTML: {output.get('html')}")
     print(f"JSON: {output.get('json')}")

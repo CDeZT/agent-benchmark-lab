@@ -148,7 +148,10 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 
 - Removed the false `longcat-2.0` → Claude Code `mimo` registry mapping. Registry now only contains honest same-model candidate mappings for mimo identifiers.
 - Added `agent-benchmark dashboard`: scans saved matrix/suite/task/SWE-bench bridge artifacts, writes `runs/dashboard/index.html` + `dashboard.json`, and labels fingerprint match/mismatch plus provisional CLI-default identity. It does not invent scores.
-- Dashboard status item moved from planned to implemented. Next value is real fingerprinted matrix evidence and completing the official external bridges.
+- Dashboard status item moved from planned to implemented.
+- Raised Colima to 4 CPU / 8 GiB after proving the SWE-bench env image OOM (exit 137). Resumed the saved sympy patch evaluation without a second harness call.
+- Implemented `terminal-bench-bridge` (plan-by-default → official `tb run`), keeping the terminal track separate from SWE-bench.
+- Started live fingerprinted CLI-default calibration matrix: `runs/matrix-20260712T094706Z-39b0f8c0` (opencode vs claude-code × unspecified × oneshot × 3).
 
 ## In Progress
 

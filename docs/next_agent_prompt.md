@@ -92,17 +92,20 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 138 个 unittest 测试函数，应该全部通过。
+- 140 个 unittest 测试函数，应该全部通过。
 - `agent-benchmark dashboard` 已可从 `runs/` 生成历史 HTML/JSON 看板，并标注 fingerprint 与模型身份是否可用于当前结论。
 - `config/model_registry.json` 已去掉 longcat→mimo 伪同模型映射，只保留诚实的 mimo 候选映射。
+- `terminal-bench-bridge` 已实现：默认只出 plan，`--execute` 才调用官方 `tb run`；结果在独立 terminal 轨道，不得并入 SWE-bench 分数。
+- Colima 已提升到 4CPU/8GiB。正在/应继续恢复 `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435` 的官方评测（复用 patch）。
+- 实时 fingerprinted CLI-default calibration 矩阵：`runs/matrix-20260712T094706Z-39b0f8c0`。若中断，用 `resume-matrix --matrix-run-dir` 恢复。
 
 仍然重要的下一步：
-- 优先运行 `calibration` 的三次重复 CLI 默认配置矩阵（opencode vs claude-code × `unspecified`），作为用户实际工具选择证据；跑完后刷新 `dashboard`；显式同模型矩阵仅解释 `verified_match` 行。
+- 若 live calibration 矩阵仍在跑，等它完成；完成后刷新 `dashboard`、`screening-report`、`calibrate-difficulty`。不要把 CLI-default 行写成同模型结论。
 - `bounded` 的时间上限现在会真正限制 adapter 子进程；`open_ended` 无上限。Ctrl-C 后检查 `interruption.json` 和 `checkpoint.json`，再用 `resume` 重跑未保存 result 的 repetition。
 - 官方 evaluator 工具现可用：SWE-bench 使用 `.agent-benchmark-evaluators/swebench` 的 Python 3.11，Terminal-Bench 使用 Python 3.13 的 `uv tool`。其他机器先运行 `scripts/setup_authoritative_evaluators.sh` 和 `preflight-authoritative`。工具可执行不等于题目已导入：仍必须冻结上游实例列表并保存官方 evaluator 原始结果。
-- 已冻结 `swe-bench-verified-screening-v1` 六题 pilot（上游难度从 `>4 hours` 到 `<15 min`）。`swebench-bridge` 已实现 harness patch -> 官方 `swebench.harness.run_evaluation` 的单题可恢复链路。首次真实 expert run 保存在 `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435`：opencode patch 已保存，但官方环境镜像失败并产生 `error_ids`，所以是不可计分 `evaluator_error`，不得标记 `external_imported` 或归因到 LongCat/opencode。调整 Docker VM 资源后以同一 `--bridge-dir` 恢复，必须复用 patch、不得无故重新调用 harness。
+- 已冻结 `swe-bench-verified-screening-v1` 六题 pilot。`swebench-bridge` 已实现 harness patch -> 官方 evaluator 的单题可恢复链路。首次 expert run 的 patch 已保存；若官方仍 `error_ids`，继续升资源并用同一 `--bridge-dir` 恢复，不得无故重新调用 harness。
 - `swebench-pilot` 中另有 5 个历史导入尝试留下的任务记录；它们已被修正为 `external_frozen` + `external_evaluator_only`，用于开发桥接，不是可运行题库。不得重新把通用 `run_evaluation` 写成 task 的 `test_command`。
-- 已冻结独立 `terminal-bench-core-engineering-v1` 六题 pilot，涵盖 kernel/QEMU、C 图像、Raman 光谱、算法与 tmux 工作流；它必须通过官方 `tb run` 接入，结果绝不能和 SWE-bench repository-issue 轨道合并。
+- 已冻结独立 `terminal-bench-core-engineering-v1` 六题 pilot；通过 `terminal-bench-bridge --execute` 接入官方 `tb run`，结果绝不能和 SWE-bench repository-issue 轨道合并。
 - 两个外部 pilot 都是 5 道 `ranking_candidate` + 1 道 `diagnostic_tail`。不得把 tail 题用于排名、平均分或“题库难度”结论；任何新增 pilot 都必须保持复杂候选在前、简单诊断在末尾且至少三道候选。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
 - `python-bugfix` 是刻意定义的 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。旧实测不再构成当前难度校准证据。

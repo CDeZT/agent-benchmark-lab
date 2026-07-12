@@ -26,6 +26,7 @@ def build_dashboard(
     suites = _collect_suites(runs_dir, current_fingerprints=current_fingerprints, limit=limit)
     tasks = _collect_tasks(runs_dir, current_fingerprints=current_fingerprints, limit=limit)
     bridges = _collect_swebench_bridges(runs_dir, limit=limit)
+    terminal_bridges = _collect_terminal_bench_bridges(runs_dir, limit=limit)
     return {
         "schema_version": 1,
         "runs_dir": str(runs_dir),
@@ -35,17 +36,20 @@ def build_dashboard(
             "cli_default_rows_are_provisional": True,
             "fingerprint_mismatch_excluded_from_current_claims": bool(tasks_dir),
             "limit_per_section": limit,
+            "terminal_and_swebench_tracks_are_separate": True,
         },
         "counts": {
             "matrices": len(matrices),
             "suites": len(suites),
             "tasks": len(tasks),
             "swebench_bridges": len(bridges),
+            "terminal_bench_bridges": len(terminal_bridges),
         },
         "matrices": matrices,
         "suites": suites,
         "tasks": tasks,
         "swebench_bridges": bridges,
+        "terminal_bench_bridges": terminal_bridges,
     }
 
 
@@ -72,6 +76,7 @@ def render_dashboard_html(payload: dict[str, Any]) -> str:
     suites = payload.get("suites", [])
     tasks = payload.get("tasks", [])
     bridges = payload.get("swebench_bridges", [])
+    terminal_bridges = payload.get("terminal_bench_bridges", [])
     counts = payload.get("counts", {})
     policy = payload.get("policy", {})
 
@@ -79,6 +84,7 @@ def render_dashboard_html(payload: dict[str, Any]) -> str:
     suite_rows = "\n".join(_suite_row_html(item) for item in suites) or _empty_row(7)
     task_rows = "\n".join(_task_row_html(item) for item in tasks) or _empty_row(8)
     bridge_rows = "\n".join(_bridge_row_html(item) for item in bridges) or _empty_row(6)
+    terminal_rows = "\n".join(_bridge_row_html(item) for item in terminal_bridges) or _empty_row(6)
 
     leaderboard_sections = []
     for matrix in matrices[:10]:
@@ -193,6 +199,7 @@ def render_dashboard_html(payload: dict[str, Any]) -> str:
     <div class="metric"><span>Suites</span><b>{counts.get("suites", 0)}</b></div>
     <div class="metric"><span>Task runs</span><b>{counts.get("tasks", 0)}</b></div>
     <div class="metric"><span>SWE-bench bridges</span><b>{counts.get("swebench_bridges", 0)}</b></div>
+    <div class="metric"><span>Terminal-Bench bridges</span><b>{counts.get("terminal_bench_bridges", 0)}</b></div>
   </section>
 
   <h2>Matrix Runs</h2>
@@ -268,6 +275,24 @@ def render_dashboard_html(payload: dict[str, Any]) -> str:
     </thead>
     <tbody>
       {bridge_rows}
+    </tbody>
+  </table>
+
+  <h2>Terminal-Bench Bridges</h2>
+  <p class="muted">Separate track from SWE-bench repository-issue scores.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Bridge dir</th>
+        <th>Instance</th>
+        <th>Resolved</th>
+        <th>Scorable</th>
+        <th>Classification</th>
+        <th>Errors</th>
+      </tr>
+    </thead>
+    <tbody>
+      {terminal_rows}
     </tbody>
   </table>
 </main>
@@ -370,7 +395,9 @@ def _collect_tasks(
     items: list[dict[str, Any]] = []
     # Top-level experiment dirs only; nested suite/matrix copies are redundant.
     for path in sorted(runs_dir.glob("*/summary.json"), reverse=True):
-        if path.parent.name.startswith(("matrix-", "suite-", "audit-", "authoritative-", "swebench-", "dashboard")):
+        if path.parent.name.startswith(
+            ("matrix-", "suite-", "audit-", "authoritative-", "swebench-", "terminal-bench-", "dashboard")
+        ):
             continue
         data = _load_json(path)
         if data is None or "task_id" not in data:
@@ -414,50 +441,69 @@ def _collect_tasks(
 def _collect_swebench_bridges(runs_dir: Path, *, limit: int) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for path in sorted(runs_dir.glob("swebench-bridge-*/official_summary.json"), reverse=True):
-        data = _load_json(path)
-        if data is None:
+        item = _bridge_item_from_summary(path, kind="swebench_bridge", prefix="swebench-bridge-")
+        if item is None:
             continue
-        summary = data.get("run_report_summary") if isinstance(data.get("run_report_summary"), dict) else {}
-        error_ids = summary.get("error_ids") or []
-        resolved = data.get("resolved")
-        if error_ids:
-            classification = "evaluator_error"
-            scorable = False
-        elif resolved is True:
-            classification = "resolved"
-            scorable = True
-        elif resolved is False:
-            classification = "not_resolved"
-            scorable = True
-        elif data.get("completed") is False:
-            classification = "incomplete"
-            scorable = False
-        else:
-            classification = "unknown"
-            scorable = False
-        instance_id = None
-        submitted = summary.get("submitted_ids") or []
-        if submitted:
-            instance_id = submitted[0]
-        else:
-            # Fall back to bridge dir naming: swebench-bridge-<repo>-<num>-timestamp-hash
-            instance_id = path.parent.name.replace("swebench-bridge-", "", 1)
-        items.append(
-            {
-                "kind": "swebench_bridge",
-                "bridge_dir": str(path.parent),
-                "instance_id": instance_id,
-                "resolved": resolved,
-                "completed": data.get("completed"),
-                "scorable": scorable,
-                "classification": classification,
-                "error_ids": error_ids,
-                "path": str(path),
-            }
-        )
+        items.append(item)
         if len(items) >= limit:
             break
     return items
+
+
+def _collect_terminal_bench_bridges(runs_dir: Path, *, limit: int) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for path in sorted(runs_dir.glob("terminal-bench-bridge-*/official_summary.json"), reverse=True):
+        item = _bridge_item_from_summary(path, kind="terminal_bench_bridge", prefix="terminal-bench-bridge-")
+        if item is None:
+            continue
+        items.append(item)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def _bridge_item_from_summary(path: Path, *, kind: str, prefix: str) -> dict[str, Any] | None:
+    data = _load_json(path)
+    if data is None:
+        return None
+    summary = data.get("run_report_summary") if isinstance(data.get("run_report_summary"), dict) else {}
+    error_ids = summary.get("error_ids") or data.get("error_instance_ids") or []
+    resolved = data.get("resolved")
+    if data.get("classification"):
+        classification = str(data["classification"])
+        scorable = bool(data.get("scorable"))
+    elif error_ids:
+        classification = "evaluator_error"
+        scorable = False
+    elif resolved is True:
+        classification = "resolved"
+        scorable = True
+    elif resolved is False:
+        classification = "not_resolved"
+        scorable = True
+    elif data.get("completed") is False:
+        classification = "incomplete"
+        scorable = False
+    else:
+        classification = "unknown"
+        scorable = False
+    instance_id = data.get("instance_id")
+    submitted = summary.get("submitted_ids") or []
+    if not instance_id and submitted:
+        instance_id = submitted[0]
+    if not instance_id:
+        instance_id = path.parent.name.replace(prefix, "", 1)
+    return {
+        "kind": kind,
+        "bridge_dir": str(path.parent),
+        "instance_id": instance_id,
+        "resolved": resolved,
+        "completed": data.get("completed"),
+        "scorable": scorable,
+        "classification": classification,
+        "error_ids": error_ids,
+        "path": str(path),
+    }
 
 
 def _matrix_fingerprint_state(data: dict[str, Any], current_fingerprints: dict[str, str]) -> str:
