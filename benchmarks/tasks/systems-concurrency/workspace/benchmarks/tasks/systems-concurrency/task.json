@@ -1,0 +1,26 @@
+{
+    "id": "systems-concurrency",
+    "title": "Fix concurrency bugs in thread pool implementation",
+    "instruction": "The thread pool in thread_pool.c has several concurrency bugs: (1) No mutex for queue access causing race conditions, (2) Busy waiting instead of condition variables, (3) No proper synchronization for shutdown, (4) Potential deadlock in worker threads. Fix all concurrency issues while maintaining the same API. The tests verify thread safety with concurrent task submission.",
+    "capabilities": ["systems_programming", "concurrency", "c_engineering", "thread_safety"],
+    "domains": ["c", "systems", "concurrency"],
+    "difficulty": "expert",
+    "difficulty_rationale": "Requires understanding of pthreads, mutexes, condition variables, memory barriers, and concurrent programming patterns.",
+    "provenance": {"type": "custom_seed", "source": "agent-benchmark systems engineering seed corpus"},
+    "workspace": "workspace",
+    "test_command": ["sh", "test.sh"],
+    "protected_paths": ["test_thread_pool.c", "thread_pool.h", "test.sh"],
+    "artifact_ignore_globs": ["test_thread_pool"],
+    "process_checks": [
+        {
+            "type": "file_changed",
+            "dimension": "execution_quality",
+            "path": "thread_pool.c"
+        },
+        {
+            "type": "instruction_match",
+            "dimension": "intent_understanding",
+            "expected_changed_files": ["thread_pool.c"]
+        }
+    ]
+}
