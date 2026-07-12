@@ -115,9 +115,9 @@ Goals:
 - Add browser task support inspired by WebArena only after browser isolation exists.
 - Add desktop task support inspired by OSWorld only after VM/desktop isolation exists.
 
-Prerequisite:
+Current readiness:
 
-- Docker must be available and the runner must record immutable environment/image identifiers. The current Mac has no `docker` command, so this phase cannot produce trustworthy local results yet.
+- Docker is available and project-owned container evaluation records image identifiers. `preflight-authoritative` now validates the official source registry and reports missing upstream tools without claiming an import. The current machine still needs the `swebench` Python module and Terminal-Bench `tb` CLI before either official bridge can run.
 
 ## Phase 6: Dashboard
 

@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "125 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "127 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {
@@ -150,15 +150,15 @@
       "id": "real_harness_adapters",
       "title": "Real Claude Code and opencode adapters",
       "status": "partial",
-      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Both opencode and Claude Code passed real python-bugfix smoke tests", "Three real current-default c-bugfix runs per harness passed public and hidden tests", "Parser extracts LongCat-2.0 from opencode stderr", "Claude JSON parsed mimo-v2.5-pro[1m], tokens, and cost", "detected_model and model_identity are in summaries"],
-      "remaining": ["Run larger registry-backed benchmark matrices", "Improve provider-specific tool trace parsing", "Handle provider-specific permissions and interaction behavior"]
+      "evidence": ["Built-in default command templates exist", "doctor detects local opencode and Claude Code versions", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Historic smoke artifacts demonstrate parser extraction for model/token/cost fields", "detected_model and model_identity are in summaries", "Historic unversioned results are excluded from current selection statistics"],
+      "remaining": ["Rerun fingerprinted smoke checks", "Run larger registry-backed benchmark matrices", "Improve provider-specific tool trace parsing", "Handle provider-specific permissions and interaction behavior"]
     },
     {
       "id": "real_harness_smoke",
       "title": "Low-cost real opencode and Claude Code smoke tests",
       "status": "implemented",
-      "evidence": ["opencode passed python-bugfix public and hidden tests", "claude-code passed python-bugfix public and hidden tests", "real-smoke suite exists", "audit --include-real-harness exists"],
-      "remaining": ["Expand beyond smoke tasks"]
+      "evidence": ["real-smoke suite exists", "audit --include-real-harness exists", "Historic smoke artifacts are retained for adapter debugging but excluded from current calibration because they predate task fingerprints"],
+      "remaining": ["Rerun fingerprinted smoke checks", "Expand beyond smoke tasks"]
     },
     {
       "id": "isolation",
@@ -205,9 +205,9 @@
     {
       "id": "external_benchmark_imports",
       "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
-      "status": "planned",
-      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "roadmap specifies Docker-backed upstream evaluator bridges", "project-owned Docker evaluator v1 is implemented"],
-      "remaining": ["Bridge a fixed SWE-bench Verified pilot to its upstream evaluator", "Bridge a fixed Terminal-Bench pilot to its upstream verifier"]
+      "status": "partial",
+      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import"],
+      "remaining": ["Install the swebench module and Terminal-Bench tb CLI", "Freeze a fixed pilot with upstream instance ids and source versions", "Bridge the SWE-bench pilot to its upstream evaluator", "Bridge the Terminal-Bench pilot to its upstream verifier"]
     },
     {
       "id": "dashboard",

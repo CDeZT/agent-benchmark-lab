@@ -52,6 +52,8 @@ For custom seed tasks, use `provenance.type: custom_seed`, `domain_seed`, or `in
 
 `config/authoritative_corpora.json` records approved upstream benchmark contracts. It currently names SWE-bench Verified and Terminal-Bench Core, their official repositories, dataset/version labels, and evaluator entrypoints. Registry membership is a plan, not provenance: only a task with preserved upstream instance metadata and evaluator output may use `external_imported`.
 
+`agent-benchmark preflight-authoritative` verifies that the registry is structurally valid and checks its Docker and upstream-tool prerequisites. A ready preflight is still only permission to begin a controlled import; it never changes a task's provenance.
+
 ## Next Iteration Recommendation
 
 The metadata layer, selection gate, and source registry are now implemented. The next step is a real Docker-backed importer/evaluator bridge, not hand-labeling local tasks as external.

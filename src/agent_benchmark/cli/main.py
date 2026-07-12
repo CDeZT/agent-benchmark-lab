@@ -9,6 +9,7 @@ import sys
 import uuid
 
 from agent_benchmark.adapters import available_adapters
+from agent_benchmark.authoritative import preflight_authoritative_corpora
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.comparability import preflight_matrix
@@ -29,6 +30,7 @@ from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_score
 DEFAULT_TASKS_DIR = Path("benchmarks/tasks")
 DEFAULT_RUNS_DIR = Path("runs")
 DEFAULT_SUITES_DIR = Path("benchmarks/suites")
+DEFAULT_AUTHORITATIVE_CORPORA_PATH = Path("config/authoritative_corpora.json")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -69,6 +71,14 @@ def main(argv: list[str] | None = None) -> int:
     corpus_audit_parser = subparsers.add_parser("audit-corpus", help="Audit baseline/reference contrast for benchmark tasks.")
     corpus_audit_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     corpus_audit_parser.add_argument("--json", action="store_true")
+
+    authoritative_parser = subparsers.add_parser(
+        "preflight-authoritative",
+        help="Check official benchmark evaluator prerequisites without importing any task.",
+    )
+    authoritative_parser.add_argument("--registry", default=str(DEFAULT_AUTHORITATIVE_CORPORA_PATH))
+    authoritative_parser.add_argument("--corpus", help="Optional authoritative corpus id to inspect.")
+    authoritative_parser.add_argument("--json", action="store_true")
 
     suites_parser = subparsers.add_parser("list-suites", help="List available benchmark suites.")
     suites_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
@@ -177,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
         return _taxonomy(args)
     if args.command == "audit-corpus":
         return _audit_corpus(args)
+    if args.command == "preflight-authoritative":
+        return _preflight_authoritative(args)
     if args.command == "list-suites":
         return _list_suites(Path(args.suites_dir))
     if args.command == "list-adapters":
@@ -319,6 +331,24 @@ def _audit_corpus(args: argparse.Namespace) -> int:
     print(f"Corpus audit: {report['summary']}")
     for task in report["tasks"]:
         print(f"{task['task_id']}\t{task['classification']}")
+    return 0
+
+
+def _preflight_authoritative(args: argparse.Namespace) -> int:
+    report = preflight_authoritative_corpora(Path(args.registry), args.corpus)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    docker = report["docker"]
+    print(f"Authoritative corpus preflight: Docker ready={docker['ready']} ({docker['detail']})")
+    print(f"Execution-ready sources: {report['execution_ready_count']}/{report['source_count']}")
+    for source in report["sources"]:
+        missing = [requirement["value"] for requirement in source["tool_requirements"] if not requirement["ready"]]
+        tools = "ready" if not missing else "missing=" + ",".join(missing)
+        print(
+            f"{source['id']}\texecution_ready={source['execution_ready']}\t"
+            f"imported={source['imported']}\t{tools}"
+        )
     return 0
 
 

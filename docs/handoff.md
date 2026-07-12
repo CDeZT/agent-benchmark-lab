@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 7 suites, 125 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 19 task definitions, 7 suites, 127 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current task corpus is custom seed/inspired work, not an imported authoritative benchmark set. See `docs/task_provenance.md`.
 
@@ -115,6 +115,7 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Added task-level two-sided 95% confidence intervals to repeated score, verified score, duration, and available cost measurements. Small-sample intervals use Student-t; one repetition reports no CI. Suite reports show each task CI, while matrix reports explicitly avoid fabricating one aggregate CI across heterogeneous tasks.
 - Added `selection-ladder` (expert -> easy) and `screening-report`. A task is not eligible for selection ranking until it is a comparative candidate, passes baseline/reference audit, and is empirically discriminative with identified three-repeat evidence. The current report honestly has zero selection-ready tasks: 2 smoke-only, 13 awaiting real evidence, and 4 container/corpus-gated.
 - Added `config/authoritative_corpora.json` and `docs/screening_exam_policy.md`. SWE-bench Verified and Terminal-Bench Core are approved source/evaluator contracts, but neither is claimed imported until an upstream task instance and evaluator evidence are preserved.
+- Added `preflight-authoritative`: the source registry is schema-validated by the default audit, while this explicit command reports Docker and upstream tool readiness for each official bridge. On this machine Docker is ready, but `swebench` and `tb` are still missing; no source is falsely marked imported or runnable.
 - Added `task_fingerprint` to every new task, suite, and matrix run contract. Fingerprint mismatch now blocks task/suite/matrix resume and excludes historical summaries from difficulty calibration/screening. This invalidates previous unversioned real matrices for selection claims after the frontend baseline was corrected; raw directories remain useful debugging evidence only.
 - `python-bugfix` and `c-bugfix` are deliberately `smoke_only`; use them for adapter wiring and quick regression checks, never as differentiating leaderboard tasks. Their historic real runs predate fingerprints and need rerunning before they can support calibration.
 - Historic `c-bugfix` CLI-default repetitions remain documented in `docs/real_harness_calibration.md` solely for debugging. They cannot establish a harness/model result, selection status, or a winner.
@@ -200,7 +201,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 125 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 127 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -228,9 +229,9 @@ The local `foundation` suite has 11 tasks. Do not claim any container-required d
 
 1. Run a three-repeat real `cli_default_configurations` matrix on `calibration` (opencode vs claude-code with `--models unspecified`) and preserve observed identities. It answers the practical tool-selection question but is not a same-model claim. Use the registry only for a separate explicit same-model matrix, and interpret only `verified_match` rows for that claim.
 2. Test the remaining project-owned Flask/NumPy container tasks and pin base-image digests.
-3. Bridge to a fixed SWE-bench Verified pilot, then Terminal-Bench, preserving upstream evaluators.
-5. Add more domain-specific tasks (embedded, optics, full-stack).
-6. Build dashboard for historical results.
+3. Install and verify the missing official evaluator tools with `preflight-authoritative`, then bridge to a fixed SWE-bench Verified pilot followed by Terminal-Bench, preserving upstream evaluators.
+4. Add more domain-specific tasks (embedded, optics, full-stack).
+5. Build dashboard for historical results.
 
 For the exact Claude Code continuation route, read `docs/claude_code_handoff.md`. It defines the comparative local-matrix gate, Docker/external-benchmark ordering, and non-negotiable evidence rules.
 

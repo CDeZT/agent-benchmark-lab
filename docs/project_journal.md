@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-12 (iteration 27)
+
+- Added a validated authoritative-corpus registry contract and `preflight-authoritative` CLI. It checks Docker plus each official source's required upstream module or command without downloading data or claiming imports.
+- Added the authoritative registry to the default self-audit as a configuration check. The live preflight records Docker `29.5.2` as ready, while `swebench` and Terminal-Bench `tb` are currently absent; both source tracks correctly remain unimported and not execution-ready.
+
 ## 2026-07-12 (iteration 26)
 
 - Audited another agent's calibration documentation and found an evidence-validity failure: matrix manifests recorded only task ids, so a run made while `frontend-visual` had an accidentally repaired baseline could still look comparable after the baseline was restored.

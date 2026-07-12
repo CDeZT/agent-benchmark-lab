@@ -28,6 +28,8 @@ The repository has 19 project-owned tasks, all tagged with a difficulty tier and
 
 External imports begin in two layers once Docker isolation exists. This order is deliberate: reliable environments and provenance are more valuable than importing many tasks that cannot be reproduced. `config/authoritative_corpora.json` records approved upstream source/evaluator contracts, but no task is called imported until its raw upstream evidence is preserved.
 
+Run `agent-benchmark preflight-authoritative` before attempting either bridge. It validates the registry and reports Docker plus the required upstream evaluator module/command without downloading data or treating a ready toolchain as an imported corpus.
+
 1. **SWE-bench Verified pilot**: import a fixed, stratified subset of real issue-resolution tasks, preserve the upstream instance id, repository base commit, data release, license note, and evaluator output. Use its containerized evaluator rather than rewriting expected patches.
 2. **Terminal-Bench pilot**: run a small fixed subset through the upstream Docker task environment and verifier. Keep terminal-agent scores separate from repository-issue scores.
 3. **WebArena and OSWorld**: add these later as separate web/desktop tracks, not to the coding grand score. They evaluate different interaction surfaces and require browser/VM infrastructure.

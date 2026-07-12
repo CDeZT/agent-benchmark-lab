@@ -10,6 +10,7 @@ import time
 from typing import Any
 import uuid
 
+from agent_benchmark.authoritative import load_authoritative_corpora
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.runner import ExperimentConfig, run_task
 from agent_benchmark.task_schema import load_suite, load_task, validate_all
@@ -33,6 +34,7 @@ class AuditOptions:
     include_unit_tests: bool = True
     include_compile: bool = True
     include_smoke: bool = True
+    authoritative_registry_path: Path | None = None
     include_real_harness: bool = False
     real_harness_adapters: list[str] = field(default_factory=lambda: ["opencode", "claude-code"])
     real_harness_suite: str = "real-smoke"
@@ -46,6 +48,7 @@ def run_audit(options: AuditOptions) -> dict[str, Any]:
     checks: list[AuditCheck] = []
     checks.append(_check_validate(options))
     checks.append(_check_corpus_quality(options))
+    checks.append(_check_authoritative_registry(options))
     if options.include_unit_tests:
         checks.append(_check_command("unit_tests", [sys.executable, "-m", "unittest", "discover", "-s", "tests"], options))
     if options.include_compile:
@@ -104,6 +107,26 @@ def _check_corpus_quality(options: AuditOptions) -> AuditCheck:
         duration_seconds=round(time.monotonic() - start, 4),
         details={"summary": report["summary"], "blocking_task_ids": [task["task_id"] for task in blocking]},
     )
+
+
+def _check_authoritative_registry(options: AuditOptions) -> AuditCheck:
+    start = time.monotonic()
+    path = options.authoritative_registry_path or options.project_root / "config" / "authoritative_corpora.json"
+    try:
+        corpora = load_authoritative_corpora(path)
+        return AuditCheck(
+            name="authoritative_registry",
+            passed=True,
+            duration_seconds=round(time.monotonic() - start, 4),
+            details={"path": str(path), "source_ids": [corpus.corpus_id for corpus in corpora]},
+        )
+    except Exception as exc:  # noqa: BLE001 - audit should report configuration failures as data.
+        return AuditCheck(
+            name="authoritative_registry",
+            passed=False,
+            duration_seconds=round(time.monotonic() - start, 4),
+            details={"path": str(path), "error": str(exc)},
+        )
 
 
 def _check_command(name: str, command: list[str], options: AuditOptions) -> AuditCheck:

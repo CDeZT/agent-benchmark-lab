@@ -90,16 +90,16 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - dummy/generic/opencode/claude-code adapters。
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
-- real opencode/Claude Code smoke 已经在 python-bugfix 上通过。
-- 125 个 unittest 测试函数，应该全部通过。
+- 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
+- 127 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
 - 优先运行 `calibration` 的三次重复 CLI 默认配置矩阵（opencode vs claude-code × `unspecified`），作为用户实际工具选择证据；显式同模型矩阵仅解释 `verified_match` 行。
 - `bounded` 的时间上限现在会真正限制 adapter 子进程；`open_ended` 无上限。Ctrl-C 后检查 `interruption.json` 和 `checkpoint.json`，再用 `resume` 重跑未保存 result 的 repetition。
-- 通过上游 evaluator 导入固定分层的 SWE-bench Verified pilot，再接入 Terminal-Bench。
+- 先运行 `preflight-authoritative`；当前 Docker 正常，但必须安装并验证 `swebench` 与 `tb` 后，才能通过上游 evaluator 导入固定分层的 SWE-bench Verified pilot，再接入 Terminal-Bench。工具可执行不等于题目已导入：必须冻结上游实例列表并保存官方 evaluator 原始结果。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
-- `python-bugfix` 已经实测为 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。
+- `python-bugfix` 是刻意定义的 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。旧实测不再构成当前难度校准证据。
 - `audit-corpus` 已是默认 audit 的质量门禁；任何新增或改动的可比较任务必须保持 baseline 失败、reference 通过。
 - task run 中断时保留 `runs/<experiment-id>`，读取 checkpoint.json，并用 `resume --experiment-dir` 恢复；suite run 用 `resume-suite --suite-run-dir runs/<suite-run-id>`；matrix run 用 `resume-matrix --matrix-run-dir runs/<matrix-run-id>`。三层都不要重跑已保存的结果，并且恢复时不得绕过 manifest 的任务/组合一致性校验。
 - 构建 dashboard 展示历史结果。

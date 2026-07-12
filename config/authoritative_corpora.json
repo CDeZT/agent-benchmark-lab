@@ -8,7 +8,10 @@
       "dataset": "SWE-bench/SWE-bench_Verified",
       "official_evaluator": "python -m swebench.harness.run_evaluation",
       "license_note": "Upstream SWE-bench repository is MIT; preserve per-instance source metadata and upstream evaluator output.",
-      "pilot_policy": "Start with a fixed stratified pilot and run the upstream Docker evaluator; do not translate instances into project-authored tasks."
+      "pilot_policy": "Start with a fixed stratified pilot and run the upstream Docker evaluator; do not translate instances into project-authored tasks.",
+      "tool_requirements": [
+        {"kind": "python_module", "value": "swebench"}
+      ]
     },
     {
       "id": "terminal-bench-core",
@@ -18,7 +21,10 @@
       "dataset_version": "0.1.1",
       "official_evaluator": "tb run",
       "license_note": "Preserve the upstream task verifier, oracle/reference metadata, task version, and execution logs.",
-      "pilot_policy": "Use a fixed subset of the released core dataset through its Docker sandbox; do not merge terminal scores into repository-issue scores."
+      "pilot_policy": "Use a fixed subset of the released core dataset through its Docker sandbox; do not merge terminal scores into repository-issue scores.",
+      "tool_requirements": [
+        {"kind": "command", "value": "tb"}
+      ]
     }
   ]
 }

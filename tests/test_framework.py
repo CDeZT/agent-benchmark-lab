@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
+from agent_benchmark.authoritative import load_authoritative_corpora, preflight_authoritative_corpora
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
@@ -65,6 +66,35 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(fullstack["environment"], "container_required")
         imaging = next(task for task in catalog["tasks"] if task["id"] == "optics-imaging-pipeline")
         self.assertEqual(imaging["environment"], "container_required")
+
+    def test_authoritative_registry_declares_official_tool_requirements(self) -> None:
+        corpora = load_authoritative_corpora(ROOT / "config" / "authoritative_corpora.json")
+        sources = {corpus.corpus_id: corpus for corpus in corpora}
+
+        self.assertEqual(set(sources), {"swe-bench-verified", "terminal-bench-core"})
+        self.assertEqual(sources["swe-bench-verified"].tool_requirements, ({"kind": "python_module", "value": "swebench"},))
+        self.assertEqual(sources["terminal-bench-core"].tool_requirements, ({"kind": "command", "value": "tb"},))
+
+    def test_authoritative_preflight_requires_tools_and_docker_without_claiming_import(self) -> None:
+        registry = ROOT / "config" / "authoritative_corpora.json"
+        blocked = preflight_authoritative_corpora(
+            registry,
+            docker_status=lambda: (False, "daemon unavailable"),
+            command_exists=lambda _name: None,
+            module_available=lambda _name: False,
+        )
+        ready = preflight_authoritative_corpora(
+            registry,
+            docker_status=lambda: (True, "test daemon"),
+            command_exists=lambda name: f"/usr/bin/{name}",
+            module_available=lambda _name: True,
+        )
+
+        self.assertEqual(blocked["execution_ready_count"], 0)
+        self.assertFalse(blocked["sources"][0]["execution_ready"])
+        self.assertEqual(ready["execution_ready_count"], 2)
+        self.assertTrue(all(source["execution_ready"] for source in ready["sources"]))
+        self.assertTrue(all(not source["imported"] for source in ready["sources"]))
 
     def test_selection_ladder_is_ordered_hard_to_easy(self) -> None:
         suite = load_suite(ROOT / "benchmarks" / "suites" / "selection-ladder.json")
@@ -1058,7 +1088,7 @@ class FrameworkTests(unittest.TestCase):
 
             self.assertTrue(summary["passed"], summary)
             check_names = [check["name"] for check in summary["checks"]]
-            self.assertEqual(check_names, ["validate", "corpus_quality", "real_harness_smoke"])
+            self.assertEqual(check_names, ["validate", "corpus_quality", "authoritative_registry", "real_harness_smoke"])
 
     def test_public_test_timeout_is_recorded_as_failure(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
