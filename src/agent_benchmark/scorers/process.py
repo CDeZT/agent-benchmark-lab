@@ -56,12 +56,24 @@ def _run_check(workspace: Path, check: dict[str, Any], baseline: Path | None = N
 def _file_exists(workspace: Path, check: dict[str, Any]) -> dict[str, Any]:
     relative = str(check.get("path", ""))
     path = workspace / relative
-    return {
+    min_bytes = int(check.get("min_bytes", 0) or 0)
+    exists = path.is_file()
+    size = path.stat().st_size if exists else 0
+    passed = exists and size >= min_bytes
+    result = {
         "type": "file_exists",
         "dimension": check.get("dimension"),
         "path": relative,
-        "passed": path.is_file(),
+        "passed": passed,
+        "size_bytes": size,
     }
+    if min_bytes:
+        result["min_bytes"] = min_bytes
+    if exists and not passed:
+        result["error"] = f"File exists but is smaller than {min_bytes} bytes."
+    elif not exists:
+        result["error"] = "File not found."
+    return result
 
 
 def _file_contains(workspace: Path, check: dict[str, Any]) -> dict[str, Any]:

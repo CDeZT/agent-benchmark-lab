@@ -2,16 +2,40 @@
   "id": "c-systems-programming",
   "title": "Fix bugs in memory pool allocator",
   "instruction": "The memory pool allocator in mempool.c has multiple bugs. Read mempool.h for the API contract, then fix: (1) double-free is not detected (should return error), (2) realloc loses old data (should copy), (3) mempool_check doesn't validate linked list prev pointers, (4) fragmentation metric is always 0, (5) usable_size returns wrong value. Run test.sh to verify basic functionality. The hidden tests will check double-free detection, data preservation on realloc, and fragmentation reporting.",
-  "capabilities": ["c_engineering", "systems_programming", "memory_management", "bugfix"],
-  "domains": ["c", "systems"],
+  "capabilities": [
+    "c_engineering",
+    "systems_programming",
+    "memory_management",
+    "bugfix"
+  ],
+  "domains": [
+    "c",
+    "systems"
+  ],
   "difficulty": "expert",
   "difficulty_rationale": "Multi-bug memory allocator repair spanning ownership, linked structures, realloc behavior, metrics, and C memory-safety reasoning.",
-  "provenance": {"type": "domain_seed", "source": "agent-benchmark systems engineering seed corpus"},
+  "provenance": {
+    "type": "domain_seed",
+    "source": "agent-benchmark systems engineering seed corpus"
+  },
   "workspace": "workspace",
-  "test_command": ["sh", "test.sh"],
-  "hidden_test_command": ["sh", "test_hidden_mempool.sh"],
-  "protected_paths": ["test.sh", "test_mempool.c", "mempool.h"],
-  "artifact_ignore_globs": ["test_mempool", "test_hidden_mempool"],
+  "test_command": [
+    "sh",
+    "test.sh"
+  ],
+  "hidden_test_command": [
+    "sh",
+    "test_hidden_mempool.sh"
+  ],
+  "protected_paths": [
+    "test.sh",
+    "test_mempool.c",
+    "mempool.h"
+  ],
+  "artifact_ignore_globs": [
+    "test_mempool",
+    "test_hidden_mempool"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -21,7 +45,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["mempool.c"]
+      "expected_changed_files": [
+        "mempool.c"
+      ]
     },
     {
       "type": "code_quality",
@@ -29,6 +55,12 @@
       "path": "mempool.c",
       "max_function_lines": 40,
       "max_nesting_depth": 4
+    },
+    {
+      "type": "file_exists",
+      "dimension": "planning",
+      "path": ".agent-benchmark/plan.md",
+      "min_bytes": 40
     }
   ]
 }

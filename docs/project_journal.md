@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 40)
+
+- User feedback: too few/easy tasks; strong evidence seemed "disabled"; want harder authoritative-style discrimination.
+- Root cause for weak tool evidence: structured harness tool telemetry was always labeled `heuristic`. Now structured tool events mark `tool_use=verified` (coverage rose e.g. Claude smoke 62%→68% in re-score).
+- Added `hard-discrimination` suite (7 hard/expert-biased local tasks). Hard tasks now require a non-trivial `.agent-benchmark/plan.md` so planning can be verified.
+- Documented evidence policy and external bank scoring in `docs/evidence_and_corpus.md`. Started SWE-bench flask diagnostic bridge execute for official-track proof; fixed optics baseline earlier remains required for optics discrimination.
+
 ## 2026-07-12 (iteration 39)
 
 - Added suite-level **domain-weighted total** over six outcome axes (software / agentic / systems-embedded / scientific-optics / web / security) with default weights emphasizing embedded (20) and scientific/optics (15).

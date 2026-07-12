@@ -2,16 +2,40 @@
   "id": "embedded-protocol-parser",
   "title": "Implement a UART-style protocol parser with byte stuffing and CRC",
   "instruction": "Complete the protocol parser in protocol.c. Implement: (1) crc16_ccitt for CRC-16/CCITT-FALSE calculation, (2) protocol_encode to frame a payload with start marker, length, escaped payload, CRC, and end marker, (3) protocol_decode to parse a framed packet with byte unstuffing and CRC verification, (4) protocol_init to initialize a stream parser state machine. Handle edge cases: buffer overflow, malformed packets, CRC errors, zero-length payloads, escape byte at boundaries.",
-  "capabilities": ["embedded_engineering", "c_engineering", "protocol_design", "safety_boundary"],
-  "domains": ["c", "embedded", "protocols"],
+  "capabilities": [
+    "embedded_engineering",
+    "c_engineering",
+    "protocol_design",
+    "safety_boundary"
+  ],
+  "domains": [
+    "c",
+    "embedded",
+    "protocols"
+  ],
   "difficulty": "hard",
   "difficulty_rationale": "State-machine protocol implementation combining framing, escaping, CRC, malformed input, and boundary safety.",
-  "provenance": {"type": "domain_seed", "source": "agent-benchmark embedded engineering seed corpus"},
+  "provenance": {
+    "type": "domain_seed",
+    "source": "agent-benchmark embedded engineering seed corpus"
+  },
   "workspace": "workspace",
-  "test_command": ["sh", "test.sh"],
-  "hidden_test_command": ["sh", "test_hidden.sh"],
-  "protected_paths": ["test.sh", "test_protocol.c", "protocol.h"],
-  "artifact_ignore_globs": ["test_protocol"],
+  "test_command": [
+    "sh",
+    "test.sh"
+  ],
+  "hidden_test_command": [
+    "sh",
+    "test_hidden.sh"
+  ],
+  "protected_paths": [
+    "test.sh",
+    "test_protocol.c",
+    "protocol.h"
+  ],
+  "artifact_ignore_globs": [
+    "test_protocol"
+  ],
   "process_checks": [
     {
       "type": "file_changed",
@@ -21,7 +45,9 @@
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["protocol.c"]
+      "expected_changed_files": [
+        "protocol.c"
+      ]
     },
     {
       "type": "code_quality",
@@ -29,6 +55,12 @@
       "path": "protocol.c",
       "max_function_lines": 50,
       "max_nesting_depth": 5
+    },
+    {
+      "type": "file_exists",
+      "dimension": "planning",
+      "path": ".agent-benchmark/plan.md",
+      "min_bytes": 40
     }
   ]
 }

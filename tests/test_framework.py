@@ -2073,6 +2073,37 @@ class FrameworkTests(unittest.TestCase):
         self.assertIsNone(evidence.model)
         self.assertEqual(evidence.tool_calls, [])
 
+    def test_structured_harness_tool_use_is_verified_evidence(self) -> None:
+        """Structured tool telemetry must raise tool_use to verified, not stay heuristic forever."""
+        from agent_benchmark.parsers.harness_output import HarnessEvidence
+        from agent_benchmark.scorers.basic import score_run
+        from agent_benchmark.recorders.jsonl import JsonlRecorder
+
+        task = load_task(ROOT / "benchmarks" / "tasks" / "python-bugfix")
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            baseline = Path(tmp) / "baseline"
+            shutil.copytree(task.root / "workspace", workspace)
+            shutil.copytree(task.root / "workspace", baseline)
+            # Provide a correct solution so completion is not the only story.
+            (workspace / "stats.py").write_text(
+                "def average(values):\n    return 0.0 if not values else sum(values) / len(values)\n",
+                encoding="utf-8",
+            )
+            recorder = JsonlRecorder(Path(tmp) / "trace.jsonl")
+            evidence = HarnessEvidence(
+                model="demo-model",
+                tool_calls=[{"type": "read"}, {"type": "edit"}, {"type": "bash"}, {"type": "agent_turn"}],
+                input_tokens=100,
+                output_tokens=20,
+                cost_usd=0.05,
+            )
+            result = score_run(task, baseline, workspace, recorder, harness_evidence=evidence)
+            self.assertGreater(result.dimensions["tool_use"], 0)
+            self.assertEqual(result.measurement["dimension_status"]["tool_use"], "verified")
+            self.assertEqual(result.measurement["dimension_status"]["cost_efficiency"], "verified")
+            self.assertIn("tool_use", result.measurement["verified_dimensions"])
+
     def test_tool_use_scored_from_real_harness_evidence(self) -> None:
         """Prove tool_use dimension is computed from parsed harness output."""
         from agent_benchmark.parsers.harness_output import HarnessEvidence

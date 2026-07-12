@@ -210,7 +210,9 @@ def score_run(
         },
     )
 
-    # tool_use: scored from parsed harness output (tool call count and variety)
+    # tool_use: scored from parsed harness output (tool call count and variety).
+    # Structured harness telemetry (JSON turns / parsed tool events) is strong
+    # evidence and is marked verified; keyword-only traces remain heuristic.
     if harness_evidence and harness_evidence.tool_calls:
         tool_types = {t["type"] for t in harness_evidence.tool_calls}
         call_count = len(harness_evidence.tool_calls)
@@ -218,11 +220,30 @@ def score_run(
         variety_score = min(len(tool_types) / 4.0, 1.0) * 50.0
         count_score = min(call_count / 5.0, 1.0) * 50.0
         dimensions["tool_use"] = round(variety_score + count_score, 2)
+        structured_types = {
+            "read",
+            "edit",
+            "search",
+            "bash",
+            "interaction",
+            "agent_turn",
+            "tool",
+            "tool_call",
+            "toolCall",
+            "function_call",
+        }
+        has_structured = any(
+            str(item.get("type", "")) in structured_types or str(item.get("type", "")).startswith("server_")
+            for item in harness_evidence.tool_calls
+            if isinstance(item, dict)
+        )
         evidence["tool_use"] = {
             "tool_types": sorted(tool_types),
             "tool_count": call_count,
             "variety_score": round(variety_score, 2),
             "count_score": round(count_score, 2),
+            "source": "structured_harness" if has_structured else "keyword_trace",
+            "strength": "verified" if has_structured else "heuristic",
         }
         recorder.event("tool_use.scored", evidence["tool_use"])
 
@@ -334,7 +355,9 @@ def _measurement_summary(
 
     tool_evidence = evidence.get("tool_use")
     if isinstance(tool_evidence, dict) and tool_evidence.get("tool_count") is not None:
-        if statuses.get("tool_use") != "verified":
+        if tool_evidence.get("strength") == "verified" or tool_evidence.get("source") == "structured_harness":
+            statuses["tool_use"] = "verified"
+        elif statuses.get("tool_use") != "verified":
             statuses["tool_use"] = "heuristic"
 
     cost_evidence = evidence.get("cost_efficiency")
