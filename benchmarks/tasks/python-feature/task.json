@@ -21,6 +21,27 @@
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": ["sort_utils.py"]
+    },
+    {
+      "type": "code_quality",
+      "dimension": "execution_quality",
+      "path": "sort_utils.py",
+      "max_function_lines": 25,
+      "max_nesting_depth": 4
+    },
+    {
+      "type": "documentation_check",
+      "dimension": "execution_quality",
+      "path": "sort_utils.py",
+      "min_docstring_ratio": 0.5,
+      "require_docstrings": true
+    },
+    {
+      "type": "performance_check",
+      "dimension": "execution_quality",
+      "path": "test_merge.py",
+      "command": ["python3", "test_merge.py"],
+      "max_seconds": 5.0
     }
   ]
 }

@@ -21,6 +21,14 @@
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": ["data_processor.py"]
+    },
+    {
+      "type": "code_quality",
+      "dimension": "execution_quality",
+      "path": "data_processor.py",
+      "max_function_lines": 15,
+      "max_nesting_depth": 2,
+      "require_docstrings": true
     }
   ]
 }
