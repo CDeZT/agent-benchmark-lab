@@ -46,7 +46,7 @@ def build_screening_report(tasks_dir: Path, runs_dir: Path) -> dict[str, Any]:
                 "empirical discriminative_candidate status from identified real-model evidence",
                 "three eligible configurations with three repetitions each",
             ],
-            "external_import_rule": "external_imported tasks remain source-separated and require their upstream evaluator evidence",
+            "external_import_rule": "external_frozen records are metadata only; external_imported tasks require preserved upstream evaluator evidence",
         },
         "summary": {
             "task_count": len(tasks),
@@ -63,13 +63,13 @@ def build_screening_report(tasks_dir: Path, runs_dir: Path) -> dict[str, Any]:
 
 def classify_selection_status(task: dict[str, Any]) -> str:
     """Classify one catalog record without assigning performance points."""
+    provenance_type = str(task.get("provenance_type", "unspecified"))
+    if provenance_type in {"external_frozen", "external_imported"}:
+        return "official_evaluator_pending"
+
     role = str(task.get("benchmark_role", "comparative_candidate"))
     if role != "comparative_candidate":
         return "warmup_only"
-
-    provenance_type = str(task.get("provenance_type", "unspecified"))
-    if provenance_type == "external_imported":
-        return "official_evaluator_pending"
 
     corpus_audit = task.get("corpus_audit")
     if not isinstance(corpus_audit, dict) or corpus_audit.get("classification") != "passes":

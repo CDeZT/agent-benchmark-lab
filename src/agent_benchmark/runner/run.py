@@ -199,6 +199,11 @@ def ensure_task_environment_supported(task: TaskSpec) -> None:
     environment = task.metadata.get("environment", "local")
     if environment == "container_required":
         ensure_docker_ready()
+    elif environment == "external_evaluator_only":
+        raise ValueError(
+            f"Task '{task.task_id}' is frozen external metadata, not a runnable local task. "
+            "Use the corpus-specific official evaluator bridge and preserve its raw result before scoring."
+        )
 
 
 def _copy_workspace(source: Path, target: Path) -> None:

@@ -26,7 +26,7 @@ from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.model_identity import summarize_model_identity
 from agent_benchmark.metrics import confidence_interval_95
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
-from agent_benchmark.runner import ExperimentConfig, RunResult, run_task
+from agent_benchmark.runner import ExperimentConfig, RunResult, ensure_task_environment_supported, run_task
 from agent_benchmark.runner.container import DockerTaskEnvironment, DockerUnavailableError, container_spec_for_task
 from agent_benchmark.runner.run import _summarize
 from agent_benchmark.scorers import ScoreResult, score_run
@@ -68,6 +68,9 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(fullstack["environment"], "container_required")
         imaging = next(task for task in catalog["tasks"] if task["id"] == "optics-imaging-pipeline")
         self.assertEqual(imaging["environment"], "container_required")
+        frozen = [task for task in catalog["tasks"] if task["provenance_type"] == "external_frozen"]
+        self.assertEqual(len(frozen), 5)
+        self.assertTrue(all(task["environment"] == "external_evaluator_only" for task in frozen))
 
     def test_authoritative_registry_declares_official_tool_requirements(self) -> None:
         corpora = load_authoritative_corpora(ROOT / "config" / "authoritative_corpora.json")
@@ -208,6 +211,22 @@ class FrameworkTests(unittest.TestCase):
             ),
             "official_evaluator_pending",
         )
+        self.assertEqual(
+            classify_selection_status(
+                {"benchmark_role": "external_evaluator_pending", "provenance_type": "external_frozen"}
+            ),
+            "official_evaluator_pending",
+        )
+
+    def test_frozen_external_metadata_cannot_be_run_or_ranked_as_a_local_task(self) -> None:
+        task = load_task(ROOT / "benchmarks" / "tasks" / "swebench-pydata-xarray-6992")
+        report = audit_corpus(ROOT / "benchmarks" / "tasks")
+        audit_item = next(item for item in report["tasks"] if item["task_id"] == task.task_id)
+
+        self.assertEqual(task.provenance["type"], "external_frozen")
+        self.assertEqual(audit_item["classification"], "external_evaluator_pending")
+        with self.assertRaisesRegex(ValueError, "official evaluator bridge"):
+            ensure_task_environment_supported(task)
 
     def test_outcome_taxonomy_aggregates_capability_axes(self) -> None:
         self.assertIn("systems_embedded", axes_for_task(["c_engineering", "embedded_engineering"]))
@@ -288,6 +307,24 @@ class FrameworkTests(unittest.TestCase):
         invalid_result = validate_task(incomplete)
         self.assertFalse(invalid_result.ok)
         self.assertIn("source_benchmark", invalid_result.errors[0])
+
+        missing_evaluator_evidence = task.__class__(
+            **{
+                **task.__dict__,
+                "provenance": {
+                    "type": "external_imported",
+                    "source_benchmark": "example",
+                    "source_id": "case-1",
+                    "source_url": "https://example.test/case-1",
+                    "source_version": "v1",
+                    "license_note": "test",
+                    "importer_version": "test",
+                },
+            }
+        )
+        missing_evidence_result = validate_task(missing_evaluator_evidence)
+        self.assertFalse(missing_evidence_result.ok)
+        self.assertIn("official_evaluator_evidence", missing_evidence_result.errors[-1])
 
     def test_container_required_task_requires_a_ready_docker_daemon(self) -> None:
         task = load_task(ROOT / "benchmarks" / "tasks" / "project-generation")

@@ -4,7 +4,7 @@ Read this after `docs/handoff.md`, `docs/corpus_strategy.md`, and `docs/next_age
 
 ## Current Gate
 
-The local corpus is now usable for preliminary comparisons: `audit-corpus` reports 15 local tasks with a failing baseline and passing reference solution; four dependency-heavy tasks are correctly `container_required`. `python-bugfix` is `smoke_only`, so it checks adapter wiring but must not influence rankings. Docker evaluator v1 is implemented; it needs a ready daemon before those four tasks can be exercised.
+The local corpus is now usable for preliminary comparisons: `audit-corpus` reports 16 local tasks with a failing baseline and passing reference solution; four dependency-heavy tasks are correctly `container_required`, and five SWE-bench metadata records are `external_evaluator_pending` rather than runnable local tasks. `python-bugfix` is `smoke_only`, so it checks adapter wiring but must not influence rankings. Docker evaluator v1 is implemented; it needs a ready daemon before those four tasks can be exercised.
 
 Before every change run:
 

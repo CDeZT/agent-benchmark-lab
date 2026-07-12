@@ -51,7 +51,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 重要规则：
 - 不要假打分。没有证据的维度保持 0 或 partial，不要为了好看填分。
 - 报告严格总分时，必须同时报告 verified evidence coverage 和 verified normalized score；不要把未测维度导致的低严格分误读为任务失败。
-- 不要把当前自定义 seed/inspired 任务说成已导入的权威题库；外部导入还没实现。
+- 不要把当前自定义 seed/inspired 任务或 `external_frozen` 记录说成已导入的权威题库；冻结记录只能通过官方 evaluator bridge 运行，不能进入本地总分或排行榜。
 - 新任务必须声明 `difficulty`、`difficulty_rationale` 和 `provenance`；外部导入任务必须保留上游来源、版本、许可和 evaluator 证据。
 - 依赖无法在当前环境复现的任务必须标记 `container_required`，不得混进默认本机比较或把跳过测试当作成功。
 - `container_required` 任务已有 Docker evaluator v1；当前 Colima Docker daemon 可用，且已有 `python-fullstack` 容器运行证据。保留每次 run 的 `environment.Dockerfile`、`environment.json` 和 `environment-build.log` 作为环境证据。
@@ -81,7 +81,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 
 当前已实现的大方向：
 - CLI benchmark lab。
-- task/suite/matrix runner（当前 19 个任务定义，7 个套件，`calibration` 覆盖 easy 到 expert，`selection-ladder` 由难到易）。
+- task/suite/matrix runner（20 个本地可评测任务、5 个不可运行的 `external_frozen` SWE-bench 元数据记录、8 个套件；`calibration` 覆盖 easy 到 expert，`selection-ladder` 由难到易）。
 - public tests + hidden tests。
 - SHA-256 protected path integrity。
 - static HTML visual checks。
@@ -91,7 +91,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 130 个 unittest 测试函数，应该全部通过。
+- 131 个 unittest 测试函数，应该全部通过。
 
 仍然重要的下一步：
 - 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
@@ -99,6 +99,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - `bounded` 的时间上限现在会真正限制 adapter 子进程；`open_ended` 无上限。Ctrl-C 后检查 `interruption.json` 和 `checkpoint.json`，再用 `resume` 重跑未保存 result 的 repetition。
 - 官方 evaluator 工具现可用：SWE-bench 使用 `.agent-benchmark-evaluators/swebench` 的 Python 3.11，Terminal-Bench 使用 Python 3.13 的 `uv tool`。其他机器先运行 `scripts/setup_authoritative_evaluators.sh` 和 `preflight-authoritative`。工具可执行不等于题目已导入：仍必须冻结上游实例列表并保存官方 evaluator 原始结果。
 - 已冻结 `swe-bench-verified-screening-v1` 六题 pilot（上游难度从 `>4 hours` 到 `<15 min`），但它只是 metadata snapshot。下一步必须做 harness patch -> 官方 `swebench.harness.run_evaluation` 桥接；没有官方 evaluator 输出不得记分、不得标记 `external_imported`。
+- `swebench-pilot` 中另有 5 个历史导入尝试留下的任务记录；它们已被修正为 `external_frozen` + `external_evaluator_only`，用于开发桥接，不是可运行题库。不得重新把通用 `run_evaluation` 写成 task 的 `test_command`。
 - 已冻结独立 `terminal-bench-core-engineering-v1` 六题 pilot，涵盖 kernel/QEMU、C 图像、Raman 光谱、算法与 tmux 工作流；它必须通过官方 `tb run` 接入，结果绝不能和 SWE-bench repository-issue 轨道合并。
 - 两个外部 pilot 都是 5 道 `ranking_candidate` + 1 道 `diagnostic_tail`。不得把 tail 题用于排名、平均分或“题库难度”结论；任何新增 pilot 都必须保持复杂候选在前、简单诊断在末尾且至少三道候选。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。

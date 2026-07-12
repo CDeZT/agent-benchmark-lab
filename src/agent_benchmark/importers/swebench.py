@@ -1,8 +1,10 @@
-"""SWE-bench Verified importer.
+"""SWE-bench Verified metadata freezer.
 
-Imports a stratified subset of SWE-bench Verified tasks into the benchmark
-framework. Each task preserves upstream metadata (instance_id, repo, base_commit,
-difficulty, license) and uses the official SWE-bench evaluator.
+This module deliberately freezes upstream task metadata without pretending that
+the records are locally runnable SWE-bench tasks.  An official evaluation needs
+the pinned upstream repository/image, a harness-produced patch, and preserved
+official evaluator output.  Until that bridge exists, records use the
+``external_frozen`` provenance type and cannot enter a local leaderboard.
 """
 from __future__ import annotations
 
@@ -41,7 +43,11 @@ def create_swebench_task_manifest(
     instance: dict[str, Any],
     tasks_dir: Path,
 ) -> dict[str, Any]:
-    """Create a task manifest from a SWE-bench instance."""
+    """Freeze a SWE-bench instance as metadata-only evidence.
+
+    The historical function name is retained for callers, but it does not
+    import an executable benchmark environment or mark the task as scored.
+    """
     instance_id = instance["instance_id"]
     repo = instance["repo"]
     task_id = f"swebench-{instance_id.replace('/', '_').replace('__', '-')}"
@@ -70,19 +76,24 @@ def create_swebench_task_manifest(
         "capabilities": ["bugfix", "code_understanding", "debugging"],
         "domains": ["python", "software_engineering"],
         "difficulty": _map_difficulty(instance.get("difficulty", "")),
-        "difficulty_rationale": f"SWE-bench Verified instance from {repo}",
+        "difficulty_rationale": (
+            "Metadata-only SWE-bench record; local tier is a coarse ordering "
+            f"derived from upstream label {instance.get('difficulty', 'unknown')!r}, "
+            "not an empirical difficulty claim."
+        ),
         "provenance": {
-            "type": "external_imported",
+            "type": "external_frozen",
             "source_benchmark": "SWE-bench",
             "source_id": instance_id,
             "source_url": f"https://github.com/SWE-bench/SWE-bench",
             "source_version": "Verified",
             "license_note": "MIT license",
             "importer_version": "1.0.0",
+            "freeze_status": "metadata_only_official_evaluator_pending",
         },
         "metadata": {
-            "environment": "container_required",
-            "required_python_packages": ["swebench==4.1.0"],
+            "environment": "external_evaluator_only",
+            "benchmark_role": "external_evaluator_pending",
             "swebench": {
                 "instance_id": instance_id,
                 "repo": repo,
@@ -93,7 +104,7 @@ def create_swebench_task_manifest(
             },
         },
         "workspace": "workspace",
-        "test_command": ["python3", "-m", "swebench.harness.run_evaluation"],
+        "test_command": [],
         "protected_paths": [],
     }
 
@@ -127,7 +138,7 @@ def import_swebench_subset(
     tasks_dir: Path,
     max_count: int = 10,
 ) -> list[dict[str, Any]]:
-    """Import a stratified subset of SWE-bench Verified tasks."""
+    """Freeze a subset of SWE-bench Verified metadata for later bridging."""
     instances = list_swebench_instances(max_count)
     manifests = []
     for instance in instances:

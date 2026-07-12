@@ -33,6 +33,7 @@ config/model_registry.json
 # Generated task-local evaluator artifacts. Source and fixtures remain tracked.
 benchmarks/tasks/c-bugfix/hidden_test
 benchmarks/tasks/c-bugfix/workspace/test_clamp
+benchmarks/tasks/systems-concurrency/workspace/test_thread_pool
 benchmarks/tasks/frontend-visual/visual/
 
 # Coverage

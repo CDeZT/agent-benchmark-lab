@@ -11,7 +11,7 @@ The first needs maintained project-owned tasks. The second needs upstream tasks 
 
 ## Current Corpus
 
-The repository has 19 project-owned tasks, all tagged with a difficulty tier and provenance. The current distribution is:
+The repository has 20 project-owned locally evaluable tasks, all tagged with a difficulty tier and provenance. A separate five-record SWE-bench metadata pilot is `external_frozen`, uses `external_evaluator_only`, and is deliberately excluded from this local distribution and every local leaderboard.
 
 | Tier | Count | Intended role |
 | --- | ---: | --- |
@@ -36,7 +36,7 @@ Use `scripts/setup_authoritative_evaluators.sh` to provision the toolchain repro
 2. **Terminal-Bench pilot**: run a small fixed subset through the upstream Docker task environment and verifier. Keep terminal-agent scores separate from repository-issue scores.
 3. **WebArena and OSWorld**: add these later as separate web/desktop tracks, not to the coding grand score. They evaluate different interaction surfaces and require browser/VM infrastructure.
 
-For every external task, the importer must emit a manifest with `provenance.type=external_imported` and all required source fields. The project must retain the raw upstream evaluator result beside its normalized report.
+For every external task, the importer may first emit `provenance.type=external_frozen` metadata only. It becomes `external_imported` only after the official bridge has preserved the raw upstream evaluator result beside its normalized report. A metadata record must never use a generic local test command as a substitute for the upstream evaluator.
 
 The first selection is `swe-bench-verified-screening-v1` in `config/authoritative_pilots.json`: six real issue-resolution tasks ordered by the upstream `difficulty` field (`>4 hours`, `1-4 hours`, `15 min - 1 hour`, `<15 min fix`) across six repositories. The first five are `ranking_candidate`; the final short fix is a `diagnostic_tail` and must never influence a selection score. `freeze-authoritative-pilot` re-downloads only their upstream metadata, verifies the expected base commits/difficulties, records the resolved dataset revision, and writes a SHA-256 snapshot under `runs/`. This is a frozen pilot selection, not an imported or scored task set.
 
@@ -69,4 +69,4 @@ This is intentionally conservative. It does not claim that one small pilot estab
 
 `python-bugfix` and `c-bugfix` are intentionally `smoke_only`: they remain useful for adapter wiring and quick regression checks, but cannot contribute to a serious harness/model ranking. Their historical live results predate task-contract fingerprints and must be rerun before they can support any empirical calibration statement.
 
-`audit-corpus` is a mandatory gate: a locally runnable comparative task needs a failing baseline and a passing reference solution against its configured acceptance checks. It is part of the default project audit. The current corpus has 15 local tasks passing this gate and four explicitly skipped container-required tasks.
+`audit-corpus` is a mandatory gate: a locally runnable comparative task needs a failing baseline and a passing reference solution against its configured acceptance checks. It is part of the default project audit. The current corpus has 16 local tasks passing this gate, four explicitly skipped container-required tasks, and five `external_evaluator_pending` metadata records.

@@ -7,7 +7,7 @@ This file answers: what has actually been built, what is only partially built, a
 The project now has a usable early benchmark framework:
 
 - Task manifests.
-- Suites (foundation: 11 local tasks, calibration: 8 tasks, advanced: 3 tasks, plus a hard-to-easy selection ladder).
+- Suites (foundation: 12 local tasks, calibration: 8 tasks, advanced: 3 tasks, plus a hard-to-easy selection ladder and a quarantined SWE-bench metadata pilot).
 - Single-task runs.
 - Suite runs.
 - Matrix runs across adapter/model/budget-profile labels, including a first-class current-CLI-default mode.
@@ -24,11 +24,11 @@ The project now has a usable early benchmark framework:
 - Diffs.
 - stdout/stderr logs.
 - Markdown and HTML reports (with radar chart).
-- 19 task definitions covering many major capability areas.
+- 20 locally evaluable task definitions plus 5 explicitly quarantined SWE-bench metadata records.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 130 unittest test functions, all expected to pass in the current tree.
+- 131 unittest test functions, all expected to pass in the current tree.
 
-It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima, browser screenshots/pixel evidence work for local static pages, and a project-owned container task has run; external benchmark evaluator bridges and a multi-repeat real matrix with sufficient evidence remain unfinished. Model choices behind both CLIs are dynamic: the normal matrix compares their current defaults, while explicit same-model experiments remain a separate verified mode.
+It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima, browser screenshots/pixel evidence work for local static pages, and a project-owned container task has run; external benchmark evaluator bridges and a multi-repeat real matrix with sufficient evidence remain unfinished. Five SWE-bench records are now safely marked metadata-only and rejected by the generic runner, rather than being mistaken for scored imported tasks. Model choices behind both CLIs are dynamic: the normal matrix compares their current defaults, while explicit same-model experiments remain a separate verified mode.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
 
 ## Status Table
@@ -43,14 +43,14 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best/worst, and task-level two-sided 95% Student-t confidence intervals for score, verified score, duration, and available cost. | Add paired significance tests once larger matched matrices exist. |
 | Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints plus task-contract fingerprints; resume reuses saved work only when the current task content exactly matches the saved contract. | Add an optional historical recovery browser. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches, explicit unverified/mismatched requests, and observed CLI defaults. Historical summaries with a missing/mismatched task fingerprint are excluded from selection statistics. 130 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add direct subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches, explicit unverified/mismatched requests, and observed CLI defaults. Historical summaries with a missing/mismatched task fingerprint are excluded from selection statistics. 131 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add direct subagent evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
-| Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 16 of 19 tasks currently have hidden tests. | Add independent hidden tests to the remaining3 tasks. |
+| Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 16 of 20 locally evaluable tasks currently have hidden tests. | Add independent hidden tests to the remaining 4 tasks. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
 | Prevent test tampering | Implemented | Protected files checked with SHA-256 hashes. | Add stricter invalid-run policy levels. |
 | Visual verification | Partial | Static HTML checks plus Playwright Chromium screenshots, rendered-selector visibility, and pixel statistics are saved per run. | Add server-backed pages, interactions, reference-image diffs, and mobile viewports. |
 | Cost and duration | Partial | Duration is measured; parsed token/cost fields are carried into run summaries when harness output exposes them. | Improve provider-specific usage parsing and reporting. |
-| Task corpus and difficulty ladder | Implemented | 19 manifests carry validated difficulty/provenance fields; easy=3, medium=9, hard=4, expert=3; the 8-task local `calibration` suite spans all four tiers. | Add task-quality negative controls and more domain tasks. |
+| Task corpus and difficulty ladder | Implemented | 20 locally evaluable manifests plus 5 quarantined `external_frozen` records carry validated difficulty/provenance fields; the 8-task local `calibration` suite spans all four tiers. | Add task-quality negative controls and more domain tasks. |
 | Selective screening gate | Implemented | `selection-ladder` runs expert to easy; `screening-report` admits only empirically discriminative, corpus-audited local tasks and labels smoke, under-sampled, too-easy/hard, and container-gated tasks separately. | Build enough real evidence to populate the first non-empty selection cohort. |
 | Empirical difficulty calibration | Partial | `calibrate-difficulty` groups by actual observed model, matching task fingerprint, and refuses a discriminability conclusion without 3 combinations, 3 runs per combination, and 9 eligible runs. `python-bugfix` is deliberately smoke-only; historic unversioned runs cannot establish a calibration result. | Run fingerprinted real matrices, then revise tasks that are too easy, too hard, or non-discriminative. |
 | Outcome capability scorecard | Implemented | Suite reports aggregate separate software engineering, agent workflow, systems/embedded, scientific, web/UI, and security/reliability axes; all non-comparative tasks are excluded. | Add authoritative external tracks to each axis. |
@@ -64,7 +64,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Self-audit command | Implemented | `agent-benchmark audit` runs validation, unit tests, compileall, and smoke suite. | Add lint/Docker/browser/real-harness audit levels later. |
 | Doctor command | Implemented | `agent-benchmark doctor` checks local tools, Docker daemon readiness, and adapter command env vars. | Add credential checks without exposing secrets. |
 | Next-agent handoff prompt | Implemented | `docs/next_agent_prompt.md`; `agent-benchmark next-agent-prompt`. | Keep updated when workflow rules change. |
-| External benchmark imports | Partial | Source-aware manifests, catalog command, validated SWE-bench Verified/Terminal-Bench Core source registry, and `preflight-authoritative` toolchain checks now exist. Both local evaluator tools are installed; six-instance SWE-bench and Terminal-Bench pilots freeze real upstream metadata with commit/revision validation and SHA-256 evidence. | Implement the harness-patch to official evaluator bridge for SWE-bench, then the corresponding Terminal-Bench adapter/harness bridge. |
+| External benchmark imports | Partial | Source-aware manifests, catalog command, validated SWE-bench Verified/Terminal-Bench Core source registry, and `preflight-authoritative` toolchain checks now exist. Both local evaluator tools are installed; six-instance SWE-bench and Terminal-Bench pilots freeze real upstream metadata with commit/revision validation and SHA-256 evidence. Five legacy SWE-bench task records are now explicitly `external_frozen`, cannot be run by the generic runner, and cannot be ranked. | Implement the harness-patch to official evaluator bridge for the selected SWE-bench pilot, then the corresponding Terminal-Bench adapter/harness bridge. |
 | Dashboard | Planned | Roadmap exists. | Build dashboard. |
 
 ## Current Foundation Suite

@@ -37,6 +37,14 @@ def _audit_task(task: Any) -> dict[str, Any]:
         "environment": environment,
         "benchmark_role": task.metadata.get("benchmark_role", "comparative_candidate"),
     }
+    if environment == "external_evaluator_only":
+        result.update(
+            {
+                "classification": "external_evaluator_pending",
+                "reason": "frozen upstream metadata requires a corpus-specific official evaluator bridge",
+            }
+        )
+        return result
     if environment != "local":
         result.update({"classification": "skipped_environment", "reason": "requires non-local environment"})
         return result

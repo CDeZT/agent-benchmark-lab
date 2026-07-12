@@ -8,7 +8,7 @@ from agent_benchmark.task_schema.suite import load_suite
 
 
 DIFFICULTY_LEVELS = ("easy", "medium", "hard", "expert")
-PROVENANCE_TYPES = ("custom_seed", "domain_seed", "inspired_by_external", "external_imported")
+PROVENANCE_TYPES = ("custom_seed", "domain_seed", "inspired_by_external", "external_frozen", "external_imported")
 
 
 @dataclass
@@ -56,7 +56,7 @@ def validate_task(task: TaskSpec) -> ValidationResult:
     result = ValidationResult()
     if not task.workspace_path.exists():
         result.errors.append(f"{task.task_id}: workspace path does not exist: {task.workspace_path}")
-    if not task.test_command:
+    if not task.test_command and task.metadata.get("environment", "local") != "external_evaluator_only":
         result.warnings.append(f"{task.task_id}: no public test_command configured")
     if task.test_timeout_seconds <= 0:
         result.errors.append(f"{task.task_id}: test_timeout_seconds must be positive")
@@ -107,9 +107,9 @@ def _validate_catalog_metadata(task: TaskSpec, result: ValidationResult) -> None
         result.warnings.append(f"{task.task_id}: missing difficulty_rationale")
 
     environment = task.metadata.get("environment", "local")
-    if environment not in {"local", "container_required"}:
+    if environment not in {"local", "container_required", "external_evaluator_only"}:
         result.errors.append(
-            f"{task.task_id}: metadata.environment must be local or container_required"
+            f"{task.task_id}: metadata.environment must be local, container_required, or external_evaluator_only"
         )
     if environment == "container_required":
         packages = task.metadata.get("required_python_packages")
@@ -132,12 +132,21 @@ def _validate_catalog_metadata(task: TaskSpec, result: ValidationResult) -> None
         )
         return
 
-    if provenance_type == "external_imported":
+    if provenance_type in {"external_frozen", "external_imported"}:
         required = ("source_benchmark", "source_id", "source_url", "source_version", "license_note", "importer_version")
         missing = [field for field in required if not str(task.provenance.get(field, "")).strip()]
         if missing:
             result.errors.append(
-                f"{task.task_id}: external_imported provenance is missing {', '.join(missing)}"
+                f"{task.task_id}: {provenance_type} provenance is missing {', '.join(missing)}"
+            )
+        if provenance_type == "external_frozen":
+            if environment != "external_evaluator_only":
+                result.errors.append(f"{task.task_id}: external_frozen tasks must use external_evaluator_only")
+            if task.test_command:
+                result.errors.append(f"{task.task_id}: external_frozen tasks cannot declare a generic test_command")
+        elif not str(task.provenance.get("official_evaluator_evidence", "")).strip():
+            result.errors.append(
+                f"{task.task_id}: external_imported provenance needs preserved official_evaluator_evidence"
             )
     elif not str(task.provenance.get("source", "")).strip():
         result.warnings.append(f"{task.task_id}: custom provenance should include source")

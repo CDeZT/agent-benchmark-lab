@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-12 (iteration 32)
+
+- Reviewed a later agent's five-file SWE-bench addition and found that it only copied issue text while declaring `external_imported` and a generic evaluator test command. It lacked the pinned upstream workspace/image, a harness patch, and raw official evaluator output, so it could have created false authoritative scores.
+- Added the explicit `external_frozen` provenance state and `external_evaluator_only` environment. Frozen records are rejected by the generic runner, excluded from local comparative ranking, reported as `official_evaluator_pending`, and cannot be promoted to `external_imported` without `official_evaluator_evidence`.
+- Added regression coverage for this boundary, removed a tracked generated concurrency-test binary, and updated handoff/status documents with the actual 20-local-task + 5-frozen-record corpus split.
+
 ## 2026-07-12 (iteration 31)
 
 - Turned the user's selective-exam requirement into external-pilot schema rules: every pilot now separates `ranking_candidate` tasks from a final `diagnostic_tail`, needs at least three candidates, and rejects a candidate after the tail.

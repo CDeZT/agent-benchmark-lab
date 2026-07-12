@@ -1,7 +1,7 @@
 {
   "id": "swebench-pilot",
-  "title": "SWE-bench Verified pilot",
-  "description": "Stratified pilot of SWE-bench Verified tasks. These are real GitHub issues that require understanding codebases and fixing bugs.",
+  "title": "SWE-bench Verified frozen metadata pilot",
+  "description": "Five preserved SWE-bench issue records for evaluator-bridge development. They are not locally runnable tasks and are excluded from ranking until an official evaluator result is preserved.",
   "tasks": [
     "swebench-astropy-astropy-13398",
     "swebench-astropy-astropy-12907",

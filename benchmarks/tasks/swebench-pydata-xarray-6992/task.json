@@ -14,19 +14,18 @@
   "difficulty": "hard",
   "difficulty_rationale": "SWE-bench Verified instance from pydata/xarray",
   "provenance": {
-    "type": "external_imported",
+    "type": "external_frozen",
     "source_benchmark": "SWE-bench",
     "source_id": "pydata__xarray-6992",
     "source_url": "https://github.com/SWE-bench/SWE-bench",
     "source_version": "Verified",
     "license_note": "MIT license",
-    "importer_version": "1.0.0"
+    "importer_version": "1.0.0",
+    "freeze_status": "metadata_only_official_evaluator_pending"
   },
   "metadata": {
-    "environment": "container_required",
-    "required_python_packages": [
-      "swebench==4.1.0"
-    ],
+    "environment": "external_evaluator_only",
+    "benchmark_role": "external_evaluator_pending",
     "swebench": {
       "instance_id": "pydata__xarray-6992",
       "repo": "pydata/xarray",
@@ -37,10 +36,6 @@
     }
   },
   "workspace": "workspace",
-  "test_command": [
-    "python3",
-    "-m",
-    "swebench.harness.run_evaluation"
-  ],
+  "test_command": [],
   "protected_paths": []
 }

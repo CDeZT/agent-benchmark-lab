@@ -101,9 +101,15 @@ def preflight_matrix(
             excluded_ids.append(task.task_id)
         if task_report["environment"] == "container_required":
             container_tasks.append(task.task_id)
-        if not task.test_command:
+        if task_report["environment"] == "external_evaluator_only":
+            add(
+                "blocked",
+                "external_evaluator_pending",
+                f"Task '{task.task_id}' is frozen external metadata and must be run through its official evaluator bridge.",
+            )
+        if not task.test_command and task_report["environment"] != "external_evaluator_only":
             add("blocked", "missing_public_test", f"Task '{task.task_id}' has no public test command.")
-        if not task.hidden_test_command:
+        if not task.hidden_test_command and task_report["environment"] != "external_evaluator_only":
             add("warning", "missing_hidden_test", f"Task '{task.task_id}' has no hidden test command.")
 
     if comparative_ids:
