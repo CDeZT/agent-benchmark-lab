@@ -1,0 +1,18 @@
+{
+  "id": "swebench-pilot",
+  "title": "SWE-bench Verified pilot",
+  "description": "Stratified pilot of SWE-bench Verified tasks. These are real GitHub issues that require understanding codebases and fixing bugs.",
+  "tasks": [
+    "swebench-astropy-astropy-13398",
+    "swebench-astropy-astropy-12907",
+    "swebench-astropy-astropy-13033",
+    "swebench-astropy-astropy-14309",
+    "swebench-pydata-xarray-6992"
+  ],
+  "capability_focus": [
+    "bugfix",
+    "code_understanding",
+    "debugging",
+    "cross_module_reasoning"
+  ]
+}
