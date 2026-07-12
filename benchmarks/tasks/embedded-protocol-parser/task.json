@@ -14,9 +14,21 @@
   "artifact_ignore_globs": ["test_protocol"],
   "process_checks": [
     {
+      "type": "file_changed",
+      "dimension": "execution_quality",
+      "path": "protocol.c"
+    },
+    {
       "type": "instruction_match",
       "dimension": "intent_understanding",
       "expected_changed_files": ["protocol.c"]
+    },
+    {
+      "type": "code_quality",
+      "dimension": "execution_quality",
+      "path": "protocol.c",
+      "max_function_lines": 50,
+      "max_nesting_depth": 5
     }
   ]
 }
