@@ -10,7 +10,7 @@
       "id": "compare_harness_same_model",
       "title": "Compare different harnesses with the same model",
       "status": "partial",
-      "evidence": ["run-matrix supports adapter x canonical model x budget profile combinations", "model registry maps canonical models to harness-specific CLI identifiers", "model_identity records verified_match, requested_unverified, or mismatch"],
+      "evidence": ["run-matrix supports adapter x canonical model x budget profile combinations", "model registry maps canonical models to harness-specific CLI identifiers", "model_identity records verified_match, requested_unverified, or mismatch", "Configured external CLI adapters require an explicit local registry; documentation examples are not listed as runnable"],
       "remaining": ["Run three-repeat real harnesses with a registry-backed verified same model"]
     },
     {
@@ -59,7 +59,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "136 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "147 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
     },
     {

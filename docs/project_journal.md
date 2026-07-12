@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-12 (iteration 41)
+
+- Audited current local readiness: opencode, Claude Code, Grok, Docker, Playwright, SWE-bench, and Terminal-Bench are detected. The three-repeat current-default opencode-versus-Claude calibration preflight has no blockers.
+- Fixed a false readiness signal: the example harness registry had been loaded as if it were active, advertising Gemini even when its CLI was neither installed nor configured. Only built-ins and an explicitly activated local registry are now listed as runnable adapters.
+- Reconciled stale test-count references across handoff/status documents; the current suite is 147 tests, including the new registry-boundary regression test.
+
 ## 2026-07-12 (iteration 40b)
 
 - Completed hard-discrimination suite with claude-code (coverage ~76% with verified tool_use+planning).

@@ -1490,6 +1490,9 @@ class FrameworkTests(unittest.TestCase):
         registry = load_harness_registry(ROOT / "config" / "harnesses.example.json")
         self.assertIn("gemini", registry)
         self.assertIn("default_command", registry["gemini"])
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("agent_benchmark.harness_registry.DEFAULT_HARNESSES_PATH", Path(tmp) / "missing.json"):
+                self.assertEqual(load_harness_registry(), {})
         # Built-in names still resolve to code adapters; configured-only names use JSON.
         self.assertEqual(adapter_by_name("grok").name, "grok")
         with tempfile.TemporaryDirectory() as tmp:

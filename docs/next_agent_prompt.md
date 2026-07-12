@@ -56,6 +56,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 依赖无法在当前环境复现的任务必须标记 `container_required`，不得混进默认本机比较或把跳过测试当作成功。
 - `container_required` 任务已有 Docker evaluator v1；当前 Colima Docker daemon 可用，且已有 `python-fullstack` 容器运行证据。保留每次 run 的 `environment.Dockerfile`、`environment.json` 和 `environment-build.log` 作为环境证据。
 - 模型并非固定：Claude Code 和 opencode 后面的默认模型会被用户随时调整。普通实测使用 `--models unspecified`，让每个 CLI 使用当下默认模型；这叫 `cli_default_configurations`，是完整当前配置对比，不能写成同模型对比。运行后记录 `default_detected` 或 `default_unverified`。
+- `config/harnesses.example.json` 只是新增 headless CLI 的示例，不得把其中名称当作已安装或可运行 adapter。只有内置 adapter、显式本地 `config/harnesses.json` 或 `AGENT_BENCH_HARNESSES_FILE` 指向的 registry 才能进入 `list-adapters` 和真实 run。
 - 只有明确想测“同一模型不同 harness”时，才使用 canonical model + adapter-specific model registry；检查 `model_identity.status`，只有 `verified_match` 才能做同模型结论。不要把 CLI 参数标签、registry 或旧配置当作模型身份事实。
 - 在调用真实 harness 前先执行 `preflight-matrix`。如果它报告 registry identity hint mismatch，配置可以用于调试但不可用于公平排名；先修正映射，再花费 token。
 - 当前 opencode 1.17.15 的 `--model` 会崩溃，因此其 CLI 默认模型模式是正常且受支持的；即使 registry 写了 opencode 映射，也不能宣称该命令选中了某个模型。
@@ -92,7 +93,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 140 个 unittest 测试函数，应该全部通过。
+- 147 个 unittest 测试函数，应该全部通过。
 - `agent-benchmark dashboard` 已可从 `runs/` 生成历史 HTML/JSON 看板，并标注 fingerprint 与模型身份是否可用于当前结论。
 - `config/model_registry.json` 已去掉 longcat→mimo 伪同模型映射，只保留诚实的 mimo 候选映射。
 - `terminal-bench-bridge` 已实现：默认只出 plan，`--execute` 才调用官方 `tb run`；结果在独立 terminal 轨道，不得并入 SWE-bench 分数。

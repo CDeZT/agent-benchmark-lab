@@ -20,9 +20,10 @@ def harnesses_file_path() -> Path:
     override = os.environ.get("AGENT_BENCH_HARNESSES_FILE")
     if override:
         return Path(override)
-    if DEFAULT_HARNESSES_PATH.exists():
-        return DEFAULT_HARNESSES_PATH
-    return DEFAULT_HARNESSES_EXAMPLE_PATH
+    # The example describes possible integrations; it is not an active local
+    # registry. Falling back to it made `list-adapters` advertise CLIs that
+    # were neither installed nor configured.
+    return DEFAULT_HARNESSES_PATH
 
 
 def load_harness_registry(path: Path | None = None) -> dict[str, dict[str, Any]]:
