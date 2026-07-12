@@ -39,9 +39,14 @@ def validate_all(tasks_dir: Path, suites_dir: Path) -> ValidationResult:
     for suite_path in sorted(suites_dir.glob("*.json")):
         try:
             suite = load_suite(suite_path)
-            missing = [task_id for task_id in suite.tasks if task_id not in tasks]
-            for task_id in missing:
-                result.errors.append(f"{suite_path}: references missing task '{task_id}'")
+            for task_id in suite.tasks:
+                if task_id.startswith("swebench:"):
+                    # Official SWE items are resolved via the pilot + bridge, not task folders.
+                    if not task_id[len("swebench:") :].strip():
+                        result.errors.append(f"{suite_path}: empty swebench: task id")
+                    continue
+                if task_id not in tasks:
+                    result.errors.append(f"{suite_path}: references missing task '{task_id}'")
         except Exception as exc:  # noqa: BLE001
             result.errors.append(f"{suite_path}: {exc}")
 
