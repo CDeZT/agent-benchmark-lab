@@ -17,8 +17,10 @@ class DoctorCheck:
 
 
 RECOMMENDED_COMMANDS = {
+    "aider": "built-in default uses aider --yes-always --no-git --no-auto-commits --no-stream --message-file {instruction_file}, adding --model only when AGENT_BENCH_MODEL is not unspecified",
     "opencode": "built-in default uses opencode run --auto (--model intentionally omitted: opencode 1.17.15 crashes with any --model value)",
     "claude-code": "built-in default uses claude -p --dangerously-skip-permissions --no-session-persistence, adding --model only when AGENT_BENCH_MODEL is not unspecified",
+    "codex": "built-in default uses codex exec --json --ephemeral --sandbox workspace-write --skip-git-repo-check -C {workspace}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
     "grok": "built-in default uses grok --always-approve --output-format json --prompt-file {instruction_file}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
 }
 
@@ -30,12 +32,16 @@ def run_doctor() -> dict[str, Any]:
         _command_check("cc", ["cc", "--version"]),
         _command_check("opencode", ["opencode", "--version"]),
         _command_check("claude", ["claude", "--version"]),
+        _command_check("codex", ["codex", "--version"]),
+        _command_check("aider", ["aider", "--version"]),
         _command_check("grok", ["grok", "--version"]),
         _docker_check(),
         _playwright_check(),
         _env_check("AGENT_BENCH_COMMAND"),
         _env_check("AGENT_BENCH_OPENCODE_COMMAND", recommended=RECOMMENDED_COMMANDS["opencode"]),
         _env_check("AGENT_BENCH_CLAUDE_CODE_COMMAND", recommended=RECOMMENDED_COMMANDS["claude-code"]),
+        _env_check("AGENT_BENCH_CODEX_COMMAND", recommended=RECOMMENDED_COMMANDS["codex"]),
+        _env_check("AGENT_BENCH_AIDER_COMMAND", recommended=RECOMMENDED_COMMANDS["aider"]),
         _env_check("AGENT_BENCH_GROK_COMMAND", recommended=RECOMMENDED_COMMANDS["grok"]),
     ]
     return {
@@ -59,9 +65,7 @@ def format_doctor(summary: dict[str, Any]) -> str:
         [
             "",
             "Recommended command templates:",
-            f"- opencode: `{summary['recommended_commands']['opencode']}`",
-            f"- claude-code: `{summary['recommended_commands']['claude-code']}`",
-            f"- grok: `{summary['recommended_commands']['grok']}`",
+            *[f"- {name}: `{command}`" for name, command in summary["recommended_commands"].items()],
         ]
     )
     return "\n".join(lines)

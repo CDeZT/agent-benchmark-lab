@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 42)
+
+- Added built-in Codex CLI and Aider adapters with non-interactive, workspace-scoped default commands; doctor now verifies both local binaries and their override environment variables.
+- Added conservative parsers: Codex JSONL command/file-change/usage events can support structured evidence, while Aider receives only explicitly printed model/token/cost evidence and no invented tool trace.
+- Audited the corpus and scoring system against a serious agent-benchmark standard. Added `docs/user_guide.md` for personal operation and `docs/benchmark_readiness_audit.md` for explicit readiness gaps.
+- Corrected a scoring-validity issue: a workspace diff remains useful editing evidence but is now `heuristic` tool-use evidence, not a verified tool trace that can inflate coverage.
+
 ## 2026-07-12 (iteration 41)
 
 - Audited current local readiness: opencode, Claude Code, Grok, Docker, Playwright, SWE-bench, and Terminal-Bench are detected. The three-repeat current-default opencode-versus-Claude calibration preflight has no blockers.

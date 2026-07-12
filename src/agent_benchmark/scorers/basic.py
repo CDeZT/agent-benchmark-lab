@@ -37,14 +37,14 @@ _SELF_REPAIR_INDICATORS: list[tuple[re.Pattern[str], str]] = [
 def _score_tool_use_from_workspace_edits(baseline: Path, workspace: Path) -> tuple[float, dict[str, Any]]:
     """Score tool_use from real file edits when harness telemetry is missing.
 
-    If the agent changed source files under the workspace, it necessarily used
-    tools (edit/write). This is weaker than a full tool trace but stronger than
-    inventing a zero when the CLI simply does not emit tool JSON.
+    A workspace diff proves that an agent produced an edit, not which tools it
+    used or how it used them. Keep this as a useful fallback signal, but mark
+    it heuristic rather than letting it inflate verified tool-use coverage.
     """
     ignore = {".pyc", ".pyo", ".o", ".so", ".dylib", ".DS_Store"}
     changed: list[str] = []
     if not baseline.exists() or not workspace.exists():
-        return 0.0, {"source": "workspace_edits", "strength": "verified", "tool_count": 0, "changed_files": []}
+        return 0.0, {"source": "workspace_edits", "strength": "heuristic", "tool_count": 0, "changed_files": []}
     for path in sorted(workspace.rglob("*")):
         if not path.is_file():
             continue
@@ -75,7 +75,7 @@ def _score_tool_use_from_workspace_edits(baseline: Path, workspace: Path) -> tup
     if not useful:
         return 0.0, {
             "source": "workspace_edits",
-            "strength": "verified",
+            "strength": "heuristic",
             "tool_count": 0,
             "changed_files": [],
             "method": "no_workspace_edits",
@@ -86,7 +86,7 @@ def _score_tool_use_from_workspace_edits(baseline: Path, workspace: Path) -> tup
     score = round(presence_score + count_score, 2)
     return score, {
         "source": "workspace_edits",
-        "strength": "verified",
+        "strength": "heuristic",
         "tool_types": ["workspace_edit"],
         "tool_count": len(useful),
         "changed_files": useful[:20],
@@ -427,7 +427,6 @@ def _measurement_summary(
     if isinstance(tool_evidence, dict) and tool_evidence.get("tool_count") is not None:
         if tool_evidence.get("strength") == "verified" or tool_evidence.get("source") in {
             "structured_harness",
-            "workspace_edits",
         }:
             statuses["tool_use"] = "verified"
         elif statuses.get("tool_use") != "verified":

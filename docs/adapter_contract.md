@@ -1,6 +1,6 @@
 # Adapter Contract
 
-Adapters connect Agent Benchmark Lab to real harnesses such as Claude Code and opencode.
+Adapters connect Agent Benchmark Lab to real harnesses such as Codex, Aider, Claude Code, and opencode.
 
 ## Required Behavior
 
@@ -38,6 +38,22 @@ Adapter shell implemented. Configure with `AGENT_BENCH_OPENCODE_COMMAND`. The ta
 ### claude-code
 
 Adapter shell implemented. Configure with `AGENT_BENCH_CLAUDE_CODE_COMMAND`. The task instruction is passed on stdin from inside the isolated workspace, and is also available through command placeholders. Permission and interaction handling must be refined after testing against the user's local Claude Code CLI.
+
+### codex
+
+Implemented. Built-in default uses Codex's non-interactive JSONL mode:
+
+`codex exec --json --ephemeral --sandbox workspace-write --skip-git-repo-check -C {workspace}`
+
+When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `-m "$AGENT_BENCH_MODEL"`. Codex command-execution/file-change JSON events and explicitly emitted usage fields are parsed; missing fields remain unavailable. Override with `AGENT_BENCH_CODEX_COMMAND`.
+
+### aider
+
+Implemented. Built-in default uses Aider's one-message scripting mode:
+
+`aider --yes-always --no-git --no-auto-commits --no-stream --message-file {instruction_file}`
+
+When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `--model "$AGENT_BENCH_MODEL"`. Aider's git integration is disabled because each benchmark run owns a disposable workspace. Only model/token/cost fields explicitly printed by Aider are parsed; a workspace diff alone is heuristic editing evidence, not verified tool telemetry. Override with `AGENT_BENCH_AIDER_COMMAND`.
 
 ### grok
 
@@ -87,11 +103,14 @@ Built-in default templates:
 
 - opencode 1.17.15 always uses `opencode run --auto "$(cat {instruction_file})"`. Its `--model` flag currently crashes against this local CLI/provider setup, so the matrix command cannot select an opencode model; it intentionally uses the current opencode configured default and records any identity available from saved output.
 - claude-code uses `claude -p --output-format json --dangerously-skip-permissions --no-session-persistence "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
+- codex uses the JSONL `exec` template above; aider uses `--message-file` with git auto-commits disabled.
 
 You can still override them with:
 
 - `AGENT_BENCH_OPENCODE_COMMAND`
 - `AGENT_BENCH_CLAUDE_CODE_COMMAND`
+- `AGENT_BENCH_CODEX_COMMAND`
+- `AGENT_BENCH_AIDER_COMMAND`
 
 Claude Code's default template now uses `--output-format json`, so the runner can collect structured result metadata such as actual model identity, token usage, and cost when the configured provider exposes it.
 

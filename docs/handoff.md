@@ -4,9 +4,9 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 147 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 12 suites, 149 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
-Important boundary: the current locally runnable corpus is custom seed/inspired work. The five SWE-bench records preserve metadata only and the generic runner rejects them. No authoritative external benchmark has been scored or imported yet. See `docs/task_provenance.md`.
+Important boundary: the local corpus is custom/domain seed and inspired work; the five legacy SWE-bench records preserve metadata only and the generic runner rejects them. Individual official bridge outcomes remain separate evidence tracks, not proof that an externally representative corpus or global leaderboard is complete. See `docs/task_provenance.md` and `docs/benchmark_readiness_audit.md`.
 
 The first real `swebench-bridge --execute` run is preserved at `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435`: opencode produced a patch, and the official evaluator started, but its environment image failed with `error_ids` and no instance report. Treat that run as `evaluator_error` and not as a model/harness outcome. After increasing the available Docker VM resources, resume with the same `--bridge-dir`; the bridge reuses `model.patch` and must not spend another harness call unless the patch is deliberately discarded.
 
@@ -23,6 +23,8 @@ The benchmark must measure more than final pass/fail. It should quantify intent 
 The user values reliable results over low cost or short runtime. Repeated runs, mean, and variance are expected.
 
 Embedded engineering and optics should be preserved as long-term domain requirements.
+
+For the user-facing operating manual, task inventory, score interpretation, and real-run commands, read `docs/user_guide.md` first.
 
 ## Completed
 

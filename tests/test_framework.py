@@ -664,11 +664,12 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(summary["repetitions"], 2)
             self.assertEqual(summary["model"], "unspecified")
             self.assertEqual(summary["budget_profile"], "open_ended")
-            # Dummy applies the solution (workspace edits) so tool_use is verified via edit evidence.
+            # Dummy applies the solution (workspace edits), which is useful but
+            # not a structured harness tool trace.
             self.assertEqual(summary["mean_score"], 62.0)
-            # tool_use from workspace edits is verified but not a perfect 100.
-            self.assertEqual(summary["mean_verified_normalized_score"], 96.88)
-            self.assertEqual(summary["mean_verified_coverage_percent"], 64.0)
+            # tool_use from workspace edits is heuristic but not a perfect 100.
+            self.assertEqual(summary["mean_verified_normalized_score"], 100.0)
+            self.assertEqual(summary["mean_verified_coverage_percent"], 58.0)
             self.assertEqual(summary["score_confidence_interval_95"]["margin"], 0.0)
             self.assertIn("mean_duration_seconds", summary)
             self.assertIsNone(summary["mean_cost_usd"])
@@ -684,9 +685,9 @@ class FrameworkTests(unittest.TestCase):
                 result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
                 self.assertEqual(result["score"]["dimensions"]["task_completion"], 100.0)
                 self.assertEqual(result["score"]["dimensions"]["visual_verification"], 0.0)
-                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 64.0)
-                self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 96.88)
-                self.assertEqual(result["score"]["measurement"]["dimension_status"]["tool_use"], "verified")
+                self.assertEqual(result["score"]["measurement"]["verified_coverage_percent"], 58.0)
+                self.assertEqual(result["score"]["measurement"]["verified_normalized_score"], 100.0)
+                self.assertEqual(result["score"]["measurement"]["dimension_status"]["tool_use"], "heuristic")
                 self.assertTrue(result["score"]["evidence"]["test"]["public"]["passed"])
                 self.assertTrue(result["score"]["evidence"]["test"]["hidden"]["passed"])
 
@@ -1472,10 +1473,14 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("playwright", rendered)
         self.assertIn("opencode", rendered)
         self.assertIn("claude-code", rendered)
+        self.assertIn("codex", rendered)
+        self.assertIn("aider", rendered)
         self.assertIn("grok", rendered)
 
     def test_real_harness_adapters_have_default_templates(self) -> None:
+        from agent_benchmark.adapters.aider import AiderAdapter
         from agent_benchmark.adapters.claude_code import ClaudeCodeAdapter
+        from agent_benchmark.adapters.codex import CodexAdapter
         from agent_benchmark.adapters.grok import GrokAdapter
         from agent_benchmark.adapters.opencode import OpencodeAdapter
 
@@ -1484,6 +1489,12 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("--output-format json", ClaudeCodeAdapter().command_template() or "")
         self.assertIn("grok --always-approve", GrokAdapter().command_template() or "")
         self.assertIn("--prompt-file", GrokAdapter().command_template() or "")
+        self.assertIn("codex exec --json", CodexAdapter().command_template() or "")
+        self.assertIn("--skip-git-repo-check", CodexAdapter().command_template() or "")
+        self.assertIn("aider --yes-always", AiderAdapter().command_template() or "")
+        self.assertIn("--message-file", AiderAdapter().command_template() or "")
+        self.assertIn("codex", available_adapters())
+        self.assertIn("aider", available_adapters())
         self.assertIn("grok", available_adapters())
 
     def test_harness_registry_example_loads_and_exposes_configured_adapters(self) -> None:
@@ -1560,6 +1571,44 @@ class FrameworkTests(unittest.TestCase):
         empty = parse_harness_output("grok", '{"text":"hi","sessionId":"abc"}', "")
         self.assertIsNone(empty.model)
         self.assertIsNone(empty.cost_usd)
+
+    def test_codex_parser_reads_jsonl_tools_and_usage(self) -> None:
+        stdout = "\n".join(
+            [
+                json.dumps({"type": "thread.started", "model": "gpt-5-codex"}),
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {"type": "command_execution", "command": "pytest -q"},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {"type": "file_change", "changes": [{"path": "src/fix.py"}]},
+                    }
+                ),
+                json.dumps({"type": "turn.completed", "usage": {"input_tokens": 21, "output_tokens": 8}}),
+            ]
+        )
+
+        evidence = parse_harness_output("codex", stdout, "")
+
+        self.assertEqual(evidence.model, "gpt-5-codex")
+        self.assertEqual(evidence.input_tokens, 21)
+        self.assertEqual(evidence.output_tokens, 8)
+        self.assertEqual([call["type"] for call in evidence.tool_calls], ["bash", "edit"])
+
+    def test_aider_parser_keeps_missing_tool_evidence_unavailable(self) -> None:
+        evidence = parse_harness_output(
+            "aider", "Models: deepseek/deepseek-chat\nTokens: 1,200 in / 300 out\nCost: $0.024", ""
+        )
+
+        self.assertEqual(evidence.model, "deepseek/deepseek-chat")
+        self.assertEqual(evidence.input_tokens, 1200)
+        self.assertEqual(evidence.output_tokens, 300)
+        self.assertEqual(evidence.cost_usd, 0.024)
+        self.assertEqual(evidence.tool_calls, [])
 
     def test_next_agent_prompt_contains_required_handoff_rules(self) -> None:
         prompt = load_next_agent_prompt(ROOT / "docs" / "next_agent_prompt.md")
@@ -2142,7 +2191,7 @@ class FrameworkTests(unittest.TestCase):
         )
         self.assertFalse(broken["include_in_aggregate"])
 
-    def test_workspace_edit_fallback_gives_verified_tool_use_without_harness_logs(self) -> None:
+    def test_workspace_edit_fallback_is_heuristic_tool_use_without_harness_logs(self) -> None:
         from agent_benchmark.scorers.basic import score_run
         from agent_benchmark.recorders.jsonl import JsonlRecorder
 
@@ -2155,7 +2204,7 @@ class FrameworkTests(unittest.TestCase):
             shutil.copy(task.root / "solution" / "psf.py", workspace / "psf.py")
             result = score_run(task, baseline, workspace, JsonlRecorder(Path(tmp) / "t.jsonl"), harness_evidence=None)
             self.assertGreater(result.dimensions["tool_use"], 0)
-            self.assertEqual(result.measurement["dimension_status"]["tool_use"], "verified")
+            self.assertEqual(result.measurement["dimension_status"]["tool_use"], "heuristic")
             self.assertEqual(result.evidence["tool_use"]["source"], "workspace_edits")
 
     def test_structured_harness_tool_use_is_verified_evidence(self) -> None:

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """Parse real harness output to extract model name, tool calls, and usage evidence.
 
-This module extracts structured data from opencode and claude-code stdout/stderr
-so the scorer can populate dimensions like tool_use and cost_efficiency.
+This module extracts structured data from supported harness stdout/stderr so
+the scorer can populate dimensions like tool_use and cost_efficiency.
 """
 
 import json
@@ -31,6 +31,10 @@ def parse_harness_output(adapter: str, stdout: str, stderr: str) -> HarnessEvide
         return _parse_claude_code(stdout, stderr)
     if adapter == "grok":
         return _parse_grok(stdout, stderr)
+    if adapter == "codex":
+        return _parse_codex(stdout, stderr)
+    if adapter == "aider":
+        return _parse_aider(stdout, stderr)
     return HarnessEvidence()
 
 
@@ -198,6 +202,58 @@ def _parse_grok(stdout: str, stderr: str) -> HarnessEvidence:
         if event_type == "end" and isinstance(event.get("model"), str):
             evidence.model = event["model"]
     return evidence
+
+
+def _parse_codex(stdout: str, stderr: str) -> HarnessEvidence:
+    """Parse Codex ``exec --json`` JSONL without inferring absent telemetry."""
+    evidence = HarnessEvidence()
+    for line in (stdout or "").splitlines():
+        event = _load_json_object(line)
+        if not isinstance(event, dict):
+            continue
+        evidence.model = evidence.model or _first_string(event, ("model", "model_name", "modelName"))
+        _extract_usage(event.get("usage"), evidence)
+        item = event.get("item")
+        if not isinstance(item, dict):
+            continue
+        item_type = str(item.get("type") or "")
+        if item_type == "command_execution":
+            command = item.get("command")
+            if isinstance(command, str) and command.strip():
+                evidence.tool_calls.append({"type": "bash", "command": command.strip()[:500]})
+        elif item_type == "file_change":
+            changes = item.get("changes")
+            if isinstance(changes, list):
+                for change in changes:
+                    if isinstance(change, dict):
+                        path = change.get("path") or change.get("file")
+                        evidence.tool_calls.append(
+                            {"type": "edit", "path": str(path)[:500] if path is not None else "unknown"}
+                        )
+    for line in (stderr or "").splitlines():
+        _extract_token_cost(line, evidence)
+    return evidence
+
+
+def _parse_aider(stdout: str, stderr: str) -> HarnessEvidence:
+    """Extract only explicitly printed Aider model, token, and cost telemetry."""
+    evidence = HarnessEvidence()
+    for line in (stdout + "\n" + stderr).splitlines():
+        model_match = re.match(r"^\s*Models?\s*:\s*([^,]+)", line, re.I)
+        if model_match and evidence.model is None:
+            evidence.model = model_match.group(1).strip()
+        _extract_token_cost(line, evidence)
+    return evidence
+
+
+def _extract_usage(payload: object, evidence: HarnessEvidence) -> None:
+    if not isinstance(payload, dict):
+        return
+    evidence.input_tokens = evidence.input_tokens or _first_int(payload, ("input_tokens", "inputTokens", "prompt_tokens"))
+    evidence.output_tokens = evidence.output_tokens or _first_int(payload, ("output_tokens", "outputTokens", "completion_tokens"))
+    evidence.cost_usd = evidence.cost_usd if evidence.cost_usd is not None else _first_float(
+        payload, ("cost_usd", "total_cost_usd", "cost")
+    )
 
 
 def _load_json_object(text: str) -> dict | None:

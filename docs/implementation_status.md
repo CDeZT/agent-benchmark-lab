@@ -7,7 +7,7 @@ This file answers: what has actually been built, what is only partially built, a
 The project now has a usable early benchmark framework:
 
 - Task manifests.
-- Suites (foundation: 12 local tasks, calibration: 8 tasks, advanced: 3 tasks, plus a hard-to-easy selection ladder and a quarantined SWE-bench metadata pilot).
+- Suites (12 total, including foundation, calibration, personal-probe, hard/optics discrimination, a hard-to-easy selection ladder, and a quarantined SWE-bench metadata pilot).
 - Single-task runs.
 - Suite runs.
 - Matrix runs across adapter/model/budget-profile labels, including a first-class current-CLI-default mode.
@@ -24,9 +24,10 @@ The project now has a usable early benchmark framework:
 - Diffs.
 - stdout/stderr logs.
 - Markdown and HTML reports (with radar chart).
-- 20 locally evaluable task definitions plus 5 explicitly quarantined SWE-bench metadata records.
+- 26 locally evaluable task definitions plus 5 explicitly quarantined SWE-bench metadata records.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 147 unittest test functions, all expected to pass in the current tree.
+- 149 unittest test functions, all expected to pass in the current tree.
+- Built-in Codex CLI and Aider adapters with conservative telemetry parsing.
 - Local historical dashboard (`agent-benchmark dashboard`) over saved matrix/suite/task/bridge artifacts.
 - Terminal-Bench bridge CLI (`terminal-bench-bridge`) plan/execute path for one pilot task via official `tb run`.
 
@@ -45,20 +46,20 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Radar chart | Implemented | HTML report has SVG radar snapshot. | Improve once all 10 dimensions are real. |
 | Repeated runs, mean, variance | Implemented | Repetitions, mean, variance, stdev, best/worst, and task-level two-sided 95% Student-t confidence intervals for score, verified score, duration, and available cost. | Add paired significance tests once larger matched matrices exist. |
 | Interrupted-run resume | Implemented | Task, suite, and matrix layers use manifests/checkpoints plus task-contract fingerprints; resume reuses saved work only when the current task content exactly matches the saved contract. | Add an optional historical recovery browser. |
-| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports distinguish verified, heuristic, and unavailable dimensions; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches, explicit unverified/mismatched requests, and observed CLI defaults. SWE-bench `error_ids` are classified as unscoreable evaluator errors rather than model failures. Historical summaries with a missing/mismatched task fingerprint are excluded from selection statistics. 147 unittest tests cover framework and scoring behavior. | Replace weak trace heuristics and add direct subagent evidence. |
+| Evidence-backed scoring | Partial | Every non-zero score must come from saved execution evidence. Reports distinguish verified, heuristic, and unavailable dimensions; workspace diffs are heuristic editing evidence rather than verified tool traces; `cost_efficiency` uses parsed token/cost only; model identity distinguishes verified matches, explicit unverified/mismatched requests, and observed CLI defaults. SWE-bench `error_ids` are classified as unscoreable evaluator errors rather than model failures. Historical summaries with a missing/mismatched task fingerprint are excluded from selection statistics. 149 unittest tests cover framework and scoring behavior. | Complete Docker corpus audit and replace remaining process heuristics with causal evidence. |
 | Planning/process scoring seed | Implemented | `process_checks`; `process-planning` scores `.agent-benchmark/plan.md`. | Done. |
-| Public and hidden tests | Partial | `test_command` and `hidden_test_command`; 17 of 20 locally evaluable tasks currently have hidden tests. | Add independent hidden tests to the remaining 3 tasks. |
+| Public and hidden tests | Implemented | `test_command` and `hidden_test_command`; all 26 locally evaluable task definitions currently declare hidden tests. | Keep hidden tests independent as new tasks are added. |
 | Test timeouts | Implemented | `test_timeout_seconds`; timed out tests are recorded as failed evidence. | Tune per-suite defaults later. |
 | Prevent test tampering | Implemented | Protected files checked with SHA-256 hashes. | Add stricter invalid-run policy levels. |
 | Visual verification | Partial | Static HTML checks plus Playwright Chromium screenshots, rendered-selector visibility, and pixel statistics are saved per run. | Add server-backed pages, interactions, reference-image diffs, and mobile viewports. |
 | Cost and duration | Partial | Duration is measured; parsed token/cost fields are carried into run summaries when harness output exposes them. | Improve provider-specific usage parsing and reporting. |
-| Task corpus and difficulty ladder | Implemented | 20 locally evaluable manifests plus 5 quarantined `external_frozen` records carry validated difficulty/provenance fields; the 8-task local `calibration` suite spans all four tiers. | Add task-quality negative controls and more domain tasks. |
+| Task corpus and difficulty ladder | Implemented | 26 locally evaluable manifests plus 5 quarantined `external_frozen` records carry validated difficulty/provenance fields; the 8-task local `calibration` suite spans all four tiers. | Complete Docker corpus audit, then add task-quality negative controls and more domain tasks. |
 | Selective screening gate | Implemented | `selection-ladder` runs expert to easy; `screening-report` admits only empirically discriminative, corpus-audited local tasks and labels smoke, under-sampled, too-easy/hard, and container-gated tasks separately. | Build enough real evidence to populate the first non-empty selection cohort. |
 | Empirical difficulty calibration | Partial | `calibrate-difficulty` groups by actual observed model, matching task fingerprint, and refuses a discriminability conclusion without 3 combinations, 3 runs per combination, and 9 eligible runs. `python-bugfix` is deliberately smoke-only; historic unversioned runs cannot establish a calibration result. | Run fingerprinted real matrices, then revise tasks that are too easy, too hard, or non-discriminative. |
 | Outcome capability scorecard | Implemented | Suite reports aggregate separate software engineering, agent workflow, systems/embedded, scientific, web/UI, and security/reliability axes; all non-comparative tasks are excluded. | Add authoritative external tracks to each axis. |
 | Embedded and optics domains | Partial | Seed tasks exist. | Add deeper domain-specific tasks. |
 | Budget profiles | Partial | Profile labels are recorded and used in matrix dimensions. | Enforce profile behavior. |
-| Real Claude Code/opencode adapters | Partial | Built-in default templates exist; doctor detects local CLI versions; external CLI templates are runnable only when explicitly activated in a local registry, not because they appear in documentation examples. Historic smoke output demonstrated model/usage parsing. Those unversioned results are now debugging evidence only; new conclusions require fingerprinted runs. | Run larger repeated current-default matrices; add an explicit registry only for a verified same-model experiment. |
+| Real coding-agent adapters | Partial | Built-in templates and doctor checks now cover Codex, Aider, Claude Code, opencode, and Grok. Codex JSONL tool/usage telemetry is parsed conservatively; Aider only receives model/token/cost credit when it explicitly prints them. External CLI templates are runnable only when explicitly activated in a local registry, not because they appear in documentation examples. | Run fingerprinted three-repeat current-default matrices; add verified same-model experiments only where CLI selection and observed identity agree. |
 | Real harness smoke | Implemented | `real-smoke` suite and `audit --include-real-harness` exist. Historic smoke artifacts remain useful for adapter debugging but must be rerun under current task fingerprints before they support a capability claim. | Run current fingerprinted smoke checks, then expand beyond smoke tasks. |
 | Isolation | Partial | Per-run workspace copies plus Docker evaluator v1: pinned dependency packages, image ID/build evidence, CPU/memory limits, and read-only hidden-test mount. Colima Docker is ready and `python-fullstack` has project-owned container evidence. Network behavior is intentionally task-specific rather than globally disabled. | Pin base-image digests before authoritative runs and add cache cleanup policy. |
 | Logs and evidence | Partial | trace/result/diff/stdout/stderr are saved. | Add replay UI and richer tool traces. |

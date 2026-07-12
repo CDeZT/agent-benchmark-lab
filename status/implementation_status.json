@@ -3,7 +3,7 @@
   "updated_at": "2026-07-12",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation: 20 locally evaluable tasks, five SWE-bench metadata records quarantined as external_frozen, and eight suites. A single-instance SWE-bench bridge persists frozen source metadata, clean checkout, harness patch, standard prediction JSONL, and official evaluator evidence, and its first real expert run reached the official evaluator. That evaluator environment failed before an instance report, so the result is explicitly evaluator_error and unscoreable rather than a harness/model failure. A local historical dashboard now aggregates saved matrix/suite/task/bridge artifacts with fingerprint and identity caveats. Frozen records are not locally runnable and cannot enter a leaderboard before scoreable official evidence exists. The local selection gate remains zero-ready; a multi-repeat real matrix and a completed official bridge result are the two main remaining paths to a usable comparative result."
+    "plain_language": "The repository has a usable personal benchmark foundation: 26 locally runnable tasks, five SWE-bench metadata records quarantined as external_frozen, and twelve suites. Codex, Aider, Claude Code, opencode, and Grok have built-in adapter contracts; the first two now have doctor checks and conservative telemetry parsing. The corpus has baseline/reference contrast for 21 records, but five dependency-heavy container tasks still need the same Docker-backed corpus audit and no task is empirically selection-ready yet. The local selection gate remains zero-ready; a fixed, multi-repeat real matrix and completed external bridge cohorts remain necessary before any authoritative comparative claim."
   },
   "items": [
     {
@@ -59,8 +59,8 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "147 unittest test functions cover framework and scoring behavior"],
-      "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence"]
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs are heuristic editing evidence, not verified tool telemetry", "Unimplemented or unevidenced dimensions remain 0", "cost_efficiency scored only from parsed token/cost data, never from tool-call proxies", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "149 unittest test functions cover framework and scoring behavior"],
+      "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Complete Docker-backed corpus audit for dependency-heavy tasks"]
     },
     {
       "id": "process_planning_scoring",
@@ -73,8 +73,8 @@
       "id": "public_and_hidden_tests",
       "title": "Public tests plus hidden/private acceptance tests",
       "status": "implemented",
-      "evidence": ["hidden_test_command is supported", "17 of 20 locally evaluable task definitions currently include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
-      "remaining": ["Add independent hidden tests to the remaining comparable tasks"]
+      "evidence": ["hidden_test_command is supported", "All 26 locally evaluable task definitions currently include hidden tests", "Reports show public_test_passed and hidden_test_passed"],
+      "remaining": ["Keep hidden tests independent as new comparable tasks are added"]
     },
     {
       "id": "test_timeouts",
@@ -108,8 +108,8 @@
       "id": "task_coverage_seed",
       "title": "Task corpus, difficulty ladder, and domain coverage",
       "status": "implemented",
-      "evidence": ["Repository contains 20 locally evaluable task definitions plus 5 external_frozen metadata records", "all manifests declare validated difficulty and provenance", "catalog keeps external_frozen records source-separated and non-runnable", "difficulty calibration groups only identified model evidence, matching task fingerprints, and three runs per combination", "python-bugfix and c-bugfix are deliberately smoke_only and excluded from leaderboard scoring", "embedded and optics have domain_seed tasks"],
-      "remaining": ["Run empirical calibration for every comparative task", "Add official-evaluator benchmark tasks with preserved evaluator evidence"]
+      "evidence": ["Repository contains 26 locally evaluable task definitions plus 5 external_frozen metadata records", "all manifests declare validated difficulty and provenance", "catalog keeps external_frozen records source-separated and non-runnable", "difficulty calibration groups only identified model evidence, matching task fingerprints, and three runs per combination", "python-bugfix and c-bugfix are deliberately smoke_only and excluded from leaderboard scoring", "embedded and optics have domain_seed tasks"],
+      "remaining": ["Complete Docker corpus audit", "Run empirical calibration for every comparative task", "Add official-evaluator benchmark tasks with preserved evaluator evidence"]
     },
     {
       "id": "selective_screening_gate",
