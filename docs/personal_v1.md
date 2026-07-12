@@ -67,3 +67,28 @@ Sampled suite `personal-probe`, 1 repetition, not a statistical leaderboard.
 Full tables: `runs/personal-probe-comparison.md` (local, gitignored under `runs/`).
 
 Claude multi-model note: if all Claude Code aliases map to the same provider model ID, separate `--model` runs will not produce a true multi-model comparison until distinct accepted model IDs are configured.
+
+## What "external full import" means (and does NOT mean)
+
+**Local scoring is already complete** for project-owned tasks: public/hidden tests + 10 process dimensions + domain axes + domain-weighted suite total.
+
+**External benchmarks (SWE-bench / Terminal-Bench)** are different:
+
+| State | Meaning | Can enter local leaderboard? |
+| --- | --- | --- |
+| `external_frozen` | Metadata frozen (issue id, commit). No official Docker result yet. | No |
+| Official bridge result (`resolved` / `not_resolved`) | Official evaluator finished with an instance report | Separate external track only |
+| `evaluator_error` | Infrastructure/image/network failed before a score | No (not a model score) |
+
+So "满分导入" was a shorthand for "official external tasks fully scored by upstream evaluators and allowed into rankings." That is **optional depth**, not required for personal harness scoring. Without that import, **local tasks still score fully** via tests.
+
+## Grok Build CLI is real (not a stub)
+
+Evidence from real runs (workspace files actually changed; tests executed):
+
+- `python-bugfix`: fixed `stats.py`, public+hidden pass, strict 58
+- `process-planning`: wrote plan + code, pass
+- `embedded-protocol-parser`: modified `protocol.c`, pass
+- suite mean ~55.5 on personal-probe
+
+If it were a fake adapter, tests would not go green after real file edits.

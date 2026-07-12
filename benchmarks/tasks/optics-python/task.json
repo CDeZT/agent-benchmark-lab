@@ -15,12 +15,12 @@
     {
       "type": "file_changed",
       "dimension": "execution_quality",
-      "path": "lens_design.py"
+      "path": "optics.py"
     },
     {
       "type": "instruction_match",
       "dimension": "intent_understanding",
-      "expected_changed_files": ["lens_design.py"]
+      "expected_changed_files": ["optics.py"]
     }
   ]
 }
