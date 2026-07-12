@@ -13,8 +13,9 @@
 | 评分器 | 额外只读挂载 `hidden/`，在 Docker 里跑测试 |
 | `solution/` | 只给人对照，永不给 agent |
 
-几乎所有本地 Python / 光学 / C / 嵌入式题都是 `container_required`。  
-前端视觉题仍可能在 host（Playwright）。
+多数 **Python / 光学** 题是 `container_required`（Docker 打分）。  
+**C / 嵌入式 / 并发** 用本机编译器（host），仍是 workspace/hidden 分离。  
+前端视觉题在 host（Playwright）。
 
 ## 现在有什么题
 
