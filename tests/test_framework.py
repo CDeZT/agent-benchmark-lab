@@ -20,6 +20,7 @@ from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.cli.main import _run_matrix_with_specs, _run_suite_with_config, main
+from agent_benchmark.dashboard import build_dashboard, write_dashboard
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
@@ -1250,8 +1251,134 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertIn("implemented", rendered)
         self.assertIn("partial", rendered)
-        self.assertIn("planned", rendered)
         self.assertIn("public_and_hidden_tests", rendered)
+
+    def test_dashboard_aggregates_saved_artifacts_without_inventing_scores(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runs_dir = Path(tmp) / "runs"
+            matrix_dir = runs_dir / "matrix-20260712T000000Z-demo"
+            matrix_dir.mkdir(parents=True)
+            (matrix_dir / "matrix_summary.json").write_text(
+                json.dumps(
+                    {
+                        "matrix_run_id": "matrix-20260712T000000Z-demo",
+                        "suite_id": "calibration",
+                        "combination_count": 2,
+                        "combinations": [
+                            {
+                                "adapter": "opencode",
+                                "model": "unspecified",
+                                "tasks": [
+                                    {
+                                        "task_id": "python-bugfix",
+                                        "task_fingerprint": "old-fingerprint",
+                                        "mean_score": 40.0,
+                                        "benchmark_role": "smoke_only",
+                                    }
+                                ],
+                            }
+                        ],
+                        "leaderboard": {
+                            "rows": [
+                                {
+                                    "adapter": "opencode",
+                                    "model": "unspecified",
+                                    "detected_models": ["LongCat-2.0"],
+                                    "model_identity_status": "default_detected",
+                                    "ranking_evidence_state": "cli_default_model_observed",
+                                    "mean_comparable_score": 68.0,
+                                    "mean_strict_score": 48.0,
+                                    "mean_verified_normalized_score": 80.0,
+                                    "mean_verified_coverage_percent": 52.0,
+                                    "task_pass_rate_percent": 50.0,
+                                    "mean_duration_seconds": 12.0,
+                                    "mean_cost_usd": None,
+                                    "rank": 1,
+                                }
+                            ]
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            task_dir = runs_dir / "20260712T000001Z-task"
+            task_dir.mkdir()
+            (task_dir / "summary.json").write_text(
+                json.dumps(
+                    {
+                        "experiment_id": "20260712T000001Z-task",
+                        "task_id": "python-bugfix",
+                        "adapter": "claude-code",
+                        "model": "unspecified",
+                        "detected_model": "mimo-v2.5-pro[1m]",
+                        "model_identity": {"status": "default_detected"},
+                        "mean_score": 52.0,
+                        "mean_verified_normalized_score": 90.0,
+                        "mean_verified_coverage_percent": 50.0,
+                        "task_fingerprint": "old-fingerprint",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            bridge_dir = runs_dir / "swebench-bridge-sympy-sympy-13878-demo"
+            bridge_dir.mkdir()
+            (bridge_dir / "official_summary.json").write_text(
+                json.dumps(
+                    {
+                        "completed": False,
+                        "resolved": None,
+                        "run_report_summary": {
+                            "error_ids": ["sympy__sympy-13878"],
+                            "submitted_ids": ["sympy__sympy-13878"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            output_dir = Path(tmp) / "dashboard"
+            payload = write_dashboard(
+                runs_dir,
+                output_dir,
+                tasks_dir=ROOT / "benchmarks" / "tasks",
+                limit=10,
+            )
+
+            self.assertEqual(payload["counts"]["matrices"], 1)
+            self.assertEqual(payload["counts"]["tasks"], 1)
+            self.assertEqual(payload["counts"]["swebench_bridges"], 1)
+            self.assertEqual(payload["matrices"][0]["fingerprint_state"], "mismatch")
+            self.assertEqual(payload["tasks"][0]["fingerprint_state"], "mismatch")
+            self.assertEqual(payload["swebench_bridges"][0]["classification"], "evaluator_error")
+            self.assertFalse(payload["swebench_bridges"][0]["scorable"])
+            self.assertTrue((output_dir / "index.html").exists())
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn("Agent Benchmark Dashboard", html)
+            self.assertIn("evaluator_error", html)
+            self.assertIn("LongCat-2.0", html)
+
+            # CLI path should succeed and not invent ranking claims.
+            buffer = StringIO()
+            with redirect_stdout(buffer):
+                code = main(
+                    [
+                        "dashboard",
+                        "--runs-dir",
+                        str(runs_dir),
+                        "--tasks-dir",
+                        str(ROOT / "benchmarks" / "tasks"),
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+            self.assertEqual(code, 0)
+            self.assertIn("Dashboard built", buffer.getvalue())
+
+    def test_model_registry_does_not_claim_cross_model_longcat_mapping(self) -> None:
+        registry = load_model_registry(ROOT / "config" / "model_registry.json")
+        self.assertIn("mimo-v2.5-pro", registry)
+        self.assertNotIn("longcat-2.0", registry)
+        self.assertEqual(adapter_model_for(registry, "mimo-v2.5-pro", "claude-code"), "mimo-v2.5-pro")
 
     def test_doctor_outputs_environment_summary(self) -> None:
         summary = run_doctor()

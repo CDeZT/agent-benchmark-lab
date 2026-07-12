@@ -121,12 +121,24 @@ Current readiness:
 
 ## Phase 6: Dashboard
 
+Status: first local version implemented.
+
 Goals:
 
 - Local dashboard for historical results.
 - Radar charts and leaderboards.
 - Harness/model/task comparison views.
 - Failure case browser.
+
+Progress:
+
+- `agent-benchmark dashboard` writes static `index.html` and `dashboard.json` from saved matrix, suite, task, and SWE-bench bridge artifacts.
+- Fingerprint match/mismatch and model-identity caveats are labeled so historical debugging evidence is not overclaimed.
+
+Remaining:
+
+- Optional live server and interactive filters.
+- Multi-matrix trend charts once more fingerprinted comparative matrices exist.
 
 ## Permanent Requirements
 

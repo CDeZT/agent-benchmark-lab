@@ -3,7 +3,7 @@
   "updated_at": "2026-07-12",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a working benchmark framework foundation: 20 locally evaluable tasks, five SWE-bench metadata records quarantined as external_frozen, and eight suites. A single-instance SWE-bench bridge persists frozen source metadata, clean checkout, harness patch, standard prediction JSONL, and official evaluator evidence, and its first real expert run reached the official evaluator. That evaluator environment failed before an instance report, so the result is explicitly evaluator_error and unscoreable rather than a harness/model failure. Frozen records are not locally runnable and cannot enter a leaderboard before scoreable official evidence exists. The local selection gate remains zero-ready; a multi-repeat real matrix and a completed official bridge result are the two main remaining paths to a usable comparative result."
+    "plain_language": "The repository has a working benchmark framework foundation: 20 locally evaluable tasks, five SWE-bench metadata records quarantined as external_frozen, and eight suites. A single-instance SWE-bench bridge persists frozen source metadata, clean checkout, harness patch, standard prediction JSONL, and official evaluator evidence, and its first real expert run reached the official evaluator. That evaluator environment failed before an instance report, so the result is explicitly evaluator_error and unscoreable rather than a harness/model failure. A local historical dashboard now aggregates saved matrix/suite/task/bridge artifacts with fingerprint and identity caveats. Frozen records are not locally runnable and cannot enter a leaderboard before scoreable official evidence exists. The local selection gate remains zero-ready; a multi-repeat real matrix and a completed official bridge result are the two main remaining paths to a usable comparative result."
   },
   "items": [
     {
@@ -212,9 +212,9 @@
     {
       "id": "dashboard",
       "title": "Dashboard and historical comparison",
-      "status": "planned",
-      "evidence": ["Roadmap includes dashboard"],
-      "remaining": ["Build local dashboard, history browser, and leaderboard views"]
+      "status": "implemented",
+      "evidence": ["agent-benchmark dashboard builds dashboard.json and index.html from saved runs", "Surfaces matrix leaderboards, suite/task summaries, and SWE-bench bridge evaluator_error classification", "Labels fingerprint match/mismatch and provisional CLI-default identity so historical evidence is not overclaimed"],
+      "remaining": ["Optional live server or interactive filters", "Cross-matrix historical trend charts once more fingerprinted matrices exist"]
     }
   ]
 }

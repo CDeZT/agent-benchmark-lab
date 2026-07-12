@@ -26,7 +26,8 @@ The project now has a usable early benchmark framework:
 - Markdown and HTML reports (with radar chart).
 - 20 locally evaluable task definitions plus 5 explicitly quarantined SWE-bench metadata records.
 - Evidence-backed scoring with explicit zero scores when evidence is absent.
-- 136 unittest test functions, all expected to pass in the current tree.
+- 138 unittest test functions, all expected to pass in the current tree.
+- Local historical dashboard (`agent-benchmark dashboard`) over saved matrix/suite/task/bridge artifacts.
 
 It is not yet a finished real Claude Code versus opencode benchmark. Docker is now available through Colima, browser screenshots/pixel evidence work for local static pages, and a project-owned container task has run. The first real SWE-bench bridge reached the official evaluator but its environment image failed before an instance report; that evidence is classified as `evaluator_error`, not a harness/model score. A multi-repeat real matrix and a completed official external result remain unfinished. Five SWE-bench records are safely marked metadata-only and rejected by the generic runner, rather than being mistaken for scored imported tasks. Model choices behind both CLIs are dynamic: the normal matrix compares their current defaults, while explicit same-model experiments remain a separate verified mode.
 The current task corpus is custom seed/inspired work, not an imported authoritative benchmark set; see `docs/task_provenance.md`.
@@ -65,7 +66,7 @@ The current task corpus is custom seed/inspired work, not an imported authoritat
 | Doctor command | Implemented | `agent-benchmark doctor` checks local tools, Docker daemon readiness, and adapter command env vars. | Add credential checks without exposing secrets. |
 | Next-agent handoff prompt | Implemented | `docs/next_agent_prompt.md`; `agent-benchmark next-agent-prompt`. | Keep updated when workflow rules change. |
 | External benchmark imports | Partial | Source-aware manifests, catalog command, validated SWE-bench Verified/Terminal-Bench Core source registry, and `preflight-authoritative` toolchain checks now exist. Both local evaluator tools are installed; six-instance SWE-bench and Terminal-Bench pilots freeze real upstream metadata with commit/revision validation and SHA-256 evidence. `swebench-bridge` implements a single-instance, resumable harness-patch to official-evaluator flow with explicit execution consent. Its first expert run captured an opencode patch and official raw report, but the evaluator environment failed before an instance report; `error_ids` map to unscoreable `evaluator_error`. Legacy SWE-bench task records remain `external_frozen`, cannot be run by the generic runner, and cannot be ranked. | Increase Docker VM resources and resume the saved patch evaluation; then implement the corresponding Terminal-Bench bridge. |
-| Dashboard | Planned | Roadmap exists. | Build dashboard. |
+| Dashboard | Implemented | `agent-benchmark dashboard` writes `dashboard.json` + `index.html` from saved matrix/suite/task/SWE-bench bridge artifacts, with fingerprint and identity caveats. | Optional live server and multi-matrix trend charts. |
 
 ## Current Foundation Suite
 
@@ -101,10 +102,10 @@ No dimension should be assigned a non-zero score without execution evidence. Som
 
 ## Next Best Iterations
 
-1. Repair local model-registry mappings, then run `preflight-matrix` before any real harness matrix.
-2. Run a three-repeat real harness matrix on the `calibration` suite (opencode vs claude-code × multiple models) and interpret only `verified_match` rows.
-3. Execute one selected SWE-bench bridge instance, inspect its official report, then implement and test the Terminal-Bench bridge.
-5. Build dashboard for historical results.
+1. Run a three-repeat real harness matrix on the `calibration` suite (opencode vs claude-code × `unspecified` CLI defaults) and refresh the dashboard.
+2. Resume the saved SWE-bench bridge after Docker VM resources are sufficient; keep `error_ids` unscoreable until an instance report exists.
+3. Implement and test the Terminal-Bench official evaluator bridge for the frozen pilot.
+4. Use fingerprinted real matrices with `calibrate-difficulty` / `screening-report` until selection-ready tasks appear.
 
 ## How To Check This From CLI
 

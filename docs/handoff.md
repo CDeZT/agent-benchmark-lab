@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 136 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 138 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current locally runnable corpus is custom seed/inspired work. The five SWE-bench records preserve metadata only and the generic runner rejects them. No authoritative external benchmark has been scored or imported yet. See `docs/task_provenance.md`.
 
@@ -144,6 +144,12 @@ Embedded engineering and optics should be preserved as long-term domain requirem
 - Standardized all 19 task.json files to consistent formatting. Added missing process_checks and hidden_test_command to python-refactor.
 - 99 unit tests pass. Full audit passes.
 
+## Latest Iteration (2026-07-12)
+
+- Removed the false `longcat-2.0` → Claude Code `mimo` registry mapping. Registry now only contains honest same-model candidate mappings for mimo identifiers.
+- Added `agent-benchmark dashboard`: scans saved matrix/suite/task/SWE-bench bridge artifacts, writes `runs/dashboard/index.html` + `dashboard.json`, and labels fingerprint match/mismatch plus provisional CLI-default identity. It does not invent scores.
+- Dashboard status item moved from planned to implemented. Next value is real fingerprinted matrix evidence and completing the official external bridges.
+
 ## In Progress
 
 - Run more real harness combinations to make tasks selection-ready (currently 0/20 local tasks ready, 14 awaiting evidence; five external records are evaluator-pending).
@@ -189,10 +195,10 @@ This is not a same-model conclusion and must be rerun after either CLI default c
 
 ## Not Yet Implemented
 
-- Larger repeated real Claude Code/opencode matrices beyond smoke tests, starting with CLI-default configuration mode.
+- Larger repeated real Claude Code/opencode matrices beyond smoke tests, starting with CLI-default configuration mode (refresh dashboard after each matrix).
 - Retry the saved SWE-bench bridge after Docker resource adjustment, then add the Terminal-Bench external evaluator bridge. The saved first attempt is an evaluator infrastructure error, not an official instance outcome.
 - Optional LLM judge adjudication.
-- Dashboard.
+- Dashboard live server / multi-matrix trend charts (static historical dashboard already exists).
 - More domain-specific tasks (JS/TS, GUI desktop, long-running autonomous).
 
 ## Known Scoring Limitation

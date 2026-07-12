@@ -92,11 +92,12 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 136 个 unittest 测试函数，应该全部通过。
+- 138 个 unittest 测试函数，应该全部通过。
+- `agent-benchmark dashboard` 已可从 `runs/` 生成历史 HTML/JSON 看板，并标注 fingerprint 与模型身份是否可用于当前结论。
+- `config/model_registry.json` 已去掉 longcat→mimo 伪同模型映射，只保留诚实的 mimo 候选映射。
 
 仍然重要的下一步：
-- 修复 `config/model_registry.json` 中和 canonical 模型不一致的映射，再运行 `preflight-matrix`。
-- 优先运行 `calibration` 的三次重复 CLI 默认配置矩阵（opencode vs claude-code × `unspecified`），作为用户实际工具选择证据；显式同模型矩阵仅解释 `verified_match` 行。
+- 优先运行 `calibration` 的三次重复 CLI 默认配置矩阵（opencode vs claude-code × `unspecified`），作为用户实际工具选择证据；跑完后刷新 `dashboard`；显式同模型矩阵仅解释 `verified_match` 行。
 - `bounded` 的时间上限现在会真正限制 adapter 子进程；`open_ended` 无上限。Ctrl-C 后检查 `interruption.json` 和 `checkpoint.json`，再用 `resume` 重跑未保存 result 的 repetition。
 - 官方 evaluator 工具现可用：SWE-bench 使用 `.agent-benchmark-evaluators/swebench` 的 Python 3.11，Terminal-Bench 使用 Python 3.13 的 `uv tool`。其他机器先运行 `scripts/setup_authoritative_evaluators.sh` 和 `preflight-authoritative`。工具可执行不等于题目已导入：仍必须冻结上游实例列表并保存官方 evaluator 原始结果。
 - 已冻结 `swe-bench-verified-screening-v1` 六题 pilot（上游难度从 `>4 hours` 到 `<15 min`）。`swebench-bridge` 已实现 harness patch -> 官方 `swebench.harness.run_evaluation` 的单题可恢复链路。首次真实 expert run 保存在 `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435`：opencode patch 已保存，但官方环境镜像失败并产生 `error_ids`，所以是不可计分 `evaluator_error`，不得标记 `external_imported` 或归因到 LongCat/opencode。调整 Docker VM 资源后以同一 `--bridge-dir` 恢复，必须复用 patch、不得无故重新调用 harness。
@@ -107,7 +108,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - `python-bugfix` 是刻意定义的 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。旧实测不再构成当前难度校准证据。
 - `audit-corpus` 已是默认 audit 的质量门禁；任何新增或改动的可比较任务必须保持 baseline 失败、reference 通过。
 - task run 中断时保留 `runs/<experiment-id>`，读取 checkpoint.json，并用 `resume --experiment-dir` 恢复；suite run 用 `resume-suite --suite-run-dir runs/<suite-run-id>`；matrix run 用 `resume-matrix --matrix-run-dir runs/<matrix-run-id>`。三层都不要重跑已保存的结果，并且恢复时不得绕过 manifest 的任务/组合一致性校验。
-- 构建 dashboard 展示历史结果。
+- Dashboard 静态历史视图已存在；如需再做 live server 或多矩阵趋势图，应在有更多 fingerprinted matrix 证据后进行。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。
 ```

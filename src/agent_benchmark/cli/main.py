@@ -14,6 +14,7 @@ from agent_benchmark.authoritative_pilot import freeze_swebench_pilot, freeze_te
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.comparability import preflight_matrix
+from agent_benchmark.dashboard import write_dashboard
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
@@ -142,6 +143,20 @@ def main(argv: list[str] | None = None) -> int:
     next_parser = subparsers.add_parser("next-agent-prompt", help="Print the handoff prompt for the next agent.")
     next_parser.add_argument("--prompt-file", default=str(DEFAULT_PROMPT_PATH))
 
+    dashboard_parser = subparsers.add_parser(
+        "dashboard",
+        help="Build a local historical dashboard from saved runs without inventing scores.",
+    )
+    dashboard_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    dashboard_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR), help="Used to label fingerprint match/mismatch.")
+    dashboard_parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_RUNS_DIR / "dashboard"),
+        help="Directory for dashboard.json and index.html.",
+    )
+    dashboard_parser.add_argument("--limit", type=int, default=50, help="Max artifacts per section.")
+    dashboard_parser.add_argument("--json", action="store_true", help="Print the dashboard payload JSON.")
+
     run_parser = subparsers.add_parser("run", help="Run a benchmark task.")
     run_parser.add_argument("--task", required=True, help="Task id or path.")
     run_parser.add_argument("--adapter", default="dummy", help="Harness adapter name.")
@@ -237,6 +252,8 @@ def main(argv: list[str] | None = None) -> int:
         return _doctor(args)
     if args.command == "next-agent-prompt":
         return _next_agent_prompt(args)
+    if args.command == "dashboard":
+        return _dashboard(args)
     if args.command == "run":
         return _run(args)
     if args.command == "resume":
@@ -500,6 +517,30 @@ def _doctor(args: argparse.Namespace) -> int:
 
 def _next_agent_prompt(args: argparse.Namespace) -> int:
     print(load_next_agent_prompt(Path(args.prompt_file)))
+    return 0
+
+
+def _dashboard(args: argparse.Namespace) -> int:
+    tasks_dir = Path(args.tasks_dir)
+    payload = write_dashboard(
+        Path(args.runs_dir),
+        Path(args.output_dir),
+        tasks_dir=tasks_dir if tasks_dir.exists() else None,
+        limit=max(1, int(args.limit)),
+    )
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    counts = payload.get("counts", {})
+    output = payload.get("output", {})
+    print(
+        "Dashboard built: "
+        f"matrices={counts.get('matrices', 0)}, suites={counts.get('suites', 0)}, "
+        f"tasks={counts.get('tasks', 0)}, swebench_bridges={counts.get('swebench_bridges', 0)}"
+    )
+    print(f"HTML: {output.get('html')}")
+    print(f"JSON: {output.get('json')}")
+    print("Caveat: CLI-default and fingerprint-mismatch rows are provisional historical evidence, not selection-ready rankings.")
     return 0
 
 

@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 35)
+
+- Environment re-check: doctor ok, calibration CLI-default preflight ranking-ready, authoritative sources execution-ready but not imported, 136 existing tests green before this change.
+- Removed the dishonest `longcat-2.0` registry entry that mapped Claude Code to `mimo-v2.5-pro`. Same-model registry entries now only cover mimo identifiers; CLI-default LongCat remains an observed opencode default, not a cross-harness claim.
+- Implemented `agent-benchmark dashboard`: aggregates saved matrix/suite/task/SWE-bench bridge artifacts into `dashboard.json` and a self-contained dark-theme `index.html`, labels fingerprint match/mismatch, and classifies SWE-bench `error_ids` as unscoreable `evaluator_error`.
+- Added unit/CLI coverage for dashboard artifact aggregation and registry honesty. Updated README, handoff, implementation status, roadmap, and next-agent prompt.
+
 ## 2026-07-12 (iteration 34)
 
 - Ran the first paid, real expert SWE-bench Verified bridge with opencode. It completed the harness stage in `1145.04s`, observed `LongCat-2.0`, recorded `105` tool calls, and preserved a non-empty patch together with raw upstream metadata and official evaluator logs.

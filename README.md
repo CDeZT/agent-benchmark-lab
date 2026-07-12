@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、136 个 unittest 测试函数、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、138 个 unittest 测试函数、本地历史 dashboard、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -60,6 +60,8 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
 - 一键审计、环境诊断、交接提示
+- 本地历史 dashboard：`agent-benchmark dashboard` 从 `runs/` 汇总 matrix/suite/task/SWE-bench bridge 证据，并标注指纹与模型身份是否可用于当前结论
+- `config/model_registry.json` 仅保留诚实的同模型映射；不再把 longcat 伪映射到 claude-code 的 mimo
 - 已有一条真实嵌入式硬题失败校准样本；详见 `docs/real_harness_calibration.md`。单次结果不进入 harness/model 排行榜。
 
 See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
@@ -94,6 +96,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit --include-real-harness
 PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
+PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter claude-code --repetitions 1
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
