@@ -269,6 +269,13 @@ def _parse_claude_json(stdout: str) -> HarnessEvidence | None:
     if evidence.cost_usd is None and isinstance(usage, dict):
         evidence.cost_usd = _first_float(usage, ("total_cost_usd", "cost_usd", "totalCostUsd", "costUsd"))
 
+    # API errors often name the configured model even when the run never starts.
+    result_text = payload.get("result")
+    if evidence.model is None and isinstance(result_text, str):
+        model_match = re.search(r"model=([^\s)\]\"']+)", result_text)
+        if model_match:
+            evidence.model = model_match.group(1).strip()
+
     model_usage = payload.get("modelUsage")
     if isinstance(model_usage, dict) and model_usage:
         model_names = [str(name).strip() for name in model_usage if str(name).strip()]

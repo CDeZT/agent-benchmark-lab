@@ -600,6 +600,12 @@ def _run(args: argparse.Namespace) -> int:
     config = _config_from_args(args)
     summary = run_task(task, config)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    experiment_dir = summary.get("experiment_dir")
+    if experiment_dir:
+        report = Path(str(experiment_dir)) / "report.html"
+        if report.exists():
+            print(f"\nHTML report with radar chart: {report}", file=sys.stderr)
+            print("Open with: open " + str(report), file=sys.stderr)
     return 0
 
 

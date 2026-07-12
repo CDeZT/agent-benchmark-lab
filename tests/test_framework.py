@@ -1492,6 +1492,22 @@ class FrameworkTests(unittest.TestCase):
                 else:
                     os.environ["AGENT_BENCH_HARNESSES_FILE"] = old
 
+    def test_claude_parser_extracts_model_from_unsupported_model_api_error(self) -> None:
+        evidence = parse_harness_output(
+            "claude-code",
+            json.dumps(
+                {
+                    "type": "result",
+                    "is_error": True,
+                    "result": "API Error: 400 Unsupported model (model=LongCat-Flash-Chat)",
+                    "total_cost_usd": 0,
+                    "usage": {"input_tokens": 0, "output_tokens": 0},
+                }
+            ),
+            "",
+        )
+        self.assertEqual(evidence.model, "LongCat-Flash-Chat")
+
     def test_grok_parser_reads_json_usage_without_inventing_missing_fields(self) -> None:
         evidence = parse_harness_output(
             "grok",

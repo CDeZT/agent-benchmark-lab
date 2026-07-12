@@ -64,7 +64,23 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - `config/model_registry.json` 仅保留诚实的同模型映射；不再把 longcat 伪映射到 claude-code 的 mimo
 - 已有一条真实嵌入式硬题失败校准样本；详见 `docs/real_harness_calibration.md`。单次结果不进入 harness/model 排行榜。
 
+See `docs/personal_v1.md` for the personal "complete enough" finish line (run → score → radar → dashboard).
 See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
+
+### Where is the radar chart?
+
+Already implemented. After any task run:
+
+```bash
+open runs/<experiment-id>/report.html
+```
+
+Look for **Radar Snapshot**. The dashboard also embeds recent radars:
+
+```bash
+PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
+open runs/dashboard/index.html
+```
 
 ## Quick Start
 

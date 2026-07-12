@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from agent_benchmark.reports.html import _radar_svg
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.task_schema import load_task
 
@@ -243,6 +244,7 @@ def render_dashboard_html(payload: dict[str, Any]) -> str:
   </table>
 
   <h2>Task Experiments</h2>
+  <p class="muted">Each completed task run already has an HTML report with a 10-dimension radar chart at <code>runs/&lt;experiment-id&gt;/report.html</code>.</p>
   <table>
     <thead>
       <tr>
@@ -254,12 +256,16 @@ def render_dashboard_html(payload: dict[str, Any]) -> str:
         <th>Verified</th>
         <th>Coverage</th>
         <th>Fingerprint</th>
+        <th>Radar report</th>
       </tr>
     </thead>
     <tbody>
       {task_rows}
     </tbody>
   </table>
+
+  <h2>Recent Radar Snapshots</h2>
+  {_recent_radar_sections_html(tasks)}
 
   <h2>SWE-bench Bridges</h2>
   <table>
@@ -413,6 +419,9 @@ def _collect_tasks(
         else:
             fingerprint_state = "mismatch"
         identity = data.get("model_identity") if isinstance(data.get("model_identity"), dict) else {}
+        report_html = path.parent / "report.html"
+        first_run = data["runs"][0] if isinstance(data.get("runs"), list) and data["runs"] else {}
+        dimensions = first_run.get("dimensions") if isinstance(first_run, dict) else None
         items.append(
             {
                 "kind": "task",
@@ -430,6 +439,8 @@ def _collect_tasks(
                 "mean_cost_usd": data.get("mean_cost_usd"),
                 "path": str(path),
                 "run_dir": str(path.parent),
+                "report_html": str(report_html) if report_html.exists() else None,
+                "dimensions": dimensions if isinstance(dimensions, dict) else None,
                 "fingerprint_state": fingerprint_state,
             }
         )
@@ -686,6 +697,12 @@ def _suite_row_html(item: dict[str, Any]) -> str:
 
 def _task_row_html(item: dict[str, Any]) -> str:
     model = item.get("detected_model") or item.get("model") or "—"
+    report = item.get("report_html")
+    report_cell = (
+        f"<a href='file://{html.escape(str(report))}'>report.html</a>"
+        if report
+        else "<span class='muted'>—</span>"
+    )
     return (
         "<tr>"
         f"<td><code>{html.escape(str(item.get('experiment_id')))}</code></td>"
@@ -696,8 +713,27 @@ def _task_row_html(item: dict[str, Any]) -> str:
         f"<td>{_fmt(item.get('mean_verified_normalized_score'))}</td>"
         f"<td>{_fmt(item.get('mean_verified_coverage_percent'))}%</td>"
         f"<td>{_badge(item.get('fingerprint_state'))}</td>"
+        f"<td>{report_cell}</td>"
         "</tr>"
     )
+
+
+def _recent_radar_sections_html(tasks: list[dict[str, Any]]) -> str:
+    sections: list[str] = []
+    for item in tasks[:6]:
+        dimensions = item.get("dimensions")
+        if not isinstance(dimensions, dict) or not dimensions:
+            continue
+        title = f"{item.get('adapter')} · {item.get('task_id')} · score {_fmt(item.get('mean_score'))}"
+        sections.append(
+            f"<h3>{html.escape(str(title))}</h3>"
+            f"<div class='radar' style='max-width:360px;background:#151d29;border-radius:12px;padding:8px'>"
+            f"{_radar_svg({str(k): float(v) for k, v in dimensions.items() if isinstance(v, (int, float))})}"
+            f"</div>"
+        )
+    if not sections:
+        return '<p class="muted">No recent task dimension snapshots available for radar embedding.</p>'
+    return "\n".join(sections)
 
 
 def _bridge_row_html(item: dict[str, Any]) -> str:
