@@ -249,11 +249,23 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(prediction["instance_id"], config.instance_id)
         self.assertIn("model_patch", prediction)
-        self.assertEqual(command[0], "/tmp/swebench-python")
+        self.assertEqual(command[0], str(Path("/tmp/swebench-python").absolute()))
         self.assertEqual(command[command.index("--instance_ids") + 1], config.instance_id)
         self.assertEqual(command[command.index("--max_workers") + 1], "1")
         self.assertEqual(command[command.index("--namespace") + 1], "")
         self.assertEqual(command[command.index("--cache_level") + 1], "env")
+        self.assertEqual(command[command.index("--predictions_path") + 1], str(Path("/tmp/predictions.jsonl").absolute()))
+        self.assertTrue(
+            Path(
+                _evaluator_command(
+                    config,
+                    Path(".agent-benchmark-evaluators/swebench/bin/python"),
+                    "SWE-bench/SWE-bench_Verified",
+                    Path("/tmp/predictions.jsonl"),
+                    "bridge-run",
+                )[0]
+            ).is_absolute()
+        )
 
     def test_swebench_bridge_reads_official_instance_and_run_reports(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -275,7 +287,31 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertTrue(summary["completed"])
         self.assertTrue(summary["resolved"])
+        self.assertEqual(summary["classification"], "resolved")
+        self.assertTrue(summary["scorable"])
         self.assertEqual(summary["run_report_summary"]["resolved_ids"], [instance_id])
+
+    def test_swebench_bridge_keeps_evaluator_errors_out_of_scores(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            official_dir = Path(tmp)
+            instance_id = "sympy__sympy-13878"
+            model = "agent-benchmark/opencode/unspecified"
+            run_report = official_dir / f"{model.replace('/', '__')}.bridge-run.json"
+            run_report.write_text(
+                json.dumps({"completed_instances": 0, "error_ids": [instance_id]}), encoding="utf-8"
+            )
+
+            summary = _official_summary(
+                official_dir,
+                "bridge-run",
+                {"instance_id": instance_id, "model_name_or_path": model, "model_patch": "patch"},
+                0,
+            )
+
+        self.assertFalse(summary["completed"])
+        self.assertFalse(summary["scorable"])
+        self.assertEqual(summary["classification"], "evaluator_error")
+        self.assertEqual(summary["error_instance_ids"], [instance_id])
 
     def test_swebench_bridge_rebuilds_an_interrupted_or_wrong_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1133,10 +1169,15 @@ class FrameworkTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             summary = run_task(task, ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)))
-            self.assertEqual(summary["mean_score"], 62.0)
             run_dir = Path(summary["runs"][0]["run_dir"])
             result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
             self.assertEqual(result["score"]["dimensions"]["visual_verification"], 100.0)
+            weights = result["score"]["measurement"]["weights"]
+            dimensions = result["score"]["dimensions"]
+            expected_total = round(
+                sum(dimensions[name] * weight for name, weight in weights.items()) / sum(weights.values()), 2
+            )
+            self.assertEqual(summary["mean_score"], expected_total)
             visual_evidence = result["score"]["evidence"]["visual_verification"]
             self.assertEqual(visual_evidence["engine"], "html-static-v1+playwright-chromium-v1")
             self.assertTrue(visual_evidence["verified"])

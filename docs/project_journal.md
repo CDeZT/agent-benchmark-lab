@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 34)
+
+- Ran the first paid, real expert SWE-bench Verified bridge with opencode. It completed the harness stage in `1145.04s`, observed `LongCat-2.0`, recorded `105` tool calls, and preserved a non-empty patch together with raw upstream metadata and official evaluator logs.
+- The official SWE-bench command launched but its environment-image setup ended with code `137`; the official run report contains `error_ids` for the instance, zero completed instances, and no per-instance report. This is an evaluator infrastructure failure rather than a resolved/unresolved model result.
+- Hardened bridge result parsing: official `error_ids` are now `evaluator_error` and unscoreable; only `resolved` and `not_resolved` reports are completed/scoreable. Invocation failures and missing evaluator output are also explicit states, so an exit code of `0` alone cannot create a false benchmark score.
+- The saved bridge directory is resumable and will reuse its existing patch after Docker resources are adjusted. Added regression coverage for the error classification.
+
 ## 2026-07-12 (iteration 33)
 
 - Implemented `swebench-bridge`: an explicit single-instance bridge from a frozen pilot item through clean upstream checkout, configured harness patch generation, standard SWE-bench prediction JSONL, and the official Docker evaluator.

@@ -4,9 +4,11 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 135 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 20 locally evaluable task definitions, 5 quarantined `external_frozen` SWE-bench metadata records, 8 suites, 136 unittest test functions, real harness smoke support, dynamic CLI-default and explicit same-model comparison modes, a hard-to-easy selection ladder, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen SWE-bench and Terminal-Bench pilots, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the current locally runnable corpus is custom seed/inspired work. The five SWE-bench records preserve metadata only and the generic runner rejects them. No authoritative external benchmark has been scored or imported yet. See `docs/task_provenance.md`.
+
+The first real `swebench-bridge --execute` run is preserved at `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435`: opencode produced a patch, and the official evaluator started, but its environment image failed with `error_ids` and no instance report. Treat that run as `evaluator_error` and not as a model/harness outcome. After increasing the available Docker VM resources, resume with the same `--bridge-dir`; the bridge reuses `model.patch` and must not spend another harness call unless the patch is deliberately discarded.
 
 ## User Intent Summary
 
@@ -188,7 +190,7 @@ This is not a same-model conclusion and must be rerun after either CLI default c
 ## Not Yet Implemented
 
 - Larger repeated real Claude Code/opencode matrices beyond smoke tests, starting with CLI-default configuration mode.
-- Terminal-Bench external evaluator bridge. SWE-bench now has `swebench-bridge`, but no official instance result is claimed until an explicit `--execute` run finishes.
+- Retry the saved SWE-bench bridge after Docker resource adjustment, then add the Terminal-Bench external evaluator bridge. The saved first attempt is an evaluator infrastructure error, not an official instance outcome.
 - Optional LLM judge adjudication.
 - Dashboard.
 - More domain-specific tasks (JS/TS, GUI desktop, long-running autonomous).
@@ -219,7 +221,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 133 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 136 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
@@ -248,7 +250,7 @@ The local `foundation` suite has 12 tasks. Do not claim any external SWE-bench r
 
 1. Run a three-repeat real `cli_default_configurations` matrix on `calibration` (opencode vs claude-code with `--models unspecified`) and preserve observed identities. It answers the practical tool-selection question but is not a same-model claim. Use the registry only for a separate explicit same-model matrix, and interpret only `verified_match` rows for that claim.
 2. Test the remaining project-owned Flask/NumPy container tasks and pin base-image digests.
-3. Run one selected SWE-bench bridge instance through the official evaluator, inspect its evidence, then bridge the frozen Terminal-Bench pilot through its official harness. The official evaluator tools are installed and verified by `preflight-authoritative`.
+3. Increase Docker VM resources, then resume `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435` through the official evaluator without rerunning opencode. Only a `resolved` or `not_resolved` official instance report is scoreable; `evaluator_error` is not. Then bridge the frozen Terminal-Bench pilot through its official harness.
 4. Add more domain-specific tasks (embedded, optics, full-stack).
 5. Build dashboard for historical results.
 

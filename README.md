@@ -15,7 +15,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 
 ## Current Status
 
-当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、135 个 unittest 测试函数、审计命令和真实 harness 校准路径。
+当前仓库是一个可运行的早期 benchmark framework，不是已经完成的权威排行榜。当前有 **20 个本地可评测任务**、5 个冻结的外部元数据记录、8 个 suite、136 个 unittest 测试函数、审计命令和真实 harness 校准路径。
 
 已实现：
 - 10 维度加权评分体系；所有非零分都必须来自可保存证据：
@@ -33,7 +33,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - 机器可读题库目录：难度分层为 easy=3、medium=9、hard=4、expert=3；每题都有难度依据和来源类型
 - 当前有 5 个 SWE-bench 冻结元数据记录，但它们没有本地仓库环境或官方 evaluator 原始结果，不能运行、计分或进入排行榜；`external_imported` 仍未完成。详见 `docs/task_provenance.md`。
 - `calibration` suite 从易到专家级覆盖本机可运行任务；依赖 Flask、NumPy、SciPy 或 pandas 的任务明确标记为 `container_required`，不会混进默认本机比较。
-- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。当前 Colima Docker daemon 已可用，且已有 `python-fullstack` 容器运行证据；权威外部题库 evaluator 仍未接入。
+- Docker evaluator v1：容器任务使用精确版本依赖、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile、镜像 ID、构建日志与测试证据。容器默认保留网络能力，联网行为应由专门任务和证据单独评估。真实 harness CLI 保持在宿主机登录态运行，并获得同一容器的公开测试脚本。当前 Colima Docker daemon 已可用，且已有 `python-fullstack` 容器运行证据；SWE-bench 官方 evaluator 已完成一次端到端启动，但首个环境镜像构建错误只能作为基础设施证据，不是外部跑分。
 - 4 种适配器（dummy/generic-command/opencode/claude-code）
 - 真实 harness 输出解析（模型名、工具调用、token、cost）
 - 两种明确的模型模式：默认的 `cli_default_configurations` 直接比较两个 CLI 此刻的真实默认配置；显式同模型模式才使用 registry，且跨 harness 的“同模型”结论必须是 `verified_match`，不能只看用户标签。详见 `docs/model_modes.md`。
@@ -54,6 +54,7 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - `scripts/setup_authoritative_evaluators.sh`：在隔离 SWE-bench Python 环境与 Terminal-Bench `uv tool` 环境中安装官方工具，再执行预检。
 - 已冻结一个真实 SWE-bench Verified 六题 pilot：前五道复杂真实 issue 才是 `ranking_candidate`，最后一道 `<15 min` 题仅作 `diagnostic_tail`；冻结元数据不是 agent 跑分，仍不计入排行榜。
 - `swebench-bridge`：单实例地将 harness 生成的 git patch 交给官方 SWE-bench Docker evaluator，并保存上游快照、patch、harness 日志、官方原始日志和 report。默认只输出执行计划；必须显式加 `--execute` 才会消耗模型额度或构建大镜像。
+- 第一次真实 expert SWE-bench bridge 已保存 opencode 的 patch 与官方 evaluator 原始报告；官方报告的 `error_ids` 会被明确分类为 `evaluator_error`、不可计分，不会伪装成模型未解决或已完成。详见 `docs/real_harness_calibration.md`。
 - 已冻结一个独立 Terminal-Bench Core 六题工程 pilot：前五道涵盖 C path tracing、Linux kernel/QEMU、盲迷宫算法、Raman 光谱拟合、tmux 调试工作流；`.easy` variant 仅诊断，不参与排名。
 - 每次任务、suite 和 matrix run 都记录完整题目契约指纹；题目内容变化后旧 run 自动退出难度校准和筛选统计，恢复操作也会拒绝混用新旧任务
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。

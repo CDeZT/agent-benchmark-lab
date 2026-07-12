@@ -7,6 +7,17 @@ only as debugging and implementation evidence. They must not enter current
 difficulty calibration, selection, or harness/model winner claims. New real
 calibration must be rerun from the current fingerprinted task contracts.
 
+## 2026-07-12: SWE-bench Verified Expert Bridge, Infrastructure-Blocked
+
+- Task: `sympy__sympy-13878` from the frozen SWE-bench Verified pilot (`>4 hours`, `ranking_candidate`).
+- Configuration: opencode using its current CLI default; the adapter observed `LongCat-2.0`. Budget profile: `stress`.
+- Evidence directory: `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435`.
+- Harness evidence: opencode exited `0` after `1145.04s`, made `105` observed tool calls, and produced a non-empty `5372`-byte git patch. It did not expose token or cost data.
+- Official evaluator evidence: the official command launched and wrote its run report, but the instance has `error_ids=["sympy__sympy-13878"]`, `completed_instances=0`, and no instance `report.json`. Its environment image setup ended with code `137`.
+- Classification: `evaluator_error`, `scorable=false`. This is not a resolved result, not an unresolved result, and not a score for LongCat-2.0 or opencode. The bridge intentionally preserves the patch so a resource-adjusted retry can resume evaluator work without rerunning the paid harness call.
+
+Interpretation: this proves the repository's harness-to-official-evaluator evidence chain reaches the upstream evaluator on this Mac. It does not yet prove a SWE-bench task outcome. Code `137` is recorded as an evaluator environment failure; any claim that it was caused by a particular resource limit would need separate runtime evidence.
+
 ## 2026-07-11: Embedded Protocol Parser
 
 - Task: `embedded-protocol-parser` (`hard`, project-owned embedded-domain seed).

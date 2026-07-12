@@ -156,31 +156,61 @@ def run_swebench_bridge(config: SWEbenchBridgeConfig) -> dict[str, Any]:
 
     official_dir = bridge_dir / "official_evaluator"
     summary_path = bridge_dir / "official_summary.json"
-    if summary_path.exists():
+    if summary_path.exists() and json.loads(summary_path.read_text(encoding="utf-8")).get("completed"):
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
     else:
         official_dir.mkdir(parents=True, exist_ok=True)
         command = _evaluator_command(config, interpreter, corpus.dataset, prediction_path, bridge_dir.name)
-        completed = subprocess.run(
-            command,
-            cwd=official_dir,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
-        (official_dir / "stdout.log").write_text(completed.stdout, encoding="utf-8")
-        (official_dir / "stderr.log").write_text(completed.stderr, encoding="utf-8")
-        summary = _official_summary(official_dir, bridge_dir.name, prediction, completed.returncode)
-        _write_json(summary_path, summary)
-        _mark_stage(
-            manifest_path,
-            manifest,
-            "official_evaluator",
-            {"command": command, "exit_code": completed.returncode, "summary_path": str(summary_path)},
-        )
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=official_dir,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+        except OSError as exc:
+            completed = None
+            (official_dir / "stdout.log").write_text("", encoding="utf-8")
+            (official_dir / "stderr.log").write_text(str(exc), encoding="utf-8")
+            summary = {
+                "official_evaluator": "swebench.harness.run_evaluation",
+                "exit_code": None,
+                "classification": "evaluator_invocation_error",
+                "scorable": False,
+                "completed": False,
+                "resolved": None,
+                "error": str(exc),
+            }
+            _write_json(summary_path, summary)
+            _mark_stage(
+                manifest_path,
+                manifest,
+                "official_evaluator",
+                {"command": command, "exit_code": None, "summary_path": str(summary_path), "error": str(exc)},
+            )
+        else:
+            (official_dir / "stdout.log").write_text(completed.stdout, encoding="utf-8")
+            (official_dir / "stderr.log").write_text(completed.stderr, encoding="utf-8")
+            summary = _official_summary(official_dir, bridge_dir.name, prediction, completed.returncode)
+            _write_json(summary_path, summary)
+            _mark_stage(
+                manifest_path,
+                manifest,
+                "official_evaluator",
+                {"command": command, "exit_code": completed.returncode, "summary_path": str(summary_path)},
+            )
 
-    manifest["status"] = "official_evaluation_complete" if summary["completed"] else "official_evaluation_incomplete"
+    classification = summary.get("classification", "evaluator_output_missing")
+    if classification == "evaluator_error":
+        manifest["status"] = "official_evaluator_error"
+    elif classification == "evaluator_invocation_error":
+        manifest["status"] = "official_evaluator_invocation_error"
+    elif summary["completed"]:
+        manifest["status"] = "official_evaluation_complete"
+    else:
+        manifest["status"] = "official_evaluation_incomplete"
     manifest["official_evaluator_evidence"] = str(summary_path)
     manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
     _write_json(manifest_path, manifest)
@@ -215,6 +245,10 @@ def _selected_instance_and_evaluator(config: SWEbenchBridgeConfig) -> tuple[dict
     interpreter = Path(requirement["interpreter"])
     if not interpreter.is_absolute():
         interpreter = config.registry_path.parent.parent / interpreter
+    # ``resolve`` would dereference a virtualenv's python symlink to its base
+    # interpreter and lose the installed swebench package. Keep the link, but
+    # make it independent of the evaluator report directory's current cwd.
+    interpreter = interpreter.absolute()
     if not interpreter.is_file():
         raise FileNotFoundError(f"SWE-bench evaluator interpreter is unavailable: {interpreter}")
     preflight = preflight_authoritative_corpora(config.registry_path, corpus_id="swe-bench-verified")
@@ -394,7 +428,7 @@ def _evaluator_command(
     run_id: str,
 ) -> list[str]:
     return [
-        str(interpreter),
+        str(interpreter.absolute()),
         "-m",
         "swebench.harness.run_evaluation",
         "--dataset_name",
@@ -404,7 +438,7 @@ def _evaluator_command(
         "--instance_ids",
         config.instance_id,
         "--predictions_path",
-        str(prediction_path),
+        str(prediction_path.absolute()),
         "--max_workers",
         str(config.max_workers),
         "--timeout",
@@ -437,11 +471,26 @@ def _official_summary(official_dir: Path, run_id: str, prediction: dict[str, str
         except json.JSONDecodeError:
             run_payload = None
     result = instance_payload.get(prediction["instance_id"], {}) if instance_payload else {}
+    error_ids = run_payload.get("error_ids", []) if isinstance(run_payload, dict) else []
+    if exit_code != 0:
+        classification = "evaluator_invocation_error"
+    elif prediction["instance_id"] in error_ids:
+        classification = "evaluator_error"
+    elif result.get("resolved") is True:
+        classification = "resolved"
+    elif instance_payload and prediction["instance_id"] in instance_payload:
+        classification = "not_resolved"
+    else:
+        classification = "evaluator_output_missing"
+    completed = classification in {"resolved", "not_resolved"}
     return {
         "official_evaluator": "swebench.harness.run_evaluation",
         "exit_code": exit_code,
-        "completed": bool(instance_payload) and exit_code == 0,
+        "classification": classification,
+        "scorable": completed,
+        "completed": completed,
         "resolved": result.get("resolved") if result else None,
+        "error_instance_ids": error_ids,
         "instance_report": str(instance_report) if instance_report else None,
         "run_report": str(run_reports[-1]) if run_reports else None,
         "run_report_summary": run_payload,
