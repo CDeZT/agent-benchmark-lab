@@ -121,6 +121,8 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --ad
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter grok --repetitions 1
 # Harder local discrimination (prefer hard/expert tasks, planning artifact required on several):
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite hard-discrimination --adapter claude-code --repetitions 1
+# One bank: local hard tasks + official SWE items in the SAME average
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite unified-hard --adapter claude-code --repetitions 1
 # Any headless CLI without a built-in adapter: copy config/harnesses.example.json → config/harnesses.json and add a command template.
 # Evidence policy: docs/evidence_and_corpus.md
 PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>

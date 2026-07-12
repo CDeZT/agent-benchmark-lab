@@ -47,6 +47,11 @@ from agent_benchmark.terminal_bench_bridge import (
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import DEFAULT_AXIS_WEIGHTS, axes_for_task, build_domain_weighted_total, build_scorecard
+from agent_benchmark.unified_external import (
+    bridge_result_to_task_summary,
+    external_task_fingerprint,
+    is_external_task_id,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2076,6 +2081,63 @@ class FrameworkTests(unittest.TestCase):
         evidence = parse_harness_output("unknown-adapter", "output", "error")
         self.assertIsNone(evidence.model)
         self.assertEqual(evidence.tool_calls, [])
+
+    def test_unified_external_maps_official_pass_fail_into_suite_scores(self) -> None:
+        self.assertTrue(is_external_task_id("swebench:pallets__flask-5014"))
+        fp = external_task_fingerprint(
+            "swebench:pallets__flask-5014", ROOT / "config" / "authoritative_pilots.json"
+        )
+        self.assertIn("pallets__flask-5014", fp)
+        config = ExperimentConfig(adapter="opencode", model="unspecified", repetitions=1, runs_dir=Path("/tmp"))
+        passed = bridge_result_to_task_summary(
+            task_id="swebench:pallets__flask-5014",
+            config=config,
+            bridge_result={
+                "bridge_dir": "runs/demo-flask",
+                "official_summary": {
+                    "classification": "resolved",
+                    "scorable": True,
+                    "resolved": True,
+                },
+                "manifest": {"stages": {"harness": {"duration_seconds": 12, "detected_model": "LongCat-2.0"}}},
+            },
+            pilots_file=ROOT / "config" / "authoritative_pilots.json",
+        )
+        self.assertEqual(passed["mean_score"], 100.0)
+        self.assertTrue(passed["include_in_aggregate"])
+        self.assertEqual(passed["benchmark_role"], "smoke_only")  # diagnostic_tail
+        failed = bridge_result_to_task_summary(
+            task_id="swebench:pylint-dev__pylint-4551",
+            config=config,
+            bridge_result={
+                "bridge_dir": "runs/demo-pylint",
+                "official_summary": {
+                    "classification": "not_resolved",
+                    "scorable": True,
+                    "resolved": False,
+                },
+                "manifest": {"stages": {"harness": {"duration_seconds": 20}}},
+            },
+            pilots_file=ROOT / "config" / "authoritative_pilots.json",
+        )
+        self.assertEqual(failed["mean_score"], 0.0)
+        self.assertTrue(failed["include_in_aggregate"])
+        self.assertEqual(failed["benchmark_role"], "comparative_candidate")
+        broken = bridge_result_to_task_summary(
+            task_id="swebench:sympy__sympy-13878",
+            config=config,
+            bridge_result={
+                "bridge_dir": "runs/demo-sympy",
+                "official_summary": {
+                    "classification": "evaluator_error",
+                    "scorable": False,
+                    "resolved": None,
+                },
+                "manifest": {"stages": {}},
+            },
+            pilots_file=ROOT / "config" / "authoritative_pilots.json",
+        )
+        self.assertFalse(broken["include_in_aggregate"])
 
     def test_workspace_edit_fallback_gives_verified_tool_use_without_harness_logs(self) -> None:
         from agent_benchmark.scorers.basic import score_run

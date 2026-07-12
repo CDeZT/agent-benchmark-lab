@@ -30,6 +30,11 @@ from agent_benchmark.terminal_bench_bridge import (
     prepare_terminal_bench_bridge,
     run_terminal_bench_bridge,
 )
+from agent_benchmark.unified_external import (
+    external_task_fingerprint,
+    is_external_task_id,
+    run_external_task_as_summary,
+)
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
@@ -921,18 +926,31 @@ def _run_suite_with_config(
     summaries = []
     summaries_dir = suite_run_dir / "task_summaries"
     summaries_dir.mkdir(parents=True, exist_ok=True)
+    pilots_file = Path(getattr(config, "pilots_file", None) or DEFAULT_AUTHORITATIVE_PILOTS_PATH)
+    registry_path = Path(getattr(config, "registry_path", None) or DEFAULT_AUTHORITATIVE_CORPORA_PATH)
     for task_id in suite.tasks:
-        summary_path = summaries_dir / f"{task_id}.json"
+        summary_path = summaries_dir / f"{_suite_summary_stem(task_id)}.json"
         if summary_path.is_file():
             summaries.append(json.loads(summary_path.read_text(encoding="utf-8")))
             continue
-        task = load_task(_resolve_task(Path(task_id), tasks_dir))
-        ensure_task_environment_supported(task)
-        task_summary = run_task(task, config)
+        if is_external_task_id(task_id):
+            # Authoritative tasks use the same suite loop and summary shape as local tasks.
+            task_summary = run_external_task_as_summary(
+                task_id,
+                config,
+                pilots_file=pilots_file,
+                registry_path=registry_path,
+                execute=True,
+            )
+        else:
+            task = load_task(_resolve_task(Path(task_id), tasks_dir))
+            ensure_task_environment_supported(task)
+            task_summary = run_task(task, config)
         summary_path.write_text(json.dumps(task_summary, ensure_ascii=False, indent=2), encoding="utf-8")
         summaries.append(task_summary)
         _write_suite_checkpoint(suite_run_dir, suite.tasks)
 
+    scored = [item for item in summaries if item.get("include_in_aggregate", True)]
     suite_summary = {
         "suite_run_id": suite_run_id,
         "suite_id": suite.suite_id,
@@ -943,19 +961,21 @@ def _run_suite_with_config(
         "label": config.label,
         "repetitions_per_task": config.repetitions,
         "task_count": len(summaries),
-        "mean_score": round(sum(item["mean_score"] for item in summaries) / len(summaries), 2) if summaries else 0.0,
+        "scored_task_count": len(scored),
+        "mean_score": round(sum(float(item["mean_score"]) for item in scored) / len(scored), 2) if scored else 0.0,
         "mean_verified_normalized_score": _mean_optional(
-            [item.get("mean_verified_normalized_score") for item in summaries]
+            [item.get("mean_verified_normalized_score") for item in scored]
         ),
         "mean_verified_coverage_percent": _mean_optional(
-            [item.get("mean_verified_coverage_percent") for item in summaries]
+            [item.get("mean_verified_coverage_percent") for item in scored]
         ),
         "mean_duration_seconds": (
-            round(sum(item["mean_duration_seconds"] for item in summaries) / len(summaries), 4) if summaries else 0.0
+            round(sum(float(item["mean_duration_seconds"]) for item in scored) / len(scored), 4) if scored else 0.0
         ),
         "tasks": summaries,
+        "scoring_policy": "local tests and official SWE-bench resolution share one suite average; unscorable evaluator errors are excluded from the mean",
     }
-    suite_summary["evaluation_axis_scorecard"] = build_scorecard(summaries)
+    suite_summary["evaluation_axis_scorecard"] = build_scorecard(scored)
     suite_summary["suite_run_dir"] = str(suite_run_dir)
     write_suite_summary(suite_run_dir, suite_summary)
     _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "complete")
@@ -1016,10 +1036,19 @@ def _load_suite_manifest(suite_run_dir: Path) -> dict[str, object]:
 
 
 def _suite_task_fingerprints(suite: object, tasks_dir: Path) -> dict[str, str]:
-    return {
-        task_id: task_fingerprint(load_task(_resolve_task(Path(task_id), tasks_dir)))
-        for task_id in list(suite.tasks)
-    }
+    pilots_file = DEFAULT_AUTHORITATIVE_PILOTS_PATH
+    fingerprints: dict[str, str] = {}
+    for task_id in list(suite.tasks):
+        if is_external_task_id(task_id):
+            fingerprints[task_id] = external_task_fingerprint(task_id, pilots_file)
+        else:
+            fingerprints[task_id] = task_fingerprint(load_task(_resolve_task(Path(task_id), tasks_dir)))
+    return fingerprints
+
+
+def _suite_summary_stem(task_id: str) -> str:
+    """Filesystem-safe summary name (external ids contain ':')."""
+    return task_id.replace(":", "__").replace("/", "_")
 
 
 def _write_suite_checkpoint(
@@ -1028,7 +1057,11 @@ def _write_suite_checkpoint(
     complete: bool = False,
 ) -> None:
     summaries_dir = suite_run_dir / "task_summaries"
-    completed = [task_id for task_id in task_ids if (summaries_dir / f"{task_id}.json").is_file()]
+    completed = [
+        task_id
+        for task_id in task_ids
+        if (summaries_dir / f"{_suite_summary_stem(task_id)}.json").is_file()
+    ]
     payload = {
         "completed_tasks": completed,
         "remaining_tasks": [task_id for task_id in task_ids if task_id not in completed],

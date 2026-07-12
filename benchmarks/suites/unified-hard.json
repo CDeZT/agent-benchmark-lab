@@ -1,0 +1,26 @@
+{
+  "id": "unified-hard",
+  "title": "Unified hard bank (local hard tasks + official SWE ranking items)",
+  "description": "One suite, one average: local hard discrimination tasks plus SWE-bench Verified instances. External ids use prefix swebench: and are scored by the official Docker evaluator (resolved=100, not_resolved=0). Evaluator infrastructure failures are excluded from the mean, not counted as model zeros. Same command as any other suite: run-suite --suite unified-hard.",
+  "tasks": [
+    "python-swebench-style",
+    "c-systems-programming",
+    "systems-concurrency",
+    "embedded-protocol-parser",
+    "optics-python",
+    "optics-psf-peak",
+    "code-review",
+    "swebench:pylint-dev__pylint-4551",
+    "swebench:pytest-dev__pytest-10356",
+    "swebench:pallets__flask-5014"
+  ],
+  "capability_focus": [
+    "cross_module_reasoning",
+    "systems_programming",
+    "embedded_engineering",
+    "optics_engineering",
+    "security",
+    "bugfix",
+    "python_engineering"
+  ]
+}

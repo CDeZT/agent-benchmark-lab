@@ -61,3 +61,12 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
 PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge \
   --instance-id pytest-dev__pytest-10356 --adapter opencode --execute
 ```
+
+
+## 统一卷（本地+权威一起算）
+
+```bash
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite unified-hard --adapter claude-code --repetitions 1
+```
+
+权威题用 `swebench:实例id` 写在同一 suite 里；官方修好=100，没修好=0，和本地题平均。详见 `docs/unified_scoring.md`。
