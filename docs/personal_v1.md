@@ -40,13 +40,27 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
   --task python-bugfix --adapter grok --repetitions 1
 open runs/<experiment-id>/report.html   # radar is here
 
-# 2) small suite (still one harness)
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
-  --suite real-smoke --adapter grok --repetitions 1
+# 2) sampled multi-harness probe (4 tasks, one harness at a time)
+bash scripts/run_personal_probe.sh claude-code,opencode,grok 1
+# results: latest suite-* under runs/, plus regenerate dashboard
 
-# 3) history
+# 3) history + radar gallery
 PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
 open runs/dashboard/index.html
 ```
 
 If Claude Code fails in <1s with `Unsupported model`, fix the **Claude Code default model** in its own settings; the adapter is fine.
+
+## First personal probe snapshot (2026-07-12)
+
+Sampled suite `personal-probe`, 1 repetition, not a statistical leaderboard.
+
+| Harness | Observed model | Mean strict (4 tasks) | Comparative pass % |
+| --- | --- | ---: | ---: |
+| claude-code | LongCat-2.0[1m] | 59.42 | 66.7 |
+| opencode | LongCat-2.0 | 55.54 | 33.3 |
+| grok | unverified identity | 55.5 | 66.7 |
+
+Full tables: `runs/personal-probe-comparison.md` (local, gitignored under `runs/`).
+
+Claude multi-model note: if all Claude Code aliases map to the same provider model ID, separate `--model` runs will not produce a true multi-model comparison until distinct accepted model IDs are configured.

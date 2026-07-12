@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-12 (iteration 38)
+
+- Verified Claude Code after model fix: `LongCat-2.0[1m]` passes python-bugfix (strict ~64).
+- Added sampled suite `personal-probe` (4 tasks) and `scripts/run_personal_probe.sh` for cheap single-harness comparisons.
+- Ran personal probe for claude-code / opencode / grok (1 rep each). Aggregate under `runs/personal-probe-comparison.md`.
+- Documented personal finish line and first probe snapshot in `docs/personal_v1.md`.
+
 ## 2026-07-12 (iteration 37)
 
 - User clarified product goal: open-source standard for arbitrary harness×model scoring; routine validation is single-harness only.
