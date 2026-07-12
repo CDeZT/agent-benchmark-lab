@@ -52,8 +52,8 @@ The project is intentionally broader than a model leaderboard. It is designed to
 - `screening-report`：区分 smoke、等待真实数据、需要重做、容器题库门未通过和已具筛选性的题；`selection-ladder` 从 expert 到 easy 排列，smoke 题不参与排名
 - `preflight-authoritative`：校验 SWE-bench Verified 与 Terminal-Bench 的官方 evaluator 契约、Docker 和本机所需上游工具；它不会把“可执行”误报为“已导入”。
 - `scripts/setup_authoritative_evaluators.sh`：在隔离 SWE-bench Python 环境与 Terminal-Bench `uv tool` 环境中安装官方工具，再执行预检。
-- 已冻结一个真实 SWE-bench Verified 六题 pilot：上游难度从 `>4 hours` 到 `<15 min`，跨 SymPy、pytest、Django、Pylint、Requests、Flask；冻结元数据不是 agent 跑分，仍不计入排行榜。
-- 已冻结一个独立 Terminal-Bench Core 六题工程 pilot：C path tracing、Linux kernel/QEMU、盲迷宫算法、Raman 光谱拟合、tmux 调试工作流和 easy variant；同样尚未运行 agent 或计分。
+- 已冻结一个真实 SWE-bench Verified 六题 pilot：前五道复杂真实 issue 才是 `ranking_candidate`，最后一道 `<15 min` 题仅作 `diagnostic_tail`；冻结元数据不是 agent 跑分，仍不计入排行榜。
+- 已冻结一个独立 Terminal-Bench Core 六题工程 pilot：前五道涵盖 C path tracing、Linux kernel/QEMU、盲迷宫算法、Raman 光谱拟合、tmux 调试工作流；`.easy` variant 仅诊断，不参与排名。
 - 每次任务、suite 和 matrix run 都记录完整题目契约指纹；题目内容变化后旧 run 自动退出难度校准和筛选统计，恢复操作也会拒绝混用新旧任务
 - 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
 - Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数

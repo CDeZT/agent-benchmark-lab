@@ -15,7 +15,7 @@ from unittest.mock import patch
 from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.adapters.base import AdapterResult
 from agent_benchmark.authoritative import load_authoritative_corpora, preflight_authoritative_corpora
-from agent_benchmark.authoritative_pilot import _task_yaml_metadata, _validate_snapshot, load_authoritative_pilot
+from agent_benchmark.authoritative_pilot import _task_yaml_metadata, _validate_snapshot, load_authoritative_pilot, pilot_selection_summary
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
@@ -149,6 +149,8 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(selected[0]["expected_difficulty"], ">4 hours")
         self.assertEqual(selected[-1]["expected_difficulty"], "<15 min fix")
+        self.assertEqual(pilot_selection_summary(pilot)["ranking_candidate_count"], 5)
+        self.assertEqual(pilot_selection_summary(pilot)["diagnostic_tail_ids"], ["pallets__flask-5014"])
         _validate_snapshot(snapshot, selected)
         snapshot["instances"][0]["base_commit"] = "changed"
         with self.assertRaisesRegex(ValueError, "base_commit"):
@@ -164,6 +166,8 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(pilot["instances"][0]["instance_id"], "path-tracing")
         self.assertEqual(pilot["instances"][-1]["instance_id"], "blind-maze-explorer-algorithm.easy")
+        self.assertEqual(pilot_selection_summary(pilot)["ranking_candidate_count"], 5)
+        self.assertEqual(pilot_selection_summary(pilot)["diagnostic_tail_ids"], ["blind-maze-explorer-algorithm.easy"])
         self.assertEqual(metadata, {"difficulty": "hard", "category": "software-engineering", "max_agent_timeout_sec": "360.0"})
 
     def test_selection_ladder_is_ordered_hard_to_easy(self) -> None:

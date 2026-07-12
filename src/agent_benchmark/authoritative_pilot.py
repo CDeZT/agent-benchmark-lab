@@ -26,9 +26,29 @@ def load_authoritative_pilot(path: Path, pilot_id: str) -> dict[str, Any]:
     instances = pilot.get("instances")
     if not isinstance(instances, list) or not instances:
         raise ValueError(f"Pilot '{pilot_id}' needs at least one selected instance.")
+    roles = []
     if any(not isinstance(item, dict) or not str(item.get("instance_id", "")).strip() for item in instances):
         raise ValueError(f"Pilot '{pilot_id}' has an invalid selected instance.")
+    for item in instances:
+        role = item.get("selection_role")
+        if role not in {"ranking_candidate", "diagnostic_tail"}:
+            raise ValueError(f"Pilot '{pilot_id}' instances need selection_role=ranking_candidate|diagnostic_tail.")
+        roles.append(role)
+    if "diagnostic_tail" in roles and "ranking_candidate" in roles[roles.index("diagnostic_tail") + 1:]:
+        raise ValueError(f"Pilot '{pilot_id}' may not place a ranking candidate after its diagnostic tail.")
+    if roles.count("ranking_candidate") < 3:
+        raise ValueError(f"Pilot '{pilot_id}' needs at least three ranking candidates for a selective exam.")
     return pilot
+
+
+def pilot_selection_summary(pilot: dict[str, Any]) -> dict[str, Any]:
+    instances = pilot["instances"]
+    return {
+        "ranking_candidate_count": sum(item["selection_role"] == "ranking_candidate" for item in instances),
+        "diagnostic_tail_count": sum(item["selection_role"] == "diagnostic_tail" for item in instances),
+        "ranking_candidate_ids": [item["instance_id"] for item in instances if item["selection_role"] == "ranking_candidate"],
+        "diagnostic_tail_ids": [item["instance_id"] for item in instances if item["selection_role"] == "diagnostic_tail"],
+    }
 
 
 def freeze_swebench_pilot(pilot_file: Path, pilot_id: str, registry_path: Path, runs_dir: Path) -> dict[str, Any]:
@@ -66,6 +86,7 @@ def freeze_swebench_pilot(pilot_file: Path, pilot_id: str, registry_path: Path, 
         "upstream_snapshot": str(output_dir / "upstream_snapshot.json"),
         "official_evaluator": corpus.official_evaluator,
         "next_step": "Generate per-instance harness patches, then evaluate them with the upstream SWE-bench evaluator.",
+        **pilot_selection_summary(pilot),
     }
     (output_dir / "pilot_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return {**manifest, "output_dir": str(output_dir)}
@@ -111,6 +132,7 @@ def freeze_terminal_bench_pilot(pilot_file: Path, pilot_id: str, registry_path: 
         "upstream_snapshot": str(output_dir / "upstream_snapshot.json"),
         "official_evaluator": corpus.official_evaluator,
         "next_step": "Run the selected tasks through the official Terminal-Bench harness without mixing this track with SWE-bench scores.",
+        **pilot_selection_summary(pilot),
         "output_dir": str(output_dir),
     }
     (output_dir / "pilot_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -100,6 +100,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 官方 evaluator 工具现可用：SWE-bench 使用 `.agent-benchmark-evaluators/swebench` 的 Python 3.11，Terminal-Bench 使用 Python 3.13 的 `uv tool`。其他机器先运行 `scripts/setup_authoritative_evaluators.sh` 和 `preflight-authoritative`。工具可执行不等于题目已导入：仍必须冻结上游实例列表并保存官方 evaluator 原始结果。
 - 已冻结 `swe-bench-verified-screening-v1` 六题 pilot（上游难度从 `>4 hours` 到 `<15 min`），但它只是 metadata snapshot。下一步必须做 harness patch -> 官方 `swebench.harness.run_evaluation` 桥接；没有官方 evaluator 输出不得记分、不得标记 `external_imported`。
 - 已冻结独立 `terminal-bench-core-engineering-v1` 六题 pilot，涵盖 kernel/QEMU、C 图像、Raman 光谱、算法与 tmux 工作流；它必须通过官方 `tb run` 接入，结果绝不能和 SWE-bench repository-issue 轨道合并。
+- 两个外部 pilot 都是 5 道 `ranking_candidate` + 1 道 `diagnostic_tail`。不得把 tail 题用于排名、平均分或“题库难度”结论；任何新增 pilot 都必须保持复杂候选在前、简单诊断在末尾且至少三道候选。
 - 用真实矩阵结果运行 `calibrate-difficulty`，替换通过率过高、过低或没有组合差异的自定义任务。
 - `python-bugfix` 是刻意定义的 smoke-only；它只能验证 adapter 连通性，不能进入比较排行榜权重。旧实测不再构成当前难度校准证据。
 - `audit-corpus` 已是默认 audit 的质量门禁；任何新增或改动的可比较任务必须保持 baseline 失败、reference 通过。

@@ -206,7 +206,7 @@
       "id": "external_benchmark_imports",
       "title": "SWE-bench, Terminal-Bench, WebArena, OSWorld style imports",
       "status": "partial",
-      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import", "SWE-bench and Terminal-Bench toolchains are installed in isolated local environments and live preflight reports both execution-ready", "freeze-authoritative-pilot verifies both six-instance pilots against upstream commit/revision metadata and records hashed raw snapshots"],
+      "evidence": ["Task manifests carry validated provenance metadata", "docs/corpus_strategy.md defines source-separated tracks and prerequisite order", "project-owned Docker evaluator v1 is implemented", "preflight-authoritative validates the SWE-bench Verified and Terminal-Bench Core registry plus local Docker/tool readiness without claiming an import", "SWE-bench and Terminal-Bench toolchains are installed in isolated local environments and live preflight reports both execution-ready", "freeze-authoritative-pilot verifies both six-instance pilots against upstream commit/revision metadata and records hashed raw snapshots", "external pilot schema permits ranking_candidate tasks only before a diagnostic_tail and requires at least three ranking candidates"],
       "remaining": ["Bridge the frozen SWE-bench pilot to its upstream evaluator", "Bridge the frozen Terminal-Bench pilot to its upstream harness"]
     },
     {

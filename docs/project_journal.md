@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-12 (iteration 31)
+
+- Turned the user's selective-exam requirement into external-pilot schema rules: every pilot now separates `ranking_candidate` tasks from a final `diagnostic_tail`, needs at least three candidates, and rejects a candidate after the tail.
+- Marked the short SWE-bench issue and Terminal-Bench `.easy` variant as diagnostics only. Both frozen manifests now expose the five-task ranking cohort separately, so simple tasks cannot dilute future harness scores.
+
 ## 2026-07-12 (iteration 30)
 
 - Added a separate six-task Terminal-Bench Core v0.1.1 engineering pilot from the upstream immutable commit. It covers systems/kernel work, C image reconstruction, optics-adjacent Raman fitting, algorithms, and terminal workflow debugging.

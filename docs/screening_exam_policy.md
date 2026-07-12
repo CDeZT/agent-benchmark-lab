@@ -39,6 +39,13 @@ yet passed the baseline/reference contrast gate (including a
 container-required task without a recorded container audit), so it cannot
 enter selection even if its observed pass rate later looks promising.
 
+External pilots use the same selective rule before official evaluator results
+exist: `ranking_candidate` instances appear first and may later receive track
+weight; `diagnostic_tail` instances may only diagnose floor behavior. A pilot
+needs at least three ranking candidates, and no ranking candidate may appear
+after its diagnostic tail. This prevents a short or explicitly easy upstream
+task from diluting a difficult screening track.
+
 ## Authoritative Tracks
 
 Project-owned tasks are essential for embedded and optics work, but source
