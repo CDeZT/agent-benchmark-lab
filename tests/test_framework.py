@@ -46,7 +46,7 @@ from agent_benchmark.terminal_bench_bridge import (
 )
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
-from agent_benchmark.taxonomy import axes_for_task, build_scorecard
+from agent_benchmark.taxonomy import DEFAULT_AXIS_WEIGHTS, axes_for_task, build_domain_weighted_total, build_scorecard
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -402,6 +402,25 @@ class FrameworkTests(unittest.TestCase):
         ])
         self.assertEqual(scorecard["axes"]["systems_embedded"]["mean_strict_score"], 40.0)
         self.assertEqual(scorecard["excluded_noncomparative_tasks"], ["smoke"])
+        # Only systems_embedded present → domain total equals that axis after renormalization.
+        self.assertTrue(scorecard["domain_weighted_total"]["usable"])
+        self.assertEqual(scorecard["domain_weighted_total"]["strict"], 40.0)
+        self.assertEqual(scorecard["domain_weighted_total"]["verified_normalized"], 80.0)
+        self.assertIn("scientific_computing", scorecard["domain_weighted_total"]["missing_axes"])
+
+    def test_domain_weighted_total_renormalizes_over_present_axes(self) -> None:
+        axes = {
+            "software_engineering": {"task_count": 2, "mean_strict_score": 60.0, "mean_verified_normalized_score": 90.0},
+            "systems_embedded": {"task_count": 1, "mean_strict_score": 40.0, "mean_verified_normalized_score": 80.0},
+        }
+        total = build_domain_weighted_total(axes)
+        w_se = DEFAULT_AXIS_WEIGHTS["software_engineering"]
+        w_sys = DEFAULT_AXIS_WEIGHTS["systems_embedded"]
+        expected = round((60.0 * w_se + 40.0 * w_sys) / (w_se + w_sys), 2)
+        self.assertEqual(total["strict"], expected)
+        self.assertEqual(total["active_weight_sum"], w_se + w_sys)
+        self.assertIn("web_ui", total["missing_axes"])
+        self.assertNotIn("software_engineering", total["missing_axes"])
 
     def test_corpus_audit_proves_bugfix_baseline_fails_and_reference_passes(self) -> None:
         report = audit_corpus(ROOT / "benchmarks" / "tasks")

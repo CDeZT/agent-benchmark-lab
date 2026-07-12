@@ -47,6 +47,20 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
                 f"| {values['title']} (`{axis}`) | {values['task_count']} | {values['mean_strict_score']} | "
                 f"{values['mean_verified_normalized_score']} | {values['mean_verified_coverage_percent']}% |"
             )
+        domain_total = scorecard.get("domain_weighted_total") if isinstance(scorecard, dict) else None
+        if isinstance(domain_total, dict) and domain_total.get("usable"):
+            lines.extend(
+                [
+                    "",
+                    "## Domain-Weighted Total",
+                    "",
+                    f"- Strict domain total: **{domain_total.get('strict')}**",
+                    f"- Verified-normalized domain total: **{domain_total.get('verified_normalized')}**",
+                    f"- Active weight sum: {domain_total.get('active_weight_sum')} (missing axes renormalized out: "
+                    f"{', '.join(f'`{a}`' for a in domain_total.get('missing_axes') or []) or 'none'})",
+                    f"- Policy: {domain_total.get('policy')}",
+                ]
+            )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

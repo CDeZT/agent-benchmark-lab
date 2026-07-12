@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-12 (iteration 39)
+
+- Added suite-level **domain-weighted total** over six outcome axes (software / agentic / systems-embedded / scientific-optics / web / security) with default weights emphasizing embedded (20) and scientific/optics (15).
+- Missing axes in a suite are renormalized out so small probes remain valid; smoke tasks stay excluded.
+- Verified on the real personal-probe suite summaries: claude-code 57.87, grok 54.59, opencode 52.60 domain-weighted strict.
+
 ## 2026-07-12 (iteration 38)
 
 - Verified Claude Code after model fix: `LongCat-2.0[1m]` passes python-bugfix (strict ~64).

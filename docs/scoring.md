@@ -42,6 +42,28 @@ Total: 100.
 
 Domain-specific suites may add bonus or replacement dimensions such as embedded correctness or optics numerical accuracy.
 
+## Domain / Outcome Axes (separate from the 10 process dimensions)
+
+Tasks carry capability tags such as `c_engineering`, `embedded_engineering`, `optics_engineering`, and `python_engineering`. Suite reports group comparative tasks into six outcome axes:
+
+| Axis | Default weight | Covers |
+| --- | ---: | --- |
+| `software_engineering` | 25 | General SE work |
+| `systems_embedded` | 20 | C, systems, embedded, protocols |
+| `scientific_computing` | 15 | Optics, numerical/data science |
+| `agentic_workflow` | 15 | Planning, CI, multi-step agent process |
+| `web_ui` | 15 | Frontend / visual / fullstack UI |
+| `security_reliability` | 10 | Security and reliability signals |
+
+These weights sum to 100 and produce a **domain-weighted suite total** that is independent of the per-task 10-dimension formula.
+
+Policy:
+
+- `smoke_only` tasks are excluded.
+- Axes with zero comparative tasks in the suite are omitted and remaining weights are **renormalized**.
+- This makes small probe suites usable without inventing zero scores for untested domains (e.g. optics missing from a C/UI probe).
+- Reports expose both per-axis means and the composite domain total under `evaluation_axis_scorecard.domain_weighted_total`.
+
 ## Evidence Sources
 
 | Evidence | Use |

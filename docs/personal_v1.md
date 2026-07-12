@@ -13,6 +13,7 @@ This project will never be "done" in the absolute sense (new harnesses, new mode
 | Add a new CLI without rewriting scoring | Done | `config/harnesses.example.json` / `generic-command` |
 | Single-harness real smoke | Done when public+hidden pass | grok smoke already passed; claude-code needs a valid default model |
 | Multi-task single-harness calibration | Optional next | `run-suite --suite calibration --adapter <one> --repetitions 3` |
+| Domain-weighted suite total (C/embedded/optics axes) | Done | `evaluation_axis_scorecard.domain_weighted_total` on suite summaries |
 | Official SWE-bench score | Later | needs working Docker instance image + network |
 | Dual-harness ranking | Later / optional | only when you deliberately compare two CLIs |
 
@@ -55,11 +56,13 @@ If Claude Code fails in <1s with `Unsupported model`, fix the **Claude Code defa
 
 Sampled suite `personal-probe`, 1 repetition, not a statistical leaderboard.
 
-| Harness | Observed model | Mean strict (4 tasks) | Comparative pass % |
-| --- | --- | ---: | ---: |
-| claude-code | LongCat-2.0[1m] | 59.42 | 66.7 |
-| opencode | LongCat-2.0 | 55.54 | 33.3 |
-| grok | unverified identity | 55.5 | 66.7 |
+| Harness | Observed model | Mean strict (4 tasks) | Domain-weighted total* | Comparative pass % |
+| --- | --- | ---: | ---: | ---: |
+| claude-code | LongCat-2.0[1m] | 59.42 | **57.87** | 66.7 |
+| opencode | LongCat-2.0 | 55.54 | 52.60 | 33.3 |
+| grok | unverified identity | 55.5 | 54.59 | 66.7 |
+
+\*Domain-weighted total renormalizes over axes present in the probe (optics axis missing). Recomputed with the domain-weight feature after the probe run.
 
 Full tables: `runs/personal-probe-comparison.md` (local, gitignored under `runs/`).
 
