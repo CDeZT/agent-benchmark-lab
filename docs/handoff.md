@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 153 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 155 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the local corpus is custom/domain seed and inspired work; the five legacy SWE-bench records preserve metadata only and the generic runner rejects them. Individual official bridge outcomes remain separate evidence tracks, not proof that an externally representative corpus or global leaderboard is complete. See `docs/task_provenance.md` and `docs/benchmark_readiness_audit.md`.
 
@@ -18,6 +18,7 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - Removed the arbitrary global dollar/token-to-points conversion. Raw token/cost telemetry remains saved; `cost_efficiency` becomes verified only when a task declares a positive `metadata.cost_budget_usd` before an experiment. Do not retroactively add a budget to favor an observed result.
 - Tightened process evidence: `instruction_match` is heuristic intent evidence, Claude `num_turns` is heuristic rather than verified tool telemetry, and planning word checks are case-insensitive when the task contract asks for concepts rather than exact casing.
 - Real Claude Code sample audit: post-fix `process-planning` passed public/hidden tests and planning checks; `frontend-visual` exposed a genuine hidden visual failure; `embedded-protocol-parser` passed 8/8 public and 22/22 hidden tests but legitimately received only 50 execution-quality points due to maximum nesting depth 7 > 5. These are pipeline checks, not a 3-repeat comparative conclusion.
+- `balanced-v1` decision index now combines local verified-normalized score (55%) with official SWE resolution rate (45%) for personal tool selection. It retains a profile fingerprint and evidence gates (3 repetitions, local coverage >=60%, at least 9 scorable official attempts); never let it replace the separate native tracks or present it as a universal benchmark score.
 
 ## User Intent Summary
 
@@ -247,7 +248,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 153 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 155 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

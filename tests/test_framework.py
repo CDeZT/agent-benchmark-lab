@@ -21,6 +21,7 @@ from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.cli.main import _official_track_summary, _run_matrix_with_specs, _run_suite_with_config, main
 from agent_benchmark.dashboard import build_dashboard, write_dashboard
+from agent_benchmark.decision_index import build_decision_index
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.harness_registry import load_harness_registry
 from agent_benchmark.parsers.harness_output import parse_harness_output
@@ -36,6 +37,7 @@ from agent_benchmark.scorers import ScoreResult, score_run
 from agent_benchmark.screening import build_screening_report, classify_selection_status
 from agent_benchmark.recorders.jsonl import JsonlRecorder
 from agent_benchmark.reports.matrix import build_matrix_leaderboard
+from agent_benchmark.reports.suite import write_suite_summary
 from agent_benchmark.status import format_status, load_status
 from agent_benchmark.swebench_bridge import SWEbenchBridgeConfig, _clone_checkout, _evaluator_command, _official_summary, _prediction_record, _workspace_at_commit
 from agent_benchmark.terminal_bench_bridge import (
@@ -2238,6 +2240,94 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(track["scorable_attempt_count"], 2)
         self.assertEqual(track["resolved_attempt_count"], 1)
         self.assertEqual(track["resolution_rate_percent"], 50.0)
+
+    def test_balanced_decision_index_is_versioned_and_gated(self) -> None:
+        summary = {
+            "repetitions_per_task": 3,
+            "mean_verified_normalized_score": 80.0,
+            "mean_verified_coverage_percent": 70.0,
+            "official_tracks": {
+                "resolution_rate_percent": 60.0,
+                "scorable_attempt_count": 9,
+                "ranking_candidate_task_count": 9,
+            },
+        }
+        index = build_decision_index(summary, profile_path=ROOT / "config" / "decision_index_profiles.json")
+        self.assertEqual(index["profile_id"], "balanced-v1")
+        self.assertEqual(index["score"], 71.0)
+        self.assertEqual(index["status"], "ready")
+        self.assertTrue(index["profile_fingerprint"])
+
+        summary["repetitions_per_task"] = 1
+        provisional = build_decision_index(summary, profile_path=ROOT / "config" / "decision_index_profiles.json")
+        self.assertEqual(provisional["score"], 71.0)
+        self.assertEqual(provisional["status"], "provisional")
+        self.assertIn("repetitions_below_threshold", provisional["warnings"])
+
+    def test_suite_report_renders_decision_and_official_tracks_before_local_table(self) -> None:
+        summary = {
+            "suite_id": "synthetic",
+            "adapter": "dummy",
+            "model": "unspecified",
+            "adapter_model": "unspecified",
+            "budget_profile": "stress",
+            "repetitions_per_task": 3,
+            "task_count": 2,
+            "mean_score": 70.0,
+            "mean_verified_normalized_score": 80.0,
+            "mean_verified_coverage_percent": 70.0,
+            "mean_duration_seconds": 1.0,
+            "decision_index": build_decision_index(
+                {
+                    "repetitions_per_task": 3,
+                    "mean_verified_normalized_score": 80.0,
+                    "mean_verified_coverage_percent": 70.0,
+                    "official_tracks": {
+                        "resolution_rate_percent": 60.0,
+                        "scorable_attempt_count": 9,
+                        "ranking_candidate_task_count": 9,
+                    },
+                },
+                profile_path=ROOT / "config" / "decision_index_profiles.json",
+            ),
+            "official_tracks": {
+                "task_count": 1,
+                "ranking_candidate_task_count": 1,
+                "scorable_attempt_count": 3,
+                "resolved_attempt_count": 2,
+                "resolution_rate_percent": 66.67,
+                "policy": "separate",
+                "task_outcomes": [],
+            },
+            "tasks": [
+                {
+                    "task_id": "local",
+                    "mean_score": 70.0,
+                    "score_confidence_interval_95": None,
+                    "mean_verified_normalized_score": 80.0,
+                    "mean_verified_coverage_percent": 70.0,
+                    "mean_duration_seconds": 1.0,
+                    "variance": 0.0,
+                    "experiment_dir": "runs/local",
+                    "task_provenance": {"type": "custom_seed"},
+                },
+                {
+                    "task_id": "swebench:demo",
+                    "task_provenance": {"type": "external_official"},
+                },
+            ],
+            "evaluation_axis_scorecard": {},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            write_suite_summary(Path(tmp), summary)
+            markdown = (Path(tmp) / "suite_report.md").read_text(encoding="utf-8")
+            html = (Path(tmp) / "suite_report.html").read_text(encoding="utf-8")
+        self.assertLess(markdown.index("## Decision Index"), markdown.index("## Official Resolution Track"))
+        self.assertLess(markdown.index("## Official Resolution Track"), markdown.index("## Local Task Results"))
+        self.assertIn("| `local` |", markdown)
+        self.assertNotIn("| `swebench:demo` |", markdown)
+        self.assertIn("Decision Index", html)
+        self.assertIn("Official Resolution Track", html)
 
     def test_preflight_accepts_mixed_official_swebench_suite(self) -> None:
         suite = load_suite(ROOT / "benchmarks" / "suites" / "comprehensive-screening-v1.json")

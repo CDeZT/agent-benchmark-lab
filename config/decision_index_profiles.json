@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "balanced-v1": {
+      "title": "Balanced personal engineering decision index",
+      "local_verified_normalized_weight": 0.55,
+      "official_swe_resolution_weight": 0.45,
+      "minimum_repetitions_per_task": 3,
+      "minimum_local_verified_coverage_percent": 60.0,
+      "minimum_official_scorable_attempts": 9,
+      "policy": "A transparent decision aid, not an evaluator-neutral benchmark total. Local verified-normalized score captures the project-owned multi-domain cohort; official SWE-bench resolution captures repository-issue repair. The diagnostic tail is excluded."
+    }
+  }
+}

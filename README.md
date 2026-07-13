@@ -27,6 +27,8 @@ harness x model x fixed task cohort x environment x budget profile
 
 官方 evaluator 错误不算模型失败；官方结果不进入本地总分、领域轴、雷达图或 matrix 排名。
 
+完整卷还会给出 `balanced-v1` **决策指数**：本地 verified-normalized score 占 55%，官方 SWE resolution rate 占 45%。它是透明的个人选型辅助指标，不是客观总分；当三重复、60% 本地 evidence coverage、9 个官方可评分 attempts 等门槛未满足时，会标为 `provisional`。
+
 ## 文档入口
 
 | 读者 | 文档 | 用途 |

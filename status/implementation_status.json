@@ -42,6 +42,13 @@
       "remaining": ["Add causal self-repair, browser, and subagent evidence"]
     },
     {
+      "id": "transparent_personal_decision_index",
+      "title": "Transparent personal decision index",
+      "status": "implemented",
+      "evidence": ["balanced-v1 weights local verified-normalized score at 55% and official SWE resolution rate at 45%", "profile content and SHA-256 fingerprint are stored in suite summaries", "repetition, local coverage, and official scorable-attempt gates label incomplete evidence provisional or unavailable", "the index does not alter local scorecards, radar charts, or official evaluator tracks"],
+      "remaining": ["Add a user-frozen alternative profile only for a genuinely different selection objective"]
+    },
+    {
       "id": "radar_chart",
       "title": "Radar chart",
       "status": "implemented",
@@ -59,7 +66,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "153 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "155 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Complete Docker-backed corpus audit for dependency-heavy tasks"]
     },
     {

@@ -31,11 +31,25 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
         f"- Mean verified normalized score: {suite_summary.get('mean_verified_normalized_score')}",
         f"- Mean verified evidence coverage: {suite_summary.get('mean_verified_coverage_percent')}%",
         f"- Mean duration seconds: {suite_summary['mean_duration_seconds']}",
-        "",
-        "| Task | Strict Score | Score 95% CI | Verified Score | Coverage | Mean Duration | Variance | Experiment |",
-        "| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |",
     ]
     official_track = suite_summary.get("official_tracks")
+    decision_index = suite_summary.get("decision_index")
+    if isinstance(decision_index, dict):
+        components = decision_index.get("components") if isinstance(decision_index.get("components"), dict) else {}
+        lines.extend(
+            [
+                "## Decision Index",
+                "",
+                f"- Profile: `{decision_index.get('profile_id')}` ({decision_index.get('profile_fingerprint')})",
+                f"- Status: **{decision_index.get('status')}**",
+                f"- Score: **{decision_index.get('score')}**",
+                f"- Local verified-normalized component: {components.get('local_verified_normalized_score')} (coverage {components.get('local_verified_coverage_percent')}%)",
+                f"- Official SWE resolution component: {components.get('official_swe_resolution_rate_percent')}% ({components.get('official_scorable_attempt_count')} scorable attempts)",
+                f"- Warnings: {', '.join(str(item) for item in decision_index.get('warnings', [])) or 'none'}",
+                f"- Policy: {decision_index.get('policy')}",
+                "",
+            ]
+        )
     if isinstance(official_track, dict) and official_track.get("task_count"):
         lines.extend(
             [
@@ -60,8 +74,16 @@ def _write_suite_markdown(path: Path, suite_summary: dict[str, Any]) -> None:
                 f"{task.get('resolution_rate_percent')}% | {task.get('variance')} | "
                 f"{_format_interval(task.get('score_confidence_interval_95'))} | {task.get('classification')} | "
                 f"`{task.get('experiment_dir')}` |"
-            )
+        )
         lines.append("")
+    lines.extend(
+        [
+            "## Local Task Results",
+            "",
+            "| Task | Strict Score | Score 95% CI | Verified Score | Coverage | Mean Duration | Variance | Experiment |",
+            "| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |",
+        ]
+    )
     for task in suite_summary["tasks"]:
         if _is_official_task(task):
             continue
@@ -147,6 +169,21 @@ def _write_suite_html(path: Path, suite_summary: dict[str, Any]) -> None:
         )
 
     official_track = suite_summary.get("official_tracks")
+    decision_index = suite_summary.get("decision_index")
+    decision_index_html = ""
+    if isinstance(decision_index, dict):
+        components = decision_index.get("components") if isinstance(decision_index.get("components"), dict) else {}
+        decision_index_html = (
+            "<section><h2>Decision Index</h2>"
+            "<p class='muted'>A versioned personal selection aid. It does not replace either native score track.</p>"
+            f"<p>Profile: <code>{decision_index.get('profile_id')}</code>; status: <b>{decision_index.get('status')}</b>; "
+            f"score: <b>{decision_index.get('score')}</b>.</p>"
+            f"<p>Local verified-normalized: {components.get('local_verified_normalized_score')} "
+            f"(coverage {components.get('local_verified_coverage_percent')}%); official SWE resolution: "
+            f"{components.get('official_swe_resolution_rate_percent')}%.</p>"
+            f"<p class='muted'>Warnings: {', '.join(str(item) for item in decision_index.get('warnings', [])) or 'none'}.</p>"
+            "</section>"
+        )
     official_track_html = ""
     if isinstance(official_track, dict) and official_track.get("task_count"):
         official_track_html = (
@@ -228,6 +265,7 @@ def _write_suite_html(path: Path, suite_summary: dict[str, Any]) -> None:
     mean_score=<b>{suite_summary.get('mean_score')}</b>
     tasks={suite_summary.get('task_count')}</p>
   {domain_total_html}
+  {decision_index_html}
   {official_track_html}
   <div class="grid">
     <section>

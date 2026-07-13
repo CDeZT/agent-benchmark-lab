@@ -15,6 +15,7 @@ from agent_benchmark.audit import AuditOptions, format_audit, run_audit
 from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.dashboard import write_dashboard
+from agent_benchmark.decision_index import build_decision_index
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
@@ -995,6 +996,7 @@ def _run_suite_with_config(
         "scoring_policy": "Local strict scores are aggregated only across local tasks. Official evaluator outcomes are reported as a separate resolution track; unscorable evaluator errors are excluded from that track.",
     }
     suite_summary["official_tracks"] = _official_track_summary(official_tasks)
+    suite_summary["decision_index"] = build_decision_index(suite_summary)
     suite_summary["evaluation_axis_scorecard"] = build_scorecard(scored)
     suite_summary["suite_run_dir"] = str(suite_run_dir)
     write_suite_summary(suite_run_dir, suite_summary)

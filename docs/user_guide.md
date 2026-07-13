@@ -141,6 +141,21 @@ Terminal-Bench 是另一种终端环境任务，仍通过 `terminal-bench-bridge
 
 因此可回答两个不同问题：本地分用于观察“计划、验证、视觉、嵌入式/光学等可测维度的工作方式”；SWE resolution 用于观察“这个固定权威 issue cohort 的端到端修复率”。两者都重要，但不能伪装成同一个量纲。
 
+### 决策指数：给选工具用，不伪装成客观总分
+
+完整卷额外计算 `balanced-v1` 决策指数，默认公式为：
+
+```text
+Decision Index = 55% x local verified-normalized score
+               + 45% x official SWE resolution rate
+```
+
+55% 留给本地多领域 cohort，因为它覆盖你明确关心的计划、视觉、嵌入式和光学；45% 留给官方 issue 修复，因为它更接近真实大型仓库工程。SWE 不占过半，是因为它主要仍衡量 Python repository issue，不能代表你的全部目标领域。
+
+指数的 profile、权重、配置 SHA-256 指纹、两个原始分量和 warnings 都写进 `suite_summary.json` 与 HTML/Markdown report。它只在以下条件满足时为 `ready`：每题至少三重复、本地 verified coverage 至少 60%、至少 9 个官方 ranking-candidate attempt 可被官方 evaluator 评分。缺少任何条件但两个分量仍存在时，仍会显示数值，但状态为 `provisional`；缺少任一分量时为 `unavailable`。不要仅凭这个指数决定胜负，仍应同时看两条原始轨道、领域轴、方差、CI 和失败样本。
+
+决策指数**不会**改变本地 strict total，**不会**把官方题画进十维雷达图，也**不会**替代官方 resolution track。它的唯一作用是在固定 profile 下，把两个互补的结果以公开公式放到同一个选型视图中。profile 定义在 `config/decision_index_profiles.json`；任何调整必须在真实实验开始前冻结，并在报告中留下新的配置指纹。
+
 ## 6. 模型身份与比较模式
 
 ### 当前默认配置比较

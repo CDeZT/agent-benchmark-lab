@@ -1,5 +1,9 @@
 # Project Journal
 
+## 2026-07-13 (iteration 45)
+
+- Added a versioned `balanced-v1` personal decision index: 55% local verified-normalized score plus 45% official SWE resolution rate. It stores the complete profile and SHA-256 fingerprint, applies explicit readiness gates, and never changes the native local/official score tracks or radar charts.
+
 ## 2026-07-13 (iteration 44)
 
 - Re-audited the repository as an end-user and next-developer handoff. The framework is usable for real fixed-cohort experiments, but the local selection gate remains zero-ready until three identified configurations each complete three repetitions.
