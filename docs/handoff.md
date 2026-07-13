@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 155 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 156 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the local corpus is custom/domain seed and inspired work; the five legacy SWE-bench records preserve metadata only and the generic runner rejects them. Individual official bridge outcomes remain separate evidence tracks, not proof that an externally representative corpus or global leaderboard is complete. See `docs/task_provenance.md` and `docs/benchmark_readiness_audit.md`.
 
@@ -21,6 +21,7 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - `balanced-v1` decision index now combines local verified-normalized score (55%) with official SWE resolution rate (45%) for personal tool selection. It retains a profile fingerprint and evidence gates (3 repetitions, local coverage >=60%, at least 9 scorable official attempts); never let it replace the separate native tracks or present it as a universal benchmark score.
 - The public repository uses GPL-3.0. Before adding distributable third-party task text, assets, source, or datasets, check redistributability and preserve notices; do not treat ignored external evaluator artifacts as GPL relicensable project code.
 - `README.md` is bilingual English/Chinese for GitHub visitors; keep the two language sections semantically synchronized when public-facing workflow, cohort, license, or score interpretation changes.
+- CLI completion now refreshes `<runs-dir>/dashboard/index.html` automatically. The executable root launcher `./benchmark claude-code` is the user-facing macOS path: it defaults to three-repeat comprehensive screening, stores results in `~/Documents/AgentBenchmarkResults`, and opens the dashboard. Keep the launcher orchestration-only and preserve its smaller-suite second argument.
 
 ## User Intent Summary
 
@@ -250,7 +251,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 155 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 156 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

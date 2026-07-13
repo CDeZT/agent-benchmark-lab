@@ -79,6 +79,16 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
 
 `--model unspecified` means “use this CLI's current default model and record any observed identity.” It compares current full configurations, not a same-model harness experiment.
 
+### One Friendly Command
+
+On macOS, use the repository launcher instead of composing CLI flags:
+
+```bash
+./benchmark claude-code
+```
+
+It runs doctor and preflight, uses the fixed full cohort with three repetitions, saves everything under `~/Documents/AgentBenchmarkResults`, refreshes the dashboard, and opens the dashboard when finished. Use `./benchmark opencode hard-discrimination` for a smaller local run. Override the results directory with `AGENT_BENCH_RESULTS_DIR=/path/to/results`.
+
 ## Run The Full Fixed Cohort
 
 Run the no-cost preflight first:
@@ -209,6 +219,16 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
 ```
 
 `--model unspecified` 表示“使用该 CLI 此刻默认模型，并记录实际观察到的模型身份”。因此它比较的是当前完整配置，而不是同模型 harness 对决。
+
+### 一条友好命令
+
+在 macOS 上，不必手动拼接 CLI 参数，直接运行：
+
+```bash
+./benchmark claude-code
+```
+
+它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，将所有原始证据和结论保存到 `~/Documents/AgentBenchmarkResults`，刷新 dashboard，并在结束后自动打开看板。较小的本地实验可以用 `./benchmark opencode hard-discrimination`。使用 `AGENT_BENCH_RESULTS_DIR=/你的/结果目录` 可覆盖默认结果目录。
 
 ## 运行固定完整卷
 

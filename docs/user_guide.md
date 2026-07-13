@@ -156,6 +156,28 @@ Decision Index = 55% x local verified-normalized score
 
 决策指数**不会**改变本地 strict total，**不会**把官方题画进十维雷达图，也**不会**替代官方 resolution track。它的唯一作用是在固定 profile 下，把两个互补的结果以公开公式放到同一个选型视图中。profile 定义在 `config/decision_index_profiles.json`；任何调整必须在真实实验开始前冻结，并在报告中留下新的配置指纹。
 
+### 不想拼命令时：极简启动器
+
+在仓库根目录直接运行：
+
+```bash
+./benchmark claude-code
+```
+
+它默认使用 `comprehensive-screening-v1`、`unspecified` 当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。全部结果放在 `~/Documents/AgentBenchmarkResults`，不会污染源码目录。想先用小一些的本地硬题检查流程：
+
+```bash
+./benchmark claude-code hard-discrimination
+```
+
+可用环境变量覆盖默认归档目录而不改变命令形状：
+
+```bash
+AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" ./benchmark opencode
+```
+
+底层 `run`、`run-suite`、`run-matrix` 和各自 resume 命令也会在成功完成后自动刷新 `<runs-dir>/dashboard/index.html`；启动器只是额外帮你自动打开它。
+
 ## 6. 模型身份与比较模式
 
 ### 当前默认配置比较

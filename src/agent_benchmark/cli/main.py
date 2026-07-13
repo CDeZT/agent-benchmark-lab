@@ -625,6 +625,7 @@ def _run(args: argparse.Namespace) -> int:
         if report.exists():
             print(f"\nHTML report with radar chart: {report}", file=sys.stderr)
             print("Open with: open " + str(report), file=sys.stderr)
+    _emit_dashboard_refresh(config.runs_dir, Path(args.tasks_dir))
     return 0
 
 
@@ -636,6 +637,7 @@ def _resume(args: argparse.Namespace) -> int:
     config = _config_from_saved_data(data["config"], Path(data["runs_dir"]))
     summary = run_task(task, config, resume_experiment_dir=experiment_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    _emit_dashboard_refresh(config.runs_dir, Path(data["task_dir"]).parent)
     return 0
 
 
@@ -645,6 +647,7 @@ def _run_suite(args: argparse.Namespace) -> int:
     config = _config_from_args(args)
     suite_summary = _run_suite_with_config(suite, config, Path(args.tasks_dir))
     print(json.dumps(suite_summary, ensure_ascii=False, indent=2))
+    _emit_dashboard_refresh(config.runs_dir, Path(args.tasks_dir))
     return 0
 
 
@@ -658,6 +661,7 @@ def _resume_suite(args: argparse.Namespace) -> int:
     tasks_dir = saved_tasks_dir if saved_tasks_dir.is_dir() else Path(args.tasks_dir)
     summary = _run_suite_with_config(suite, config, tasks_dir, suite_run_dir=suite_run_dir)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    _emit_dashboard_refresh(config.runs_dir, tasks_dir)
     return 0
 
 
@@ -672,6 +676,7 @@ def _run_matrix(args: argparse.Namespace) -> int:
         Path(args.runs_dir),
     )
     print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
+    _emit_dashboard_refresh(Path(args.runs_dir), Path(args.tasks_dir))
     return 0
 
 
@@ -769,7 +774,27 @@ def _resume_matrix(args: argparse.Namespace) -> int:
         matrix_run_dir=matrix_run_dir,
     )
     print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
+    _emit_dashboard_refresh(Path(manifest["runs_dir"]), tasks_dir)
     return 0
+
+
+def _emit_dashboard_refresh(runs_dir: Path, tasks_dir: Path) -> None:
+    """Refresh the user-facing historical view after every completed run.
+
+    This is deliberately called only at CLI boundaries, never for each nested
+    task inside a suite or matrix, so long experiments do not rebuild the
+    dashboard dozens of times.
+    """
+    output_dir = runs_dir / "dashboard"
+    payload = write_dashboard(
+        runs_dir,
+        output_dir,
+        tasks_dir=tasks_dir if tasks_dir.is_dir() else None,
+    )
+    output = payload.get("output") if isinstance(payload, dict) else {}
+    html = output.get("html") if isinstance(output, dict) else None
+    if html:
+        print(f"\nDashboard refreshed: {html}", file=sys.stderr)
 
 
 def _run_matrix_with_specs(

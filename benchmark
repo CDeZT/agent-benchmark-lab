@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Friendly macOS launcher for one full single-harness benchmark experiment.
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+usage() {
+  cat <<'EOF'
+Usage: ./benchmark [adapter] [suite]
+
+Runs a complete benchmark, refreshes the dashboard, and opens it on macOS.
+
+Examples:
+  ./benchmark claude-code
+  ./benchmark opencode hard-discrimination
+  AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyResults" ./benchmark codex
+
+Defaults:
+  adapter: claude-code
+  suite: comprehensive-screening-v1
+  repetitions: 3
+  budget profile: stress
+  results directory: ~/Documents/AgentBenchmarkResults
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+ADAPTER="${1:-claude-code}"
+SUITE="${2:-${AGENT_BENCH_SUITE:-comprehensive-screening-v1}}"
+REPETITIONS="${AGENT_BENCH_REPETITIONS:-3}"
+BUDGET_PROFILE="${AGENT_BENCH_BUDGET_PROFILE:-stress}"
+RESULTS_DIR="${AGENT_BENCH_RESULTS_DIR:-$HOME/Documents/AgentBenchmarkResults}"
+LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-current-default}"
+
+mkdir -p "$RESULTS_DIR"
+
+echo "Agent Benchmark Lab"
+echo "  Adapter: $ADAPTER"
+echo "  Suite: $SUITE"
+echo "  Repetitions: $REPETITIONS"
+echo "  Results: $RESULTS_DIR"
+echo
+
+PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor || exit $?
+PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix \
+  --suite "$SUITE" \
+  --adapters "$ADAPTER" \
+  --models unspecified \
+  --budget-profiles "$BUDGET_PROFILE" \
+  --repetitions "$REPETITIONS" || exit $?
+
+run_status=0
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
+  --suite "$SUITE" \
+  --adapter "$ADAPTER" \
+  --model unspecified \
+  --budget-profile "$BUDGET_PROFILE" \
+  --repetitions "$REPETITIONS" \
+  --label "$LABEL" \
+  --runs-dir "$RESULTS_DIR" || run_status=$?
+
+PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard \
+  --runs-dir "$RESULTS_DIR" \
+  --output-dir "$RESULTS_DIR/dashboard" || true
+
+DASHBOARD="$RESULTS_DIR/dashboard/index.html"
+if [[ -f "$DASHBOARD" ]]; then
+  echo
+  echo "Dashboard: $DASHBOARD"
+  if [[ "${AGENT_BENCH_OPEN_DASHBOARD:-1}" != "0" ]] && command -v open >/dev/null 2>&1; then
+    open "$DASHBOARD"
+  fi
+fi
+
+exit "$run_status"

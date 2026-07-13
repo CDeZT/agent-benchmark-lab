@@ -66,7 +66,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "155 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "156 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Complete Docker-backed corpus audit for dependency-heavy tasks"]
     },
     {
@@ -220,7 +220,7 @@
       "id": "dashboard",
       "title": "Dashboard and historical comparison",
       "status": "implemented",
-      "evidence": ["agent-benchmark dashboard builds dashboard.json and index.html from saved runs", "Surfaces matrix leaderboards, suite/task summaries, and SWE-bench bridge evaluator_error classification", "Labels fingerprint match/mismatch and provisional CLI-default identity so historical evidence is not overclaimed"],
+      "evidence": ["agent-benchmark dashboard builds dashboard.json and index.html from saved runs", "Completed run, suite, matrix, and resume CLI paths refresh the dashboard automatically", "The executable ./benchmark launcher creates an external result root, runs preflight, and opens the dashboard on macOS", "Surfaces matrix leaderboards, suite/task summaries, and SWE-bench bridge evaluator_error classification", "Labels fingerprint match/mismatch and provisional CLI-default identity so historical evidence is not overclaimed"],
       "remaining": ["Optional live server or interactive filters", "Cross-matrix historical trend charts once more fingerprinted matrices exist"]
     }
   ]

@@ -19,7 +19,7 @@ from agent_benchmark.authoritative_pilot import _task_yaml_metadata, _validate_s
 from agent_benchmark.audit import AuditOptions, run_audit
 from agent_benchmark.comparability import preflight_matrix
 from agent_benchmark.corpus_audit import audit_corpus
-from agent_benchmark.cli.main import _official_track_summary, _run_matrix_with_specs, _run_suite_with_config, main
+from agent_benchmark.cli.main import _emit_dashboard_refresh, _official_track_summary, _run_matrix_with_specs, _run_suite_with_config, main
 from agent_benchmark.dashboard import build_dashboard, write_dashboard
 from agent_benchmark.decision_index import build_decision_index
 from agent_benchmark.doctor import format_doctor, run_doctor
@@ -2328,6 +2328,12 @@ class FrameworkTests(unittest.TestCase):
         self.assertNotIn("| `swebench:demo` |", markdown)
         self.assertIn("Decision Index", html)
         self.assertIn("Official Resolution Track", html)
+
+    def test_dashboard_refresh_creates_user_facing_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runs_dir = Path(tmp) / "results"
+            _emit_dashboard_refresh(runs_dir, ROOT / "benchmarks" / "tasks")
+            self.assertTrue((runs_dir / "dashboard" / "index.html").is_file())
 
     def test_preflight_accepts_mixed_official_swebench_suite(self) -> None:
         suite = load_suite(ROOT / "benchmarks" / "suites" / "comprehensive-screening-v1.json")

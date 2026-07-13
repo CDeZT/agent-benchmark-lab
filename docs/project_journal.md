@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-13 (iteration 48)
+
+- Made the benchmark behave like a user-facing run tool: completed CLI runs and resume paths automatically refresh the dashboard under the selected results root.
+- Added executable `./benchmark` macOS launcher. `./benchmark claude-code` performs doctor, preflight, a three-repeat comprehensive suite run, dashboard generation, external results-directory creation, and dashboard opening; a second suite argument enables smaller probes.
+
 ## 2026-07-13 (iteration 47)
 
 - Rewrote the GitHub-facing README as a true English/Chinese bilingual entry point. Both language sections now describe the same current scope, full-cohort workflow, decision-index boundary, documentation map, result-quality rules, and GPL-3.0 terms.
