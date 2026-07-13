@@ -115,3 +115,7 @@ open runs/dashboard/index.html
 - `runs/` 是证据产物且被 gitignore；不要提交其中的模型日志、patch 或可能包含敏感信息的输出。
 
 完整命令、统计定义、adapter 差异与常见误读，见 [用户手册](docs/user_guide.md)。
+
+## 许可证
+
+本项目采用 [GNU General Public License v3.0](LICENSE)（GPL-3.0）。你可以使用、修改和分发它；发布基于本项目的衍生作品时，须按 GPL-3.0 提供相应源码并保留许可证与版权声明。项目按“现状”提供，不提供担保。

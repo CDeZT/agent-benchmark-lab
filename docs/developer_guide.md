@@ -213,6 +213,8 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-di
 
 提交前运行自检、阅读 `git status`，只 stage 当前任务相关文件。保留用户或其他 agent 的无关改动；不使用 destructive git 操作。确认无误后 commit。`runs/`、本地 registry、provider 凭据和任何 token/日志证据不提交。
 
+仓库代码采用 GPL-3.0；新增可分发的第三方源码、数据集、任务文本或资源前，必须核对其许可证是否允许再分发，并保留必要 notice。冻结的权威 benchmark metadata 与忽略的运行产物不能被误写成由本项目重新授权。
+
 ## 11. 当前下一阶段
 
 最有价值的下一步不是增加更多表面功能：

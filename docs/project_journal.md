@@ -1,5 +1,9 @@
 # Project Journal
 
+## 2026-07-13 (iteration 46)
+
+- Published the repository under GPL-3.0. The README and developer guidance now state the copyleft boundary and require a redistributability/notice review before adding third-party source, task text, data, or assets.
+
 ## 2026-07-13 (iteration 45)
 
 - Added a versioned `balanced-v1` personal decision index: 55% local verified-normalized score plus 45% official SWE resolution rate. It stores the complete profile and SHA-256 fingerprint, applies explicit readiness gates, and never changes the native local/official score tracks or radar charts.

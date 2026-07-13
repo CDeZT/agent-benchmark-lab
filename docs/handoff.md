@@ -19,6 +19,7 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - Tightened process evidence: `instruction_match` is heuristic intent evidence, Claude `num_turns` is heuristic rather than verified tool telemetry, and planning word checks are case-insensitive when the task contract asks for concepts rather than exact casing.
 - Real Claude Code sample audit: post-fix `process-planning` passed public/hidden tests and planning checks; `frontend-visual` exposed a genuine hidden visual failure; `embedded-protocol-parser` passed 8/8 public and 22/22 hidden tests but legitimately received only 50 execution-quality points due to maximum nesting depth 7 > 5. These are pipeline checks, not a 3-repeat comparative conclusion.
 - `balanced-v1` decision index now combines local verified-normalized score (55%) with official SWE resolution rate (45%) for personal tool selection. It retains a profile fingerprint and evidence gates (3 repetitions, local coverage >=60%, at least 9 scorable official attempts); never let it replace the separate native tracks or present it as a universal benchmark score.
+- The public repository uses GPL-3.0. Before adding distributable third-party task text, assets, source, or datasets, check redistributability and preserve notices; do not treat ignored external evaluator artifacts as GPL relicensable project code.
 
 ## User Intent Summary
 

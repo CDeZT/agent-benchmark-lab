@@ -73,6 +73,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - 任务内容指纹是结果有效性边界：不得把缺失或不匹配 `task_fingerprint` 的旧 summary 用于难度校准、筛选、排名或胜负结论；任务变动后不得绕过 resume 的指纹拒绝。
 - 重复 run 的任务级 95% CI 使用 Student-t（2-30 次）；单次 run 必须显示 CI unavailable。不要为跨任务 matrix 汇总制造一个统计上无意义的总 CI。
 - 每次新增功能后，必须补测试或可验证命令。
+- 本仓库采用 GPL-3.0。新增可分发的第三方源码、数据集、任务文本或资源前，核对其再分发许可并保留必要 notice；不要把冻结 metadata 或 `runs/` 中的外部 evaluator 产物重新授权为项目代码。
 - 每次迭代结束前必须运行自检，至少运行 `agent-benchmark audit`。
 - 每次迭代如果改变需求状态，必须更新：
   - README.md
