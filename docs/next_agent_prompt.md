@@ -28,6 +28,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - docs/model_modes.md
 - docs/screening_exam_policy.md
 - docs/user_guide.md
+- docs/developer_guide.md
 - docs/benchmark_readiness_audit.md
 - README.md
 

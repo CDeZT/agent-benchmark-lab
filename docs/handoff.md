@@ -34,6 +34,7 @@ The user values reliable results over low cost or short runtime. Repeated runs, 
 Embedded engineering and optics should be preserved as long-term domain requirements.
 
 For the user-facing operating manual, task inventory, score interpretation, and real-run commands, read `docs/user_guide.md` first.
+For repository architecture, extension contracts, test discipline, recovery semantics, and documentation maintenance, read `docs/developer_guide.md` next.
 
 ## Completed
 

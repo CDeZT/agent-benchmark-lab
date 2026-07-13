@@ -1,94 +1,46 @@
 # Agent Benchmark Lab
 
-Agent Benchmark Lab is a long-term benchmark project for measuring real coding-agent combinations:
+一个长期维护的个人 coding-agent 实验室，用来比较真实组合：
 
 ```text
-harness x model x task x environment x budget profile -> evidence-backed scores
+harness x model x fixed task cohort x environment x budget profile
+    -> raw evidence + multi-dimensional scores + uncertainty
 ```
 
-The project is intentionally broader than a model leaderboard. It is designed to answer practical questions such as:
+它服务于两个不同的问题：
 
-- Which harness is stronger when using the same model?
-- Which model works best inside the same harness?
-- Which harness/model pair best matches a user's real engineering workflow?
-- How well does an agent understand intent, plan, use tools, test, inspect visuals, repair bugs, and continue autonomously?
+- **当前配置比较**：例如此刻的 Claude Code、opencode、Codex、Aider 分别使用其当前默认模型时，哪个更适合你的实际工作流。
+- **严格同模型比较**：只有 adapter 能选择同一模型、并且输出中验证模型身份后，才比较 harness 本身。
 
-## Current Status
+它不是模型排行榜，也不会把不同 evaluator 的分数伪装成一个万能总分。
 
-当前仓库是**可个人使用**的早期 benchmark framework，**不是**做完的权威排行榜。  
-本地可评测任务含 **8 道光学梯子**；多数纯 Python/光学为 `container_required`（Docker 题/答分离）；C/嵌入式本机编译。  
-SWE bridge 已修：`patch_missing` 禁止无意义 resume、harness 硬超时。  
-完整个人使用手册、题库数量、评分与命令见 `docs/user_guide.md`；严肃 benchmark 缺口见 `docs/benchmark_readiness_audit.md`。
+## 当前可用程度
 
-已实现：
-- 10 维度加权评分体系；所有非零分都必须来自可保存证据：
-  - task_completion(30%) — 公开/隐藏测试执行结果
-  - intent_understanding(10%) — agent 是否修改了正确的文件
-  - planning(8%) — plan.md 文件存在且内容合格
-  - execution_quality(12%) — agent 是否真的修改了源码
-  - self_repair(10%) — stdout/stderr 中的自我修复模式
-  - test_discipline(10%) — 测试文件质量和数量
-  - tool_use(6%) — 工具调用多样性和数量
-  - visual_verification(4%) — HTML 静态检查
-  - safety_boundary(6%) — SHA-256 完整性检查
-  - cost_efficiency(4%) — 仅使用真实 token/cost 数据；没有真实用量证据时为 0
-- 本地可评测任务（bugfix/feature/refactor/test-writing/visual/embedded/**optics 梯子 8 题**/fullstack/data-pipeline/CI调试/代码审查/代码库理解/项目生成/并发系统等）
-- **题/答分离 + Docker**：agent 只见 `workspace`；`hidden/` 仅评分时以只读挂载进容器；`solution/` 永不给 agent。多数纯 Python/光学题为 `container_required`；C/前端等仍有 host 评测缺口（迭代中）。
-- 套件：`optics-discrimination`（光学区分度）、`hard-discrimination`、`comprehensive-screening-v1`（本地 + SWE-bench 固定 cohort，分轨报告）等
-- 报告：单题 HTML 含 **10 维过程雷达**；suite HTML 含 **领域轴雷达**（含科学计算/光学）
-- 当前有 5 个 SWE-bench 冻结元数据记录；权威实跑经 bridge 进统一 suite 平均。详见 `docs/task_provenance.md` / `docs/unified_scoring.md`。
-- Docker evaluator v1：精确版本依赖（stdlib 可空包列表）、隔离 workspace、隐藏测试只读挂载、CPU/内存限制，并保存 Dockerfile/镜像 ID/构建日志。
-- 7 种内置适配器（dummy/generic-command/opencode/claude-code/codex/aider/grok）+ `config/harnesses.example.json` 配置化登记任意 headless CLI；示例不会自动注册为可运行 adapter，需复制为被忽略的 `config/harnesses.json` 或通过 `AGENT_BENCH_HARNESSES_FILE` 显式启用。
-- 真实 harness 输出解析（模型名、工具调用、token、cost）
-- 两种明确的模型模式：默认的 `cli_default_configurations` 直接比较两个 CLI 此刻的真实默认配置；显式同模型模式才使用 registry，且跨 harness 的“同模型”结论必须是 `verified_match`，不能只看用户标签。详见 `docs/model_modes.md`。
-- `config/model_registry.example.json` 是可选的高级能力：把同一规范模型名映射为 Claude Code / opencode 各自需要的 CLI 参数，避免不同 CLI 命名导致伪同模型比较。
-- 矩阵运行与恢复（adapter × model × budget_profile）；每个组合与内部 suite 都有 checkpoint，`resume-matrix` 可补跑未完成组合
-- `bounded` 等 profile 会把最长时长传递为真实 adapter 子进程超时；`open_ended` 不限时。Ctrl-C 会保留中断事件、checkpoint 和说明文件，`resume` 只重跑没有 `result.json` 的 repetition。
-- 矩阵报告同时展示原始 suite 汇总和仅含 `comparative_candidate` 的排名；排名使用每个任务、每次重复、所有组合共同具备证据的维度，严格分、可验证分、覆盖率、通过率、方差、时长、成本并列展示，`smoke_only` 自动排除出排名。`preflight-matrix` 会在花费 token 前检查统计重复、题目角色、隐藏测试、Docker、适配器和模型映射。
-- 公开测试（19/19）+ 隐藏测试（16/19）+ SHA-256 完整性检查
-- 静态 HTML 视觉检查
-- Playwright Chromium 截图与像素证据：检查元素实际可见、截图非空和像素标准差，PNG 保存到每次 run 的 `visual/` 证据目录
-- 过程检查（plan.md、文件变更、测试质量、指令匹配）
-- Markdown + HTML 报告（含 SVG 雷达图）
-- 自动计算均值、方差、标准差，以及基于 Student-t 的任务级 95% 置信区间（单次 run 不伪造 CI）
-- 严格总分 + 已验证证据覆盖率 + 已验证维度归一化分，防止将“暂未测到的维度为 0”误读为能力失败
-- `calibrate-difficulty`：依据真实 harness/实际检测模型的多组合、多次运行的通过率与差异判断题目区分度；默认要求每个组合至少 3 次、总计至少 9 次，并排除模型身份未检测到的历史 run
-- `screening-report`：区分 smoke、等待真实数据、需要重做、容器题库门未通过和已具筛选性的题；`selection-ladder` 从 expert 到 easy 排列，smoke 题不参与排名
-- `preflight-authoritative`：校验 SWE-bench Verified 与 Terminal-Bench 的官方 evaluator 契约、Docker 和本机所需上游工具；它不会把“可执行”误报为“已导入”。
-- `scripts/setup_authoritative_evaluators.sh`：在隔离 SWE-bench Python 环境与 Terminal-Bench `uv tool` 环境中安装官方工具，再执行预检。
-- 已冻结一个真实 SWE-bench Verified 六题 pilot：前五道复杂真实 issue 才是 `ranking_candidate`，最后一道 `<15 min` 题仅作 `diagnostic_tail`；冻结元数据不是 agent 跑分，仍不计入排行榜。
-- `swebench-bridge`：单实例地将 harness 生成的 git patch 交给官方 SWE-bench Docker evaluator，并保存上游快照、patch、harness 日志、官方原始日志和 report。默认只输出执行计划；必须显式加 `--execute` 才会消耗模型额度或构建大镜像。
-- 第一次真实 expert SWE-bench bridge 已保存 opencode 的 patch 与官方 evaluator 原始报告；官方报告的 `error_ids` 会被明确分类为 `evaluator_error`、不可计分，不会伪装成模型未解决或已完成。详见 `docs/real_harness_calibration.md`。
-- 已冻结一个独立 Terminal-Bench Core 六题工程 pilot：前五道涵盖 C path tracing、Linux kernel/QEMU、盲迷宫算法、Raman 光谱拟合、tmux 调试工作流；`.easy` variant 仅诊断，不参与排名。
-- 每次任务、suite 和 matrix run 都记录完整题目契约指纹；题目内容变化后旧 run 自动退出难度校准和筛选统计，恢复操作也会拒绝混用新旧任务
-- 可恢复实验：task run 写入 manifest 和 repetition checkpoint；suite run 也会保存每个任务摘要和 checkpoint。中断后用 `resume` 或 `resume-suite` 仅补做未完成工作。
-- Outcome capability scorecard：软件工程、agent 工作流、系统/嵌入式、科学计算/光学、Web/UI、安全可靠性分别汇总，`smoke_only` 任务自动排除出比较分数
-- 一键审计、环境诊断、交接提示
-- 本地历史 dashboard：`agent-benchmark dashboard` 从 `runs/` 汇总 matrix/suite/task/SWE-bench bridge 证据，并标注指纹与模型身份是否可用于当前结论
-- `config/model_registry.json` 仅保留诚实的同模型映射；不再把 longcat 伪映射到 claude-code 的 mimo
-- 已有一条真实嵌入式硬题失败校准样本；详见 `docs/real_harness_calibration.md`。单次结果不进入 harness/model 排行榜。
+当前版本可以可靠完成：任务隔离、公开/隐藏测试、受保护文件完整性、单题/套件/矩阵运行、可恢复中断、真实 CLI adapter、报告、重复运行统计，以及本地题与官方 SWE-bench evaluator 的分轨报告。
 
-See `docs/user_guide.md` for the current personal workflow and `docs/personal_v1.md` for the original "complete enough" finish line (run → score → radar → dashboard).
-See `docs/roadmap.md` and `docs/handoff.md` before extending the system.
+当前版本还**不能**诚实地宣称“Claude Code 比 opencode 强”或“题库已经验证有区分度”：这需要至少三个可识别的真实配置、每个配置至少三次重复，并使用 `screening-report` 证明题目不是过易、过难或无差异。当前筛选就绪题数量为 0；这是严谨的状态提示，不是运行故障。
 
-### Where is the radar chart?
+固定完整卷 `comprehensive-screening-v1` 已可一条命令执行：11 道本地 expert-to-easy 比较题 + 9 道 SWE-bench Verified 高难候选 + 1 道 diagnostic tail。报告输出两条互不混淆的结论：
 
-Already implemented. After any task run:
+1. **Local scorecard**：本地十维、verified coverage、领域轴、均值、方差和 CI。
+2. **Official SWE resolution track**：官方 evaluator 的 `resolved / scorable attempts` 与 resolution rate。
 
-```bash
-open runs/<experiment-id>/report.html
-```
+官方 evaluator 错误不算模型失败；官方结果不进入本地总分、领域轴、雷达图或 matrix 排名。
 
-Look for **Radar Snapshot**. The dashboard also embeds recent radars:
+## 文档入口
 
-```bash
-PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
-open runs/dashboard/index.html
-```
+| 读者 | 文档 | 用途 |
+| --- | --- | --- |
+| 日常使用者 | [用户手册](docs/user_guide.md) | 从环境检查、单题 smoke、矩阵比较到完整卷、统计解释、结果阅读与恢复。 |
+| 开发者/下一位 agent | [开发者手册](docs/developer_guide.md) | 架构、目录、任务/adapter/评分扩展、测试与文档维护规则。 |
+| 需要判断结果能否对外使用的人 | [基准就绪审计](docs/benchmark_readiness_audit.md) | 已知缺口、科学边界和达到高可信结论的最短路径。 |
+| 接手持续开发的人 | [交接文档](docs/handoff.md) 与 [下一 agent 提示词](docs/next_agent_prompt.md) | 当前状态、未完成事项、强制规则、可直接复制的交接 prompt。 |
+| 需要理解分数的人 | [评分规范](docs/scoring.md) 与 [能力分类](docs/capability_taxonomy.md) | 权重、证据状态、统计口径和领域轴。 |
+| 需要扩展权威题库的人 | [题库策略](docs/corpus_strategy.md) 与 [题目来源](docs/task_provenance.md) | 自建题、SWE-bench、Terminal-Bench 的来源和隔离边界。 |
 
-## Quick Start
+## 5 分钟验证
 
-Browser visual checks need one-time local setup:
+浏览器视觉检查首次需要：
 
 ```bash
 python3 -m pip install -r requirements-browser.txt
@@ -96,68 +48,68 @@ npm ci
 npx playwright install chromium
 ```
 
+随后先检查环境和项目自身，不消耗模型额度：
+
 ```bash
-PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
-PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
-PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty
-PYTHONPATH=src python3 -m agent_benchmark.cli.main screening-report
-PYTHONPATH=src python3 -m agent_benchmark.cli.main taxonomy
-PYTHONPATH=src python3 -m agent_benchmark.cli.main audit-corpus
-PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-authoritative
-PYTHONPATH=src python3 -m agent_benchmark.cli.main freeze-authoritative-pilot --pilot swe-bench-verified-screening-v1
-PYTHONPATH=src python3 -m agent_benchmark.cli.main freeze-authoritative-pilot --pilot terminal-bench-core-engineering-v1
-PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode
-# Confirmed and resource-intensive: one instance only, resume with --bridge-dir if interrupted.
-PYTHONPATH=src python3 -m agent_benchmark.cli.main swebench-bridge --instance-id sympy__sympy-13878 --adapter opencode --execute
-PYTHONPATH=src python3 -m agent_benchmark.cli.main terminal-bench-bridge --instance-id path-tracing --adapter opencode
-# Confirmed and resource-intensive: official Terminal-Bench Docker sandbox.
-PYTHONPATH=src python3 -m agent_benchmark.cli.main terminal-bench-bridge --instance-id path-tracing --adapter opencode --execute
-PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
-PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
-PYTHONPATH=src python3 -m agent_benchmark.cli.main status
 PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor
+PYTHONPATH=src python3 -m agent_benchmark.cli.main validate
 PYTHONPATH=src python3 -m agent_benchmark.cli.main audit
-PYTHONPATH=src python3 -m agent_benchmark.cli.main audit --include-real-harness
-PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
-PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter dummy --model smoke --budget-profile oneshot --repetitions 3
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter claude-code --repetitions 1
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run --task python-bugfix --adapter grok --repetitions 1
-# Optics discrimination ladder (Docker + problem/answer split, 8 tasks):
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite optics-discrimination --adapter claude-code --repetitions 1
-# Harder local discrimination (prefer hard/expert tasks, planning artifact required on several):
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite hard-discrimination --adapter claude-code --repetitions 1
-# Full fixed screening cohort: 11 local tasks + 9 SWE-bench ranking tasks + 1 diagnostic tail.
-# Local multi-dimensional results and official SWE resolution rate are reported separately.
-PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite comprehensive-screening-v1 --adapters claude-code --models unspecified --budget-profiles stress --repetitions 3
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite comprehensive-screening-v1 --adapter claude-code --model unspecified --budget-profile stress --repetitions 3 --label comprehensive-v1
-# Any headless CLI without a built-in adapter: copy config/harnesses.example.json → config/harnesses.json and add a command template.
-# Evidence policy: docs/evidence_and_corpus.md
-PYTHONPATH=src python3 -m agent_benchmark.cli.main resume --experiment-dir runs/<experiment-id>
-PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite --suite-run-dir runs/<suite-run-id>
-PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-matrix --matrix-run-dir runs/<matrix-run-id>
-PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix --suite calibration --adapters opencode,claude-code --models unspecified --repetitions 3
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite calibration --adapters opencode,claude-code --models unspecified --repetitions 3
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite foundation --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite --suite calibration --adapter dummy --model smoke --budget-profile open_ended --repetitions 3
-PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix --suite foundation --adapters dummy --models smoke-a,smoke-b --budget-profiles oneshot,open_ended --repetitions 1
-PYTHONPATH=src python3 -m unittest discover -s tests -v
+PYTHONPATH=src python3 -m agent_benchmark.cli.main list-adapters
+PYTHONPATH=src python3 -m agent_benchmark.cli.main list-suites
 ```
 
-The normal real matrix uses `--models unspecified`: Claude Code and opencode each keep using whichever model the user currently configured in that CLI. This is a practical comparison of current full configurations, not a same-model claim, and reports preserve observed identities. Only use `config/model_registry.example.json` plus an explicit `--models` value for a deliberate same-model experiment; its conclusion still requires saved `verified_match` evidence. See `docs/model_modes.md`.
-
-Run outputs are written under `runs/` by default.
-
-## Safety
-
-API keys, provider credentials, and local harness configuration must be supplied through environment variables or local files excluded by `.gitignore`. This repository should never store secrets.
-
-## Handoff
-
-For context transfer to another agent, use:
+用一个真实 adapter 做低成本连通性验证：
 
 ```bash
-PYTHONPATH=src python3 -m agent_benchmark.cli.main next-agent-prompt
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
+  --task python-bugfix --adapter claude-code \
+  --model unspecified --repetitions 1
 ```
 
-The source file is `docs/next_agent_prompt.md`.
+`--model unspecified` 的含义是“使用该 CLI 当前默认模型并记录实际观察到的身份”，因此它比较的是当前完整配置，而不是同模型 harness 对决。
+
+## 运行完整固定卷
+
+先做不花 token 的预检：
+
+```bash
+PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix \
+  --suite comprehensive-screening-v1 \
+  --adapters claude-code --models unspecified \
+  --budget-profiles stress --repetitions 3
+```
+
+然后运行：
+
+```bash
+PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
+  --suite comprehensive-screening-v1 \
+  --adapter claude-code --model unspecified \
+  --budget-profile stress --repetitions 3 \
+  --label comprehensive-v1
+```
+
+该命令可能运行很久并消耗实际 provider 额度。中断后使用命令输出的目录恢复，不会重新运行已有 summary：
+
+```bash
+PYTHONPATH=src python3 -m agent_benchmark.cli.main resume-suite \
+  --suite-run-dir runs/<suite-run-id>
+```
+
+报告在 `runs/<suite-run-id>/suite_report.html`、`suite_report.md` 和 `suite_summary.json`。生成历史看板：
+
+```bash
+PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard
+open runs/dashboard/index.html
+```
+
+## 核心规则
+
+- 不要把单次 run、未知模型身份或低 evidence coverage 当作能力排名。
+- 每个严肃比较使用同一固定 cohort，至少三次重复；看均值、方差、任务级 95% CI、失败样本和领域轴，不只看 strict total。
+- `strict total`、`verified coverage`、`verified normalized score` 必须一起看。未测维度为 0 是保守处理，不等于任务一定失败。
+- 工具数不是成本；只有真实 token/cost 会被保存。成本效率要计分时，必须在运行前冻结任务级 `metadata.cost_budget_usd`。
+- `external_frozen` 元数据不能被普通 runner 当成权威题；SWE-bench 和 Terminal-Bench 必须走各自官方 bridge/evaluator。
+- `runs/` 是证据产物且被 gitignore；不要提交其中的模型日志、patch 或可能包含敏感信息的输出。
+
+完整命令、统计定义、adapter 差异与常见误读，见 [用户手册](docs/user_guide.md)。

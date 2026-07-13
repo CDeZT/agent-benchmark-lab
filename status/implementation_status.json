@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-07-12",
+  "updated_at": "2026-07-13",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
     "plain_language": "The repository has a usable personal benchmark foundation: 26 locally runnable tasks, five SWE-bench metadata records quarantined as external_frozen, and thirteen suites. comprehensive-screening-v1 gives one resumable command for a fixed 11-task local cohort plus a 9-task SWE-bench Verified hard cohort and one diagnostic tail, while deliberately separating local multidimensional scores from official resolution rate. Codex, Aider, Claude Code, opencode, and Grok have built-in adapter contracts. The corpus has baseline/reference contrast for 21 records, but five dependency-heavy container tasks still need the same Docker-backed corpus audit and no task is empirically selection-ready yet."
@@ -178,7 +178,7 @@
       "id": "handoff_and_journal",
       "title": "Handoff and development journal",
       "status": "implemented",
-      "evidence": ["docs/handoff.md, docs/project_journal.md, docs/corpus_strategy.md, and docs/next_agent_prompt.md are maintained"],
+      "evidence": ["docs/handoff.md, docs/project_journal.md, docs/corpus_strategy.md, docs/developer_guide.md, and docs/next_agent_prompt.md are maintained"],
       "remaining": ["Keep updating after each meaningful phase"]
     },
     {

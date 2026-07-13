@@ -20,6 +20,7 @@ The project now has a usable early benchmark framework:
 - Local harness/environment doctor.
 - A one-command audit path.
 - A copy-paste next-agent handoff prompt.
+- A consolidated developer guide for repository extension and maintenance.
 - JSONL traces.
 - Diffs.
 - stdout/stderr logs.

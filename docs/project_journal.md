@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-13 (iteration 44)
+
+- Re-audited the repository as an end-user and next-developer handoff. The framework is usable for real fixed-cohort experiments, but the local selection gate remains zero-ready until three identified configurations each complete three repetitions.
+- Replaced stale, contradictory README claims with a concise accurate entry point: local and official tracks are explicitly separate, the fixed full cohort is documented, and the user-facing documentation map is visible immediately.
+- Added `docs/developer_guide.md`, consolidating repository topology, task contracts, suite/external-track boundaries, evidence states, adapter/scorer/report extension rules, self-checks, recovery, documentation and Git maintenance requirements.
+
 ## 2026-07-12 (iteration 43)
 
 - Added fixed `comprehensive-screening-v1`: 11 local comparative tasks from expert through easy, nine SWE-bench Verified hard ranking candidates, and one final diagnostic tail. `run-suite` runs all of it with suite resume; `preflight-matrix` now recognizes `swebench:` IDs rather than rejecting a mixed suite as missing local manifests.
