@@ -33,7 +33,11 @@ Implemented. It copies a task's `solution/` files into the workspace. This adapt
 
 ### opencode
 
-Adapter shell implemented. Configure with `AGENT_BENCH_OPENCODE_COMMAND`. The task instruction is passed on stdin from inside the isolated workspace, and is also available through command placeholders. The exact command template should be refined after testing against the user's local opencode CLI.
+Implemented. Built-in default uses OpenCode's structured non-interactive mode:
+
+`opencode run --auto --format json "$(cat {instruction_file})"`
+
+When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `-m "$AGENT_BENCH_MODEL"`. The current local CLI successfully accepted `-m longcat/LongCat-2.0`. OpenCode's JSONL step events provide token/cost telemetry; its probe creates one temporary JSON session, then reads `opencode export <session-id>` to obtain the actual default model before task 1. Override with `AGENT_BENCH_OPENCODE_COMMAND`.
 
 ### claude-code
 
@@ -116,7 +120,7 @@ An explicit adapter timeout environment variable takes precedence. Otherwise a p
 
 Built-in default templates:
 
-- opencode 1.17.15 always uses `opencode run --auto "$(cat {instruction_file})"`. Its `--model` flag currently crashes against this local CLI/provider setup, so the matrix command cannot select an opencode model; it intentionally uses the current opencode configured default and records any identity available from saved output.
+- opencode uses `opencode run --auto --format json`; its current local CLI accepts `-m provider/model` for an explicit model experiment. In `unspecified` mode, the adapter uses the present OpenCode default and the startup probe records `opencode export <session-id>` metadata before task 1.
 - claude-code uses `claude -p --output-format json --dangerously-skip-permissions --no-session-persistence "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
 - codex uses the JSONL `exec` template above; aider uses `--message-file` with git auto-commits disabled.
 

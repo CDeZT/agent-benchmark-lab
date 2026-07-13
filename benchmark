@@ -118,9 +118,9 @@ fi
 RESULTS_DIR="${AGENT_BENCH_RESULTS_DIR:-$DEFAULT_RESULTS_DIR}"
 LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-${MODEL}}"
 
-if [[ "$ADAPTER" == "opencode" ]]; then
-  MODEL_MODE="harness configured default (override is not supported by this adapter)"
-elif [[ "$ADAPTER" == "claude-code" && "$MODEL" == "unspecified" ]]; then
+if [[ "$ADAPTER" == "claude-code" && "$MODEL" == "unspecified" ]]; then
+  MODEL_MODE="current CLI default (verified before task 1)"
+elif [[ "$ADAPTER" == "opencode" && "$MODEL" == "unspecified" ]]; then
   MODEL_MODE="current CLI default (verified before task 1)"
 elif [[ "$MODEL" == "unspecified" ]]; then
   MODEL_MODE="current CLI default (will identify from harness output)"

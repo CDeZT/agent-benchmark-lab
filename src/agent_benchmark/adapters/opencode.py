@@ -11,11 +11,13 @@ class OpencodeAdapter(ShellCommandAdapter):
     """
 
     name = "opencode"
-    model_selection = "configured_default_only"
+    model_selection = "cli"
     command_env = "AGENT_BENCH_OPENCODE_COMMAND"
     timeout_env = "AGENT_BENCH_OPENCODE_TIMEOUT_SECONDS"
     default_command_template = (
-        # opencode 1.17.15 --model flag triggers server errors. Run without --model;
-        # the harness uses its own configured default model.
-        'opencode run --auto "$(cat {instruction_file})"'
+        'if [ "$AGENT_BENCH_MODEL" = "unspecified" ]; then '
+        'opencode run --auto --format json "$(cat {instruction_file})"; '
+        "else "
+        'opencode run --auto --format json -m "$AGENT_BENCH_MODEL" "$(cat {instruction_file})"; '
+        "fi"
     )

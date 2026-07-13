@@ -180,7 +180,7 @@ agent-benchmark claude-code
 agent-benchmark claude-code --model deepseek-v4-flash
 ```
 
-这会把该模型请求传给支持显式选择的 harness，并等待实际输出验证身份；它不是“参数写了就已经证实”。opencode 当前只支持自身已配置的默认模型，传入 `--model` 时启动器和 TUI 会明确提示该请求不会作为 opencode 覆盖参数发送，避免产生错误的同模型结论。想先用小一些的本地硬题检查流程：
+这会把该模型请求传给支持显式选择的 harness，并等待实际输出验证身份；它不是“参数写了就已经证实”。当前本机 OpenCode 已实际验证可接受 `--model provider/model`（例如 `longcat/LongCat-2.0`），因此它也可进入经过身份验证的同模型实验。想先用小一些的本地硬题检查流程：
 
 ```bash
 agent-benchmark claude-code --suite hard-discrimination
@@ -202,7 +202,7 @@ AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" agent-benchmark ope
 
 底层 `run`、`run-suite`、`run-matrix` 和各自 resume 命令也会在成功完成后自动刷新 `<runs-dir>/dashboard/index.html`；启动器只是额外帮你自动打开它。
 
-每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、最近三次 attempt、耗时、ETA，以及 `requested`、实际送往 adapter 的 `adapter_model`、选择能力和 parser-derived `observed_models`。Claude Code 使用当前默认模型时，会在 suite 根目录保存一次 `model_probe.json`：它在临时目录中禁用工具、要求固定短回复、使用 JSON 读取 `modelUsage`，并把单次身份探针硬限制在 `$0.05`。这让全屏 TUI 在第一道题前显示实际观察到的模型；resume 会复用该文件，不再增加探针调用。Codex 若在可读取配置中声明默认模型，首屏会显示为“configured default (unverified)”，直到任务输出验证；OpenCode 与 MimoCode 默认输出没有安全、低成本的模型身份字段时会明确显示 pending，而不会猜模型。默认的宽交互终端采用彩色、居中的会话流运行页：harness、模型身份、状态与可读任务标题都在首屏，task id 是次级信息；首帧绘制后只更新变化的行，避免闪烁与 80x24 滚屏。它显示进度、ETA、runner 生命周期和实际检测到的工作区修改，不会伪装成 harness 工具调用或模型思考。`AGENT_BENCH_COLOR=never` 可关闭颜色。若多次 attempt 观察到不同模型，TUI 和状态文件会保留全部身份并标记 `observed_multiple`，而不是只展示最后一次。`unspecified` 会诚实显示为“current CLI default”，直至 probe 或 harness 输出给出模型证据，不能据此宣称同模型。`AGENT_BENCH_TUI=compact` 可强制原有单行样式，`AGENT_BENCH_TUI=full` 可强制全屏，窄终端或 `TERM=dumb` 会自动退化。需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
+每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、最近三次 attempt、耗时、ETA，以及 `requested`、实际送往 adapter 的 `adapter_model`、选择能力和 parser-derived `observed_models`。Claude Code 使用当前默认模型时，会在 suite 根目录保存一次 `model_probe.json`：它在临时目录中禁用工具、要求固定短回复、使用 JSON 读取 `modelUsage`，并把单次身份探针硬限制在 `$0.05`。OpenCode 也会在临时目录启动一次短 JSON session，再从同一 session 的 `opencode export` 元数据读取实际默认模型；这次 probe 在本机实测为 `LongCat-2.0`，成本约 `$0.006`。两者都会让全屏 TUI 在第一道题前显示实际观察到的模型，resume 会复用已保存的 probe。Codex 若在可读取配置中声明默认模型，首屏会显示为“configured default (unverified)”，直到任务输出验证；MimoCode 默认 JSONL 没有模型字段时会明确显示 pending，而不会猜模型。默认的宽交互终端采用 Rich 管理的彩色 alternate-screen 运行页：harness、模型身份、状态与可读任务标题都在首屏，宽屏显示当前任务与运行上下文两栏，下面是完整活动流；不再由项目手写光标控制序列。它显示进度、ETA、runner 生命周期和实际检测到的工作区修改，不会伪装成 harness 工具调用或模型思考。`AGENT_BENCH_COLOR=never` 可关闭颜色。若多次 attempt 观察到不同模型，TUI 和状态文件会保留全部身份并标记 `observed_multiple`，而不是只展示最后一次。`unspecified` 会诚实显示为“current CLI default”，直至 probe 或 harness 输出给出模型证据，不能据此宣称同模型。`AGENT_BENCH_TUI=compact` 可强制原有单行样式，`AGENT_BENCH_TUI=full` 可强制全屏，窄终端或 `TERM=dumb` 会自动退化。需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
 
 **当前边界：** 启动器会检查环境，但不会自动安装 Python/Node/Playwright 依赖、启动 Docker/Colima、完成 provider 登录，或替你处理需要确认的系统级操作。遇到 doctor/preflight 失败时，当前版本仍需要按提示修复。未来会补自动诊断与受控修复，并交付独立原生 macOS App；在那之前，不应把现有 CLI 流程理解为零配置产品。
 
@@ -224,7 +224,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-matrix \
 
 ### 同模型不同 harness 比较
 
-只有所有 adapter 都能明确选择同一个模型、运行输出也证实为 `verified_match` 时，才能说“同模型下谁的 harness 更强”。使用本地、被忽略的 `config/model_registry.json` 做 adapter-specific 参数映射，再先运行 `preflight-matrix`。opencode 1.17.15 已知不能可靠使用 `--model`，所以它目前的显式同模型结论必须特别谨慎。
+只有所有 adapter 都能明确选择同一个模型、运行输出也证实为 `verified_match` 时，才能说“同模型下谁的 harness 更强”。使用本地、被忽略的 `config/model_registry.json` 做 adapter-specific 参数映射，再先运行 `preflight-matrix`。本机 OpenCode 1.17.15 已实测接受 `--model provider/model`，但每一条同模型结论仍必须检查保存的 `verified_match`，不能仅凭参数标签。
 
 ## 7. 从零开始的个人工作流
 

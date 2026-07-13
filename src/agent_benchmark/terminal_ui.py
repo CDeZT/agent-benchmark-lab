@@ -16,7 +16,20 @@ import shutil
 import sys
 from threading import Event, Lock, Thread
 import time
-from typing import TextIO
+from typing import Any, TextIO
+
+try:
+    from rich import box
+    from rich.columns import Columns
+    from rich.console import Console, Group
+    from rich.live import Live
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.text import Text
+
+    _RICH_AVAILABLE = True
+except ImportError:  # pragma: no cover - exercised only before dependencies install.
+    _RICH_AVAILABLE = False
 
 
 def _utc_now() -> str:
@@ -135,7 +148,7 @@ class SuiteProgress:
         self._workspace_snapshot: dict[str, int] = {}
         self._workspace_change_count = 0
         self._last_workspace_scan = 0.0
-        self._last_frame: list[str] = []
+        self._rich_live: Any | None = None
 
     def start(self) -> None:
         with self._lock:
@@ -144,12 +157,26 @@ class SuiteProgress:
                 self._add_activity_locked("system", f"Model observed by startup probe: {self.observed_model}")
             self._persist_locked()
             if self.enabled:
-                if self._full_screen:
-                    # Keep normal shell scrollback clean, matching the behavior
-                    # people expect from a dedicated coding-agent TUI.
-                    self.stream.write("\033[?1049h\033[?25l")
+                if self._full_screen and _RICH_AVAILABLE:
+                    dimensions = shutil.get_terminal_size(fallback=(100, 24))
+                    console = Console(
+                        file=self.stream,
+                        force_terminal=True,
+                        color_system="truecolor" if self._colour_enabled else None,
+                        width=dimensions.columns,
+                        height=dimensions.lines,
+                    )
+                    self._rich_live = Live(
+                        console=console,
+                        screen=True,
+                        transient=True,
+                        auto_refresh=False,
+                        vertical_overflow="crop",
+                    )
+                    self._rich_live.start(refresh=True)
                     self._alternate_screen_active = True
                 else:
+                    self._full_screen = False
                     requested_model, selection_detail = self._model_context()
                     observed_line = (
                         f"  Observed   {self.observed_model} ({self._observed_source or 'harness evidence'})\n"
@@ -262,7 +289,11 @@ class SuiteProgress:
             self._current["phase"] = "complete" if status == "complete" else status
             self._add_activity_locked("result" if status == "complete" else "system", f"Benchmark {status}")
             self._persist_locked()
-            if self._alternate_screen_active:
+            if self._rich_live is not None:
+                self._rich_live.stop()
+                self._rich_live = None
+                self._alternate_screen_active = False
+            elif self._alternate_screen_active:
                 self.stream.write("\033[?25h\033[?1049l")
                 self._alternate_screen_active = False
             elif self.interactive and self._last_line_was_live:
@@ -443,7 +474,13 @@ class SuiteProgress:
                 self.stream.flush()
 
     def _render_full_screen_locked(self) -> None:
-        """Render a stable, transcript-style agent session without flicker."""
+        """Let Rich own full-screen redraws instead of hand-writing cursor ANSI."""
+        if self._rich_live is None:
+            return
+        self._rich_live.update(self._rich_renderable_locked(), refresh=True)
+
+    def _rich_renderable_locked(self) -> Any:
+        """Build the complete live surface from saved, evidence-safe state."""
         dimensions = shutil.get_terminal_size(fallback=(100, 24))
         width = max(72, dimensions.columns)
         height = max(18, dimensions.lines)
@@ -468,21 +505,10 @@ class SuiteProgress:
             observed_model = self._observed_models[0]
         else:
             observed_model = f"multiple observed: {', '.join(self._observed_models)}"
-        canvas_width = min(78, width - 6)
-        left_padding = " " * max(0, (width - canvas_width) // 2)
-        # The footer needs one spare row for the cursor. Keeping the entire
-        # frame inside the actual terminal prevents alternate-screen scrolls
-        # that can hide the model header on a standard 80x24 terminal.
-        activity_limit = max(1, height - 15)
+        # Keep the 80x24 view concise while allowing wide terminals to use
+        # their available space rather than centering a narrow text column.
+        activity_limit = 4 if height <= 24 else max(5, min(9, height - 14))
         recent = self._activity[-activity_limit:]
-
-        def line(text: str = "", *, colour: str | None = None, centered: bool = False) -> str:
-            content = _trim(text, canvas_width)
-            if centered:
-                content = content.center(canvas_width)
-            rendered = _colour(content, colour, self._colour_enabled) if colour else content
-            return left_padding + rendered
-
         source = (
             "verified at startup"
             if self._observed_source == "startup_probe"
@@ -499,57 +525,57 @@ class SuiteProgress:
             if self._workspace_path is not None
             else "waiting for workspace"
         )
-        identity = f"{self.adapter}  ·  {observed_model}"
         status_text = f"{status.lower()}  {spinner}" if self._status == "in_progress" else status.lower()
+        header = Table.grid(expand=True, padding=(0, 1))
+        header.add_column(ratio=1)
+        header.add_column(justify="right")
+        header.add_row(Text("agent benchmark", style="bold bright_cyan"), Text(status_text, style="bold yellow"))
+        header.add_row(
+            Text(f"{self.adapter}  /  {observed_model}", style="bold white"),
+            Text(source, style="dim green" if self._observed_models else "dim yellow"),
+        )
+        header.add_row(Text(self.suite_id, style="dim"), Text(elapsed_text, style="dim"))
+        header_panel = Panel(header, border_style="bright_cyan", box=box.ROUNDED, padding=(0, 1))
 
-        def split_line(left: str, right: str) -> str:
-            """Put run state at the right edge without letting it wrap."""
-            available = max(1, canvas_width - len(right) - 2)
-            return f"{_trim(left, available)}  {right.rjust(canvas_width - available - 2)}"
+        task_body = Group(
+            Text(_trim(task_title, max(24, width - 14)), style="bold white"),
+            Text(f"{task}  ·  task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}", style="dim"),
+            Text(f"{spinner}  {phase}", style="bold yellow"),
+            Text(f"{bar}  {progress_text}", style="bold bright_cyan"),
+        )
+        task_panel = Panel(task_body, title="[bold bright_cyan]current task[/]", border_style="cyan", box=box.ROUNDED, padding=(0, 1))
 
-        lines = [
-            line("agent benchmark", colour="1;38;5;45"),
-            line(split_line(identity, status_text), colour="1;38;5;231"),
-            line(split_line(f"{source}  ·  {self.suite_id}", elapsed_text), colour="38;5;246"),
-            line(),
-            line(f"{spinner}  {_trim(task_title, max(12, canvas_width - 3))}", colour="1;38;5;231"),
-            line(
-                f"   {_trim(task, max(12, canvas_width - 35))}  ·  task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}",
-                colour="38;5;246",
-            ),
-            line(f"   {phase}  ·  {workspace_text}", colour="1;38;5;220"),
-            line(f"   {_colour(bar, '1;38;5;45', self._colour_enabled)}  {progress_text}", colour="1;38;5;231"),
-            line(),
-            line("activity", colour="1;38;5;45"),
-        ]
+        context = Table.grid(expand=True, padding=(0, 1))
+        context.add_column(style="dim", width=11, no_wrap=True)
+        context.add_column(overflow="ellipsis", no_wrap=True)
+        context.add_row("harness", self.adapter)
+        context.add_row("model", observed_model)
+        context.add_row("workspace", workspace_text)
+        context.add_row("selection", _trim(selection_detail, min(42, max(20, width // 4))))
+        context_panel = Panel(context, title="[bold blue]run context[/]", border_style="blue", box=box.ROUNDED, padding=(0, 1))
+
+        activity_lines: list[Any] = []
         for item in reversed(recent):
             marker, colour = _activity_style(item["kind"])
-            lines.append(line(f"{marker}  {item['at']}  {_trim(item['message'], max(12, canvas_width - 12))}", colour=colour))
-        lines.extend(
-            [
-                line(),
-                line(
-                    f"Ctrl-C keeps checkpoints and evidence  ·  {selection_detail}",
-                    colour="2",
-                ),
-            ]
+            event = Text()
+            event.append(f"{marker}  {item['at']}  ", style=colour)
+            event.append(_trim(item["message"], max(18, width - 18)), style="white" if item["kind"] != "system" else "dim")
+            activity_lines.append(event)
+        if not activity_lines:
+            activity_lines.append(Text("Waiting for runner events...", style="dim"))
+        activity_panel = Panel(
+            Group(*activity_lines),
+            title="[bold bright_cyan]live activity[/]",
+            border_style="bright_cyan",
+            box=box.ROUNDED,
+            padding=(0, 1),
         )
-        self._render_frame_locked(lines)
+        footer = Text("Ctrl-C keeps checkpoints and evidence", style="dim", justify="center")
 
-    def _render_frame_locked(self, lines: list[str]) -> None:
-        """Update only changed terminal rows after the initial alternate-screen draw."""
-        if not self._last_frame:
-            self.stream.write("\033[H\033[2J")
-        previous = self._last_frame
-        for index, content in enumerate(lines, start=1):
-            if index > len(previous) or previous[index - 1] != content:
-                self.stream.write(f"\033[{index};1H\033[2K{content}")
-        for index in range(len(lines) + 1, len(previous) + 1):
-            self.stream.write(f"\033[{index};1H\033[2K")
-        self.stream.write(f"\033[{len(lines) + 1};1H")
-        self._last_frame = list(lines)
-        self.stream.flush()
-        self._last_line_was_live = True
+        if width >= 106:
+            main = Columns([task_panel, context_panel], expand=True, equal=True, padding=(1, 0))
+            return Group(header_panel, main, activity_panel, footer)
+        return Group(header_panel, task_panel, activity_panel, footer)
 
     def _add_activity_locked(self, kind: str, message: str) -> None:
         self._activity.append({"at": _utc_now()[11:19], "kind": kind, "message": message})

@@ -64,7 +64,7 @@ def probe_default_model(*, adapter: str, requested_model: str) -> ModelProbe:
     if adapter == "codex":
         return _configured_codex_model()
     if adapter == "opencode":
-        return _configured_opencode_model()
+        return _probe_opencode_default()
     if adapter != "claude-code":
         return ModelProbe(adapter, "unsupported", None, None, "This adapter has no safe structured default-model probe yet.")
     if os.environ.get("AGENT_BENCH_CLAUDE_CODE_COMMAND"):
@@ -133,20 +133,112 @@ def _configured_codex_model() -> ModelProbe:
     return ModelProbe("codex", "unsupported", None, None, "Codex config has no default model declaration.")
 
 
-def _configured_opencode_model() -> ModelProbe:
-    """Read an explicit OpenCode config model when one exists, without guessing."""
-    candidates = [
-        Path(os.environ["OPENCODE_CONFIG"]) if os.environ.get("OPENCODE_CONFIG") else None,
-        Path.home() / ".config" / "opencode" / "opencode.json",
+def _probe_opencode_default() -> ModelProbe:
+    """Probe OpenCode's current default and read its exported session identity."""
+    if os.environ.get("AGENT_BENCH_OPENCODE_COMMAND"):
+        return ModelProbe("opencode", "custom_command", None, None, "A custom OpenCode command is configured, so the built-in probe is not assumed equivalent.")
+    binary = shutil.which("opencode")
+    if not binary:
+        return ModelProbe("opencode", "unavailable", None, None, "OpenCode is not on PATH.")
+    command = [
+        binary,
+        "run",
+        "--auto",
+        "--format",
+        "json",
+        "Reply with READY only. Do not read or modify files.",
     ]
-    for config_path in candidates:
-        if config_path is None:
-            continue
+    try:
+        with tempfile.TemporaryDirectory(prefix="agent-benchmark-opencode-probe-") as temporary:
+            completed = subprocess.run(
+                command,
+                cwd=temporary,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=90,
+            )
+            evidence = parse_harness_output("opencode", completed.stdout, completed.stderr)
+            session_id = _opencode_session_id(completed.stdout)
+            if completed.returncode != 0 or not session_id:
+                detail = (completed.stderr or completed.stdout).strip().splitlines()
+                return ModelProbe(
+                    "opencode",
+                    "failed",
+                    None,
+                    evidence.cost_usd,
+                    detail[-1][:300] if detail else f"OpenCode probe exited {completed.returncode} without a session id.",
+                )
+            exported = subprocess.run(
+                [binary, "export", session_id],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=30,
+            )
+            # The probe is identity metadata, not a user session. Remove it
+            # after export so repeated benchmark setup does not clutter the
+            # user's OpenCode session history.
+            try:
+                subprocess.run(
+                    [binary, "session", "delete", session_id],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                    timeout=30,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return ModelProbe("opencode", "failed", None, None, f"Probe could not complete: {exc}")
+    model = _opencode_exported_model(exported.stdout) if exported.returncode == 0 else None
+    if model:
+        return ModelProbe(
+            "opencode",
+            "observed",
+            model,
+            evidence.cost_usd,
+            "Observed from a temporary OpenCode JSON probe and its exported session metadata.",
+        )
+    detail = (exported.stderr or exported.stdout).strip().splitlines()
+    return ModelProbe(
+        "opencode",
+        "failed",
+        None,
+        evidence.cost_usd,
+        detail[-1][:300] if detail else "OpenCode session export did not expose a model identity.",
+    )
+
+
+def _opencode_session_id(stdout: str) -> str | None:
+    for line in stdout.splitlines():
         try:
-            payload = json.loads(config_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+            event = json.loads(line)
+        except json.JSONDecodeError:
             continue
-        model = payload.get("model") if isinstance(payload, dict) else None
-        if isinstance(model, str) and model.strip():
-            return ModelProbe("opencode", "configured", model.strip(), None, f"Declared in {config_path}; task output must still verify it.")
-    return ModelProbe("opencode", "unsupported", None, None, "OpenCode's configured default is not declared in a readable JSON config.")
+        if not isinstance(event, dict):
+            continue
+        session_id = event.get("sessionID")
+        if isinstance(session_id, str) and session_id.strip():
+            return session_id.strip()
+    return None
+
+
+def _opencode_exported_model(stdout: str) -> str | None:
+    """Read ``info.model.id`` from export output that may have a status prefix."""
+    start = stdout.find("{")
+    if start < 0:
+        return None
+    try:
+        payload = json.loads(stdout[start:])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+    model = info.get("model") if isinstance(info.get("model"), dict) else {}
+    value = model.get("id")
+    return value.strip() if isinstance(value, str) and value.strip() else None

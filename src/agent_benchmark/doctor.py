@@ -18,7 +18,7 @@ class DoctorCheck:
 
 RECOMMENDED_COMMANDS = {
     "aider": "built-in default uses aider --yes-always --no-git --no-auto-commits --no-stream --message-file {instruction_file}, adding --model only when AGENT_BENCH_MODEL is not unspecified",
-    "opencode": "built-in default uses opencode run --auto (--model intentionally omitted: opencode 1.17.15 crashes with any --model value)",
+    "opencode": "built-in default uses opencode run --auto --format json, adding -m only when AGENT_BENCH_MODEL is not unspecified",
     "claude-code": "built-in default uses claude -p --dangerously-skip-permissions --no-session-persistence, adding --model only when AGENT_BENCH_MODEL is not unspecified",
     "codex": "built-in default uses codex exec --json --ephemeral --sandbox workspace-write --skip-git-repo-check -C {workspace}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
     "grok": "built-in default uses grok --always-approve --output-format streaming-json --prompt-file {instruction_file}, adding -m only when AGENT_BENCH_MODEL is not unspecified",

@@ -1194,7 +1194,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertNotIn("adapter_model_selection_external", codes)
         self.assertEqual(report["model_mappings"][0]["identity_hint"], "cli_default_pending")
 
-    def test_matrix_preflight_flags_opencode_default_model_limitation(self) -> None:
+    def test_matrix_preflight_accepts_opencode_explicit_model_selection(self) -> None:
         suite = SimpleNamespace(suite_id="preflight-opencode", tasks=["process-planning"])
         report = preflight_matrix(
             suite,
@@ -1204,10 +1204,10 @@ class FrameworkTests(unittest.TestCase):
         )
 
         self.assertTrue(report["execution_ready"])
-        self.assertFalse(report["identity_configuration_clean"])
-        self.assertFalse(report["comparative_ranking_ready"])
-        self.assertEqual(report["model_mappings"][0]["model_selection"], "configured_default_only")
-        self.assertIn("adapter_model_selection_external", [item["code"] for item in report["warnings"]])
+        self.assertTrue(report["identity_configuration_clean"])
+        self.assertTrue(report["comparative_ranking_ready"])
+        self.assertEqual(report["model_mappings"][0]["model_selection"], "cli")
+        self.assertNotIn("adapter_model_selection_external", [item["code"] for item in report["warnings"]])
 
     def test_preflight_reports_missing_registry_mapping_without_traceback(self) -> None:
         output = StringIO()
@@ -1908,6 +1908,26 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(evidence.output_tokens, 4)
         self.assertEqual(evidence.cost_usd, 0.014305845)
 
+    def test_opencode_parser_reads_jsonl_usage(self) -> None:
+        evidence = parse_harness_output(
+            "opencode",
+            json.dumps(
+                {
+                    "type": "step_finish",
+                    "part": {
+                        "type": "step-finish",
+                        "tokens": {"input": 7592, "output": 4},
+                        "cost": 0.0057648,
+                    },
+                }
+            ),
+            "",
+        )
+
+        self.assertEqual(evidence.input_tokens, 7592)
+        self.assertEqual(evidence.output_tokens, 4)
+        self.assertEqual(evidence.cost_usd, 0.0057648)
+
     def test_codex_parser_reads_jsonl_tools_and_usage(self) -> None:
         stdout = "\n".join(
             [
@@ -2485,6 +2505,39 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("--tools", command)
         self.assertEqual(command[command.index("--tools") + 1], "")
         self.assertEqual(command[command.index("--max-budget-usd") + 1], "0.05")
+
+    def test_opencode_default_model_probe_reads_exported_session_identity(self) -> None:
+        run_output = "\n".join(
+            [
+                json.dumps({"type": "step_start", "sessionID": "ses_probe", "part": {"type": "step-start"}}),
+                json.dumps(
+                    {
+                        "type": "step_finish",
+                        "sessionID": "ses_probe",
+                        "part": {"type": "step-finish", "tokens": {"input": 7, "output": 3}, "cost": 0.004},
+                    }
+                ),
+            ]
+        )
+        exported = "Exporting session: ses_probe\n" + json.dumps(
+            {"info": {"model": {"providerID": "longcat", "id": "LongCat-2.0"}}}
+        )
+        completed = [
+            SimpleNamespace(returncode=0, stdout=run_output, stderr=""),
+            SimpleNamespace(returncode=0, stdout=exported, stderr=""),
+            SimpleNamespace(returncode=0, stdout="", stderr=""),
+        ]
+        with patch("agent_benchmark.model_probe.shutil.which", return_value="/usr/local/bin/opencode"), patch(
+            "agent_benchmark.model_probe.subprocess.run", side_effect=completed
+        ) as run:
+            probe = probe_default_model(adapter="opencode", requested_model="unspecified")
+
+        self.assertEqual(probe.status, "observed")
+        self.assertEqual(probe.model, "LongCat-2.0")
+        self.assertEqual(probe.cost_usd, 0.004)
+        self.assertEqual(run.call_args_list[0].args[0][1:5], ["run", "--auto", "--format", "json"])
+        self.assertEqual(run.call_args_list[1].args[0], ["/usr/local/bin/opencode", "export", "ses_probe"])
+        self.assertEqual(run.call_args_list[2].args[0], ["/usr/local/bin/opencode", "session", "delete", "ses_probe"])
 
     def test_codex_default_model_hint_is_declared_but_not_observed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"CODEX_HOME": tmp}, clear=False):

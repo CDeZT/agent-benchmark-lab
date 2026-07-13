@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-13 (iteration 60)
+
+- Replaced the project-owned full-screen ANSI cursor renderer after real iTerm output leaked cursor-control text into the terminal. The TUI now uses `rich.Live` to own alternate-screen lifecycle and redraws; it fills wide terminals with current-task and run-context columns plus an evidence-safe activity stream.
+- Captured a 160x30 pseudo-terminal frame and verified that its raw output contains no literal `[0B` or `[0A` cursor-control leak. A smaller 80x24 path remains covered by tests.
+- OpenCode 1.17.15 was re-audited against the local binary: `run --auto --format json -m longcat/LongCat-2.0` completed successfully. Default-model JSONL does not itself contain identity, but `opencode export <session-id>` does; the new saved startup probe observed `LongCat-2.0` at approximately `$0.006`.
+- Updated OpenCode to a `cli` model-selection adapter, JSONL token/cost parsing, and preflight behavior. The suite now contains 174 unit tests.
+
 ## 2026-07-13 (iteration 59)
 
 - Added a first-class MimoCode adapter under the actual local command name `mimo`. It discovers a normal PATH installation or `~/.mimocode/bin/mimo`, calls the documented non-interactive JSONL runner, and preserves explicit input/output token and cost telemetry without inventing a model identity.

@@ -67,6 +67,29 @@ def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
         Output tokens: 567
     """
     evidence = HarnessEvidence()
+    # OpenCode 1.17.15 emits the same structured JSONL shape used by its
+    # headless runner. It includes token/cost fields on step-finish events but
+    # model identity is retrieved separately from the session export.
+    for line in (stdout or "").splitlines():
+        event = _load_json_object(line)
+        if not isinstance(event, dict):
+            continue
+        part = event.get("part") if isinstance(event.get("part"), dict) else {}
+        model = event.get("model") or part.get("model") or part.get("modelID")
+        if isinstance(model, str) and model.strip() and evidence.model is None:
+            evidence.model = normalize_model_name(model)
+        tokens = part.get("tokens") if isinstance(part.get("tokens"), dict) else {}
+        if evidence.input_tokens is None and isinstance(tokens.get("input"), (int, float)):
+            evidence.input_tokens = int(tokens["input"])
+        if evidence.output_tokens is None and isinstance(tokens.get("output"), (int, float)):
+            evidence.output_tokens = int(tokens["output"])
+        cost = part.get("cost") if "cost" in part else event.get("cost")
+        if evidence.cost_usd is None and isinstance(cost, (int, float)):
+            evidence.cost_usd = float(cost)
+        part_type = str(part.get("type") or event.get("type") or "")
+        if part_type in {"tool", "tool-call", "tool_call", "function_call"}:
+            tool_name = part.get("tool") or part.get("name") or part.get("toolName") or "tool"
+            evidence.tool_calls.append({"type": str(tool_name), "detail": str(part)[:200]})
     clean = _strip_ansi(stderr)
 
     for line in clean.splitlines():
