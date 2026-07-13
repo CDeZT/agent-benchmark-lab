@@ -811,6 +811,9 @@ class FrameworkTests(unittest.TestCase):
                 Path(tmp),
                 suite_id="full-tui-test",
                 adapter="dummy",
+                model="example/requested-model",
+                adapter_model="adapter-requested-model",
+                model_selection="cli",
                 repetitions=1,
                 task_count=1,
                 stream=stream,
@@ -836,10 +839,51 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("\033[?1049l", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
         self.assertIn("Recent activity", stream.getvalue())
-        self.assertIn("Model requested", stream.getvalue())
+        self.assertIn("requested-model", stream.getvalue())
+        self.assertIn("Adapter invocation", stream.getvalue())
         self.assertEqual(state["display"]["mode"], "full")
         self.assertEqual(state["recent_attempts"][0]["task_id"], "python-bugfix")
         self.assertEqual(state["model"]["observed"], "example-model-v1")
+        self.assertEqual(state["model"]["selection"], "cli")
+
+    def test_full_tui_records_multiple_observed_models_without_hiding_drift(self) -> None:
+        class TtyBuffer(StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        stream = TtyBuffer()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(
+            os.environ,
+            {"AGENT_BENCH_TUI": "full", "TERM": "xterm-256color"},
+            clear=False,
+        ), patch("agent_benchmark.terminal_ui.shutil.get_terminal_size", return_value=os.terminal_size((100, 30))):
+            reporter = SuiteProgress(
+                Path(tmp),
+                suite_id="model-drift-test",
+                adapter="opencode",
+                model="requested-but-not-selectable",
+                model_selection="configured_default_only",
+                repetitions=2,
+                task_count=1,
+                stream=stream,
+            )
+            reporter.start()
+            reporter.task_started("python-bugfix", 1)
+            for repetition, model in ((1, "model-a"), (2, "model-b")):
+                reporter.event("python-bugfix", 1, "repetition.started", {"repetition": repetition})
+                reporter.event(
+                    "python-bugfix",
+                    1,
+                    "repetition.finished",
+                    {"repetition": repetition, "duration_seconds": 1.0, "detected_model": model},
+                )
+            reporter.finish()
+            state = json.loads((Path(tmp) / "live_status.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(state["model"]["identity_status"], "observed_multiple")
+        self.assertEqual(state["model"]["observed_models"], ["model-a", "model-b"])
+        self.assertIn("does not accept a model override", stream.getvalue())
+        self.assertIn("multiple observed: model-a, model-b", stream.getvalue())
 
     def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
         suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])
@@ -1009,6 +1053,19 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(report["comparative_task_ids"], ["process-planning"])
         self.assertEqual(report["excluded_task_ids"], ["python-bugfix"])
         self.assertIn("insufficient_repetitions", [item["code"] for item in report["warnings"]])
+
+    def test_matrix_preflight_allows_a_smoke_suite_without_unlocking_ranking(self) -> None:
+        suite = SimpleNamespace(suite_id="smoke-preflight", tasks=["python-bugfix"])
+        report = preflight_matrix(
+            suite,
+            [{"adapter": "dummy", "model": "unspecified", "adapter_model": "unspecified", "budget_profile": "oneshot", "repetitions": 1}],
+            ROOT / "benchmarks" / "tasks",
+            registry_used=False,
+        )
+
+        self.assertTrue(report["execution_ready"])
+        self.assertFalse(report["comparative_ranking_ready"])
+        self.assertIn("no_comparative_tasks", [item["code"] for item in report["warnings"]])
 
     def test_matrix_preflight_requires_a_registry_for_cross_harness_ranking(self) -> None:
         suite = SimpleNamespace(suite_id="preflight-cross-harness", tasks=["process-planning"])

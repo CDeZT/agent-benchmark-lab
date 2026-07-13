@@ -172,10 +172,26 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-它默认使用 `comprehensive-screening-v1`、`unspecified` 当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。所有 task 证据、suite report、matrix/bridge artifacts 和 `dashboard/` 都放在**当前目录**，不会污染源码目录。运行时终端会实时显示当前 task、重复次数、agent/评分阶段、已完成 attempts、耗时和基于已完成 attempts 的 ETA；首次 attempt 完成前 ETA 会诚实显示为 `calculating`。想先用小一些的本地硬题检查流程：
+它默认使用 `comprehensive-screening-v1`、当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。所有 task 证据、suite report、matrix/bridge artifacts 和 `dashboard/` 都放在**当前目录**，不会污染源码目录。运行时终端会实时显示当前 task、重复次数、agent/评分阶段、已完成 attempts、耗时和基于已完成 attempts 的 ETA；首次 attempt 完成前 ETA 会诚实显示为 `calculating`。
+
+想明确请求模型时使用一个直白参数：
 
 ```bash
-agent-benchmark claude-code hard-discrimination
+agent-benchmark claude-code --model deepseek-v4-flash
+```
+
+这会把该模型请求传给支持显式选择的 harness，并等待实际输出验证身份；它不是“参数写了就已经证实”。opencode 当前只支持自身已配置的默认模型，传入 `--model` 时启动器和 TUI 会明确提示该请求不会作为 opencode 覆盖参数发送，避免产生错误的同模型结论。想先用小一些的本地硬题检查流程：
+
+```bash
+agent-benchmark claude-code --suite hard-discrimination
+```
+
+兼容旧写法：`agent-benchmark claude-code hard-discrimination`。
+
+只想确认 CLI、权限与证据保存链是否能工作，可以运行不可排名的一题 smoke；它会执行并生成报告，但会明确标为不能用于比较结论：
+
+```bash
+agent-benchmark claude-code --suite real-smoke --repetitions 1
 ```
 
 可用环境变量覆盖默认归档目录而不改变命令形状：
@@ -186,7 +202,7 @@ AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" agent-benchmark ope
 
 底层 `run`、`run-suite`、`run-matrix` 和各自 resume 命令也会在成功完成后自动刷新 `<runs-dir>/dashboard/index.html`；启动器只是额外帮你自动打开它。
 
-每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、最近三次 attempt、耗时、ETA，以及 requested/observed model。因此即使终端断开或被清屏，也可以直接查看这个文件确认是否仍在运行。默认的宽交互终端会进入独立全屏 TUI：它采用安静的 coding-agent 执行视图，固定显示当前 harness、请求模型、实际观察模型、运行模式、当前题目、进度、活动记录和 spinner；完成或失败后会恢复原 shell。`unspecified` 会诚实显示为“current CLI default”，直至 harness 输出给出模型证据，不能据此宣称同模型。`AGENT_BENCH_TUI=compact` 可强制原有单行样式，`AGENT_BENCH_TUI=full` 可强制全屏，窄终端或 `TERM=dumb` 会自动退化。需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
+每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、最近三次 attempt、耗时、ETA，以及 `requested`、实际送往 adapter 的 `adapter_model`、选择能力和 parser-derived `observed_models`。因此即使终端断开或被清屏，也可以直接查看这个文件确认是否仍在运行。默认的宽交互终端会进入独立全屏 TUI：它采用安静的 coding-agent 执行视图，固定显示 harness、模型选择方式、实际观察模型、当前题目、进度、活动记录和 spinner；完成或失败后会恢复原 shell。若多次 attempt 观察到不同模型，TUI 和状态文件会保留全部身份并标记 `observed_multiple`，而不是只展示最后一次。`unspecified` 会诚实显示为“current CLI default”，直至 harness 输出给出模型证据，不能据此宣称同模型。`AGENT_BENCH_TUI=compact` 可强制原有单行样式，`AGENT_BENCH_TUI=full` 可强制全屏，窄终端或 `TERM=dumb` 会自动退化。需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
 
 **当前边界：** 启动器会检查环境，但不会自动安装 Python/Node/Playwright 依赖、启动 Docker/Colima、完成 provider 登录，或替你处理需要确认的系统级操作。遇到 doctor/preflight 失败时，当前版本仍需要按提示修复。未来会补自动诊断与受控修复，并交付独立原生 macOS App；在那之前，不应把现有 CLI 流程理解为零配置产品。
 

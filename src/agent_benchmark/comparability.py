@@ -138,7 +138,9 @@ def preflight_matrix(
     if comparative_ids:
         add("pass", "comparative_tasks", f"Suite contains {len(comparative_ids)} comparative task(s).")
     else:
-        add("blocked", "no_comparative_tasks", "Suite contains no comparative_candidate tasks.")
+        # A smoke/diagnostic suite is still valuable for checking an adapter,
+        # even though it must never unlock a comparative ranking.
+        add("warning", "no_comparative_tasks", "Suite contains no comparative_candidate tasks; it is executable but cannot support ranking.")
     if excluded_ids:
         add("warning", "noncomparative_tasks_excluded", "Excluded from leaderboard: " + ", ".join(excluded_ids) + ".")
 

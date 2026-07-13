@@ -57,6 +57,8 @@ class SuiteProgress:
         repetitions: int,
         task_count: int,
         model: str = "unspecified",
+        adapter_model: str | None = None,
+        model_selection: str = "environment_only",
         budget_profile: str = "open_ended",
         enabled: bool | None = None,
         stream: TextIO | None = None,
@@ -66,8 +68,11 @@ class SuiteProgress:
         self.suite_id = suite_id
         self.adapter = adapter
         self.requested_model = model
+        self.adapter_model = adapter_model or model
+        self.model_selection = model_selection
         self.budget_profile = budget_profile
         self.observed_model: str | None = None
+        self._observed_models: list[str] = []
         self.repetitions = repetitions
         self.task_count = task_count
         self.total_attempts = task_count * repetitions
@@ -113,12 +118,15 @@ class SuiteProgress:
                     self.stream.write("\033[?1049h\033[?25l")
                     self._alternate_screen_active = True
                 else:
+                    requested_model, selection_detail = self._model_context()
                     self.stream.write(
                         "\n"
                         + _colour("Agent Benchmark Lab", "1;36", self._colour_enabled)
                         + "\n"
                         + f"  Suite      {self.suite_id}\n"
                         + f"  Harness    {self.adapter}\n"
+                        + f"  Model      {requested_model}\n"
+                        + f"  Selection  {selection_detail}\n"
                         + f"  Work       {self.task_count} tasks x {self.repetitions} repeats = {self.total_attempts} attempts\n"
                         + f"  Live state {self.status_path}\n\n"
                     )
@@ -152,12 +160,16 @@ class SuiteProgress:
             duration = payload.get("duration_seconds")
             detected_model = payload.get("detected_model")
             if isinstance(detected_model, str) and detected_model.strip():
-                self.observed_model = detected_model.strip()
+                with self._lock:
+                    self.observed_model = detected_model.strip()
+                    if self.observed_model not in self._observed_models:
+                        self._observed_models.append(self.observed_model)
             self._complete_attempt(
                 float(duration) if isinstance(duration, (int, float)) else None,
                 task_id=task_id,
                 repetition=payload.get("repetition"),
                 score=payload.get("score"),
+                detected_model=detected_model if isinstance(detected_model, str) else None,
             )
 
     def complete_external_task(self, duration_seconds: float | None) -> None:
@@ -204,6 +216,7 @@ class SuiteProgress:
         task_id: str | None = None,
         repetition: object | None = None,
         score: object | None = None,
+        detected_model: str | None = None,
     ) -> None:
         with self._lock:
             self._completed_attempts = min(self.total_attempts, self._completed_attempts + 1)
@@ -216,6 +229,7 @@ class SuiteProgress:
                         "repetition": repetition,
                         "duration_seconds": duration_seconds,
                         "score": score,
+                        "detected_model": detected_model.strip() if detected_model and detected_model.strip() else None,
                     }
                 )
                 self._recent_attempts = self._recent_attempts[-3:]
@@ -248,8 +262,15 @@ class SuiteProgress:
             "adapter": self.adapter,
             "model": {
                 "requested": self.requested_model,
+                "adapter_model": self.adapter_model,
+                "selection": self.model_selection,
                 "observed": self.observed_model,
-                "identity_status": "observed" if self.observed_model else "awaiting_harness_evidence",
+                "observed_models": list(self._observed_models),
+                "identity_status": (
+                    "observed_multiple" if len(self._observed_models) > 1
+                    else "observed" if self.observed_model
+                    else "awaiting_harness_evidence"
+                ),
             },
             "repetitions": self.repetitions,
             "started_at": self._started_at,
@@ -287,7 +308,8 @@ class SuiteProgress:
             repeat = f"repeat {repetition}/{self.repetitions}" if repetition is not None else "repeat -/" + str(self.repetitions)
             line = (
                 f"[{bar}] {self._completed_attempts}/{self.total_attempts} | {position} {task} | "
-                f"{repeat} | {phase} | elapsed {_format_duration(self._elapsed_seconds())} | ETA {_format_duration(eta)}"
+                f"{repeat} | {phase} | model {self.observed_model or 'identifying'} | "
+                f"elapsed {_format_duration(self._elapsed_seconds())} | ETA {_format_duration(eta)}"
             )
             if self.interactive:
                 self.stream.write("\r\033[2K" + _colour(line, "36", self._colour_enabled))
@@ -312,8 +334,13 @@ class SuiteProgress:
         bar = "█" * filled + "░" * (30 - filled)
         spinner = "◐◓◑◒"[int(elapsed * 4) % 4]
         status = f"RUNNING {spinner}" if self._status == "in_progress" else self._status.upper()
-        requested_model = "current CLI default" if self.requested_model == "unspecified" else self.requested_model
-        observed_model = self.observed_model or "waiting for harness evidence"
+        requested_model, selection_detail = self._model_context()
+        if not self._observed_models:
+            observed_model = "identifying from harness output"
+        elif len(self._observed_models) == 1:
+            observed_model = self._observed_models[0]
+        else:
+            observed_model = f"multiple observed: {', '.join(self._observed_models)}"
         rule = "─" * width
 
         def line(text: str = "", *, colour: str | None = None) -> str:
@@ -322,8 +349,13 @@ class SuiteProgress:
 
         lines = [
             line("Agent Benchmark Lab", colour="1;36") + " " * max(1, width - len("Agent Benchmark Lab") - len(status)) + line(status, colour="1;33"),
-            line(f"{self.adapter}  ·  {requested_model}  ·  {self.budget_profile}  ·  {self.suite_id}", colour="2"),
+            line(f"{self.adapter}  ·  {self.budget_profile}  ·  {self.suite_id}", colour="2"),
             rule,
+            line(f"Harness   {self.adapter}", colour="1;37"),
+            line(f"Model     {requested_model}", colour="1;36"),
+            line(f"Evidence  {observed_model}", colour="2"),
+            line(selection_detail, colour="2"),
+            "",
             line(f"{spinner}  {_trim(task, max(12, width - 24))}", colour="1;37"),
             line(f"   task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}  ·  {phase}", colour="2"),
             "",
@@ -339,14 +371,15 @@ class SuiteProgress:
                 repeat = attempt.get("repetition") or "-"
                 duration = attempt.get("duration_seconds")
                 duration_text = _format_duration(float(duration)) if isinstance(duration, (int, float)) else "unknown"
-                lines.append(line(f"  ✓  {attempt['task_id']}  ·  r{repeat}  ·  {duration_text}{score_text}", colour="2"))
+                attempt_model = attempt.get("detected_model")
+                model_text = f"  ·  {attempt_model}" if isinstance(attempt_model, str) else ""
+                lines.append(line(f"  ✓  {attempt['task_id']}  ·  r{repeat}  ·  {duration_text}{score_text}{model_text}", colour="2"))
         else:
             lines.append(line("  No completed attempts yet. ETA appears after the first one.", colour="2"))
         lines.extend(
             [
                 "",
                 rule,
-                line(f"Model requested: {requested_model}    Observed: {observed_model}", colour="2"),
                 line(f"State: {_trim(str(self.status_path), max(12, width - 7))}", colour="2"),
                 line("Ctrl-C preserves checkpoints and evidence.", colour="2"),
             ]
@@ -354,3 +387,20 @@ class SuiteProgress:
         self.stream.write("\033[H\033[2J" + "\n".join(lines) + "\n")
         self.stream.flush()
         self._last_line_was_live = True
+
+    def _model_context(self) -> tuple[str, str]:
+        """Describe model selection without turning a requested label into evidence."""
+        if self.model_selection == "configured_default_only":
+            if self.requested_model != "unspecified":
+                return (
+                    "harness configured default",
+                    f"Requested label: {self.requested_model} (this harness does not accept a model override)",
+                )
+            return "harness configured default", "The harness chooses its configured default; identity is checked after it runs."
+        if self.requested_model == "unspecified":
+            return "current CLI default", "No model override was sent; identity is checked from real harness output."
+        if self.model_selection == "environment_only":
+            return self.requested_model, "Adapter receives this value through its configured environment; identity is checked from real harness output."
+        if self.adapter_model != self.requested_model:
+            return self.requested_model, f"Adapter invocation: {self.adapter_model} (will be verified from harness output)."
+        return self.requested_model, "Requested through the harness CLI; identity is checked from real harness output."

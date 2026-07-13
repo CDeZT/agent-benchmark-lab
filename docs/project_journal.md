@@ -1,5 +1,13 @@
 # Project Journal
 
+## 2026-07-13 (iteration 54)
+
+- Made model identity a first-class part of the launcher and live TUI after the user noted that the run experience appeared to show only the harness. `agent-benchmark claude-code --model deepseek-v4-flash` now requests an explicit model for supporting adapters; `--suite` and `--repetitions` provide readable alternatives to positional/environment configuration while retaining the old positional suite form.
+- Reworked the TUI's persistent context into Harness, Model, and Evidence rows. It distinguishes a requested model, adapter invocation value, configured-default-only adapters, and parser-derived observed identity. It neither infers nor invents the actual model before the harness exposes it.
+- Persisted per-attempt detected model plus all unique `observed_models` in `live_status.json`. Multiple observed models are explicitly marked as drift (`observed_multiple`) in the TUI/status instead of silently showing only the final one. The compact completion output now reports the suite-level model identity state.
+- Added focused regression tests for explicit adapter model context, detected model drift, and executable-but-nonrankable smoke preflight. The suite now contains 163 unit tests.
+- Corrected a launcher/preflight UX bug: `real-smoke` had no comparative tasks and was wrongly blocked before execution. It now runs as a diagnostic harness check while staying explicitly excluded from ranking.
+
 ## 2026-07-13 (iteration 53)
 
 - Reworked the first full-screen TUI after user feedback that its box-heavy dashboard did not resemble a polished coding-agent interface. The new view is intentionally quieter: a thin hierarchy, persistent harness/requested-model/budget context, focused current execution, progress/ETA, a short activity stream, and footer model evidence.

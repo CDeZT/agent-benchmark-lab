@@ -17,7 +17,7 @@ cd "$ROOT"
 
 usage() {
   cat <<'EOF'
-Usage: ./benchmark [adapter] [suite]
+Usage: ./benchmark [adapter] [suite] [--model MODEL] [--suite SUITE]
 
 Install a short command once:
   ./benchmark install
@@ -29,13 +29,15 @@ Runs a complete benchmark with live progress, refreshes the dashboard, and
 opens it on macOS. Live state is saved as suite-*/live_status.json.
 
 Examples:
-  ./benchmark claude-code
+  ./benchmark claude-code --model deepseek-v4-flash
   ./benchmark opencode hard-discrimination
+  ./benchmark codex --suite hard-discrimination --model gpt-5-codex
   AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyResults" ./benchmark codex
 
 Defaults:
   adapter: claude-code
-  suite: comprehensive-screening-v1
+  suite: comprehensive-screening-v1 (the second positional argument remains supported)
+  model: the harness's current configured default
   repetitions: 3
   budget profile: stress
   results directory: the current directory (when called outside this repo)
@@ -59,10 +61,48 @@ if [[ "${1:-}" == "install" ]]; then
   exit 0
 fi
 
-ADAPTER="${1:-claude-code}"
-SUITE="${2:-${AGENT_BENCH_SUITE:-comprehensive-screening-v1}}"
+ADAPTER="claude-code"
+SUITE="${AGENT_BENCH_SUITE:-comprehensive-screening-v1}"
+MODEL="${AGENT_BENCH_MODEL:-unspecified}"
 REPETITIONS="${AGENT_BENCH_REPETITIONS:-3}"
 BUDGET_PROFILE="${AGENT_BENCH_BUDGET_PROFILE:-stress}"
+if [[ $# -gt 0 && "$1" != --* ]]; then
+  ADAPTER="$1"
+  shift
+fi
+# Keep the old `agent-benchmark opencode hard-discrimination` form working.
+if [[ $# -gt 0 && "$1" != --* ]]; then
+  SUITE="$1"
+  shift
+fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --model)
+      [[ $# -ge 2 ]] || { echo "--model needs a value" >&2; exit 2; }
+      MODEL="$2"
+      shift 2
+      ;;
+    --suite)
+      [[ $# -ge 2 ]] || { echo "--suite needs a value" >&2; exit 2; }
+      SUITE="$2"
+      shift 2
+      ;;
+    --repetitions)
+      [[ $# -ge 2 ]] || { echo "--repetitions needs a value" >&2; exit 2; }
+      REPETITIONS="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
 # A command launched from a user-created directory should keep every artifact
 # there. Running ./benchmark inside the repository retains the conventional
 # ignored runs/ location instead of polluting the source tree root.
@@ -72,7 +112,15 @@ else
   DEFAULT_RESULTS_DIR="$CALLER_DIR"
 fi
 RESULTS_DIR="${AGENT_BENCH_RESULTS_DIR:-$DEFAULT_RESULTS_DIR}"
-LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-current-default}"
+LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-${MODEL}}"
+
+if [[ "$ADAPTER" == "opencode" ]]; then
+  MODEL_MODE="harness configured default (override is not supported by this adapter)"
+elif [[ "$MODEL" == "unspecified" ]]; then
+  MODEL_MODE="current CLI default (will identify from harness output)"
+else
+  MODEL_MODE="$MODEL (requested; will verify from harness output)"
+fi
 
 mkdir -p "$RESULTS_DIR"
 LAUNCHER_LOG_DIR="$RESULTS_DIR/.agent-benchmark-launcher"
@@ -92,6 +140,7 @@ fi
 
 printf '\n%s%sAgent Benchmark Lab%s\n' "$BOLD" "$CYAN" "$RESET"
 printf '  %sHarness%s   %s\n' "$DIM" "$RESET" "$ADAPTER"
+printf '  %sModel%s     %s\n' "$DIM" "$RESET" "$MODEL_MODE"
 printf '  %sCohort%s    %s\n' "$DIM" "$RESET" "$SUITE"
 printf '  %sRepeats%s   %s\n' "$DIM" "$RESET" "$REPETITIONS"
 printf '  %sResults%s   %s\n\n' "$DIM" "$RESET" "$RESULTS_DIR"
@@ -107,7 +156,7 @@ printf '%sChecking cohort readiness...%s\n' "$DIM" "$RESET"
 if ! PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix \
   --suite "$SUITE" \
   --adapters "$ADAPTER" \
-  --models unspecified \
+  --models "$MODEL" \
   --budget-profiles "$BUDGET_PROFILE" \
   --repetitions "$REPETITIONS" > "$LAUNCHER_LOG_DIR/preflight.log" 2>&1; then
   printf '%sCohort preflight failed. Details:%s\n' "$BOLD" "$RESET"
@@ -121,7 +170,7 @@ printf '%sStarting benchmark...%s\n' "$DIM" "$RESET"
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
   --suite "$SUITE" \
   --adapter "$ADAPTER" \
-  --model unspecified \
+  --model "$MODEL" \
   --budget-profile "$BUDGET_PROFILE" \
   --repetitions "$REPETITIONS" \
   --label "$LABEL" \

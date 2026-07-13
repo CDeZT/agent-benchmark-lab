@@ -100,7 +100,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. On a normal terminal, it opens a quiet coding-agent-style full-screen TUI with the requested model, observed model evidence, current task, progress, ETA, and recent attempts; it restores the shell before printing the completion summary. Recoverable state is saved in `suite-*/live_status.json`. Use `agent-benchmark opencode hard-discrimination` for a smaller local run. Override the destination explicitly with `AGENT_BENCH_RESULTS_DIR=/path/to/results`.
+It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. To request a model without learning the underlying CLI, use `agent-benchmark claude-code --model deepseek-v4-flash`; use `agent-benchmark claude-code --suite hard-discrimination` for a smaller cohort or `--suite real-smoke --repetitions 1` to check one harness cheaply. On a normal terminal, it opens a quiet coding-agent-style full-screen TUI with the harness, model-selection mode, parser-observed model evidence, current task, progress, ETA, and recent attempts. A requested name is never presented as observed fact. Recoverable state is saved in `suite-*/live_status.json`. The old `agent-benchmark opencode hard-discrimination` form remains supported.
 
 ## Run The Full Fixed Cohort
 
@@ -251,7 +251,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。在正常终端中，它会打开更安静、接近 coding agent 的全屏 TUI，固定显示请求模型、运行后实际观察到的模型证据、当前题目、进度、ETA 和最近完成记录；完成后自动恢复普通 shell 再打印摘要。可恢复状态保存在 `suite-*/live_status.json`。较小的本地实验可以用 `agent-benchmark opencode hard-discrimination`。使用 `AGENT_BENCH_RESULTS_DIR=/你的/结果目录` 可显式覆盖输出位置。
+它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。想明确请求一个模型时直接写 `agent-benchmark claude-code --model deepseek-v4-flash`；想换较小题组时写 `agent-benchmark claude-code --suite hard-discrimination`，想低成本检查单个 harness 时写 `--suite real-smoke --repetitions 1`。正常终端会进入安静、接近 coding agent 的全屏 TUI，固定显示 harness、模型选择方式、parser 实际观察到的模型证据、当前题目、进度、ETA 和最近完成记录。请求模型绝不会被伪装成已观察事实。可恢复状态保存在 `suite-*/live_status.json`；旧写法 `agent-benchmark opencode hard-discrimination` 仍可使用。
 
 ## 运行固定完整卷
 

@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 161 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 163 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the local corpus is custom/domain seed and inspired work; the five legacy SWE-bench records preserve metadata only and the generic runner rejects them. Individual official bridge outcomes remain separate evidence tracks, not proof that an externally representative corpus or global leaderboard is complete. See `docs/task_provenance.md` and `docs/benchmark_readiness_audit.md`.
 
@@ -26,6 +26,9 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - Long benchmark runs now have a dependency-free live terminal UI: `SuiteProgress` receives real runner lifecycle events, renders only to stderr, and persists `suite-*/live_status.json`. It reports task/repetition, current phase, attempts completed, elapsed time, and ETA calculated only from completed attempt durations. The launcher passes `--summary`, so users see a compact conclusion instead of a huge final JSON dump. Never let the UI or status write affect a benchmark result; raw suite JSON remains available without `--summary`.
 - The UI has been upgraded to a coding-agent-style full TUI inspired by OpenCode's dedicated terminal UI approach: wide interactive terminals use an alternate screen with Progress, Current Task, Run Health, Recent Attempts, a spinner, and reliable restoration of the normal shell. `AGENT_BENCH_TUI=compact`, `AGENT_BENCH_TUI=full`, `AGENT_BENCH_PROGRESS=plain`, and `TERM=dumb` are explicit safe modes; recent attempts are persisted in `live_status.json`.
 - The full TUI was restyled away from dashboard boxes into a quiet coding-agent execution view. It now shows requested model, observed model, adapter, suite, and budget profile as first-class runtime context. Runner progress events carry only parser-derived `detected_model`; never replace missing observed evidence with a requested/registry label.
+- The launcher now accepts simple `--model MODEL`, `--suite SUITE`, and `--repetitions N` options while preserving the older second positional suite argument. It sends a requested model only to adapters that support CLI selection; opencode explicitly reports that it continues with its configured default. The completion summary includes requested, parser-observed, and identity state.
+- `live_status.json` now preserves `adapter_model`, adapter selection mode, `observed_models`, and `observed_multiple` when a suite sees model drift. Recent attempts retain the parser-derived model for that individual attempt. The TUI must make this distinction visible instead of collapsing the run to its final model.
+- Preflight now separates execution readiness from ranking readiness: a smoke-only or diagnostic suite is executable for adapter verification, but reports the `no_comparative_tasks` warning and can never unlock comparative ranking.
 
 ## User Intent Summary
 
@@ -261,7 +264,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 161 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 163 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

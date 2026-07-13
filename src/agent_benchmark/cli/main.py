@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 import uuid
 
-from agent_benchmark.adapters import available_adapters
+from agent_benchmark.adapters import adapter_by_name, available_adapters
 from agent_benchmark.authoritative import preflight_authoritative_corpora
 from agent_benchmark.authoritative_pilot import freeze_swebench_pilot, freeze_terminal_bench_pilot, load_authoritative_pilot
 from agent_benchmark.audit import AuditOptions, format_audit, run_audit
@@ -19,6 +19,7 @@ from agent_benchmark.decision_index import build_decision_index
 from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
+from agent_benchmark.model_identity import summarize_model_identity
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
 from agent_benchmark.reports.matrix import build_matrix_leaderboard, write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
@@ -995,6 +996,8 @@ def _run_suite_with_config(
         suite_id=suite.suite_id,
         adapter=config.adapter,
         model=config.model,
+        adapter_model=config.invocation_model,
+        model_selection=str(getattr(adapter_by_name(config.adapter), "model_selection", "environment_only")),
         budget_profile=config.budget_profile,
         repetitions=config.repetitions,
         task_count=len(suite.tasks),
@@ -1081,6 +1084,16 @@ def _run_suite_with_config(
         "scoring_policy": "Local strict scores are aggregated only across local tasks. Official evaluator outcomes are reported as a separate resolution track; unscorable evaluator errors are excluded from that track.",
     }
     suite_summary["official_tracks"] = _official_track_summary(official_tasks)
+    detected_models = sorted(
+        {
+            str(model).strip()
+            for task_summary in summaries
+            for model in _summary_detected_models(task_summary)
+            if str(model).strip()
+        }
+    )
+    suite_summary["detected_models"] = detected_models
+    suite_summary["model_identity"] = summarize_model_identity(config.model, detected_models)
     suite_summary["decision_index"] = build_decision_index(suite_summary)
     suite_summary["evaluation_axis_scorecard"] = build_scorecard(scored)
     suite_summary["suite_run_dir"] = str(suite_run_dir)
@@ -1105,6 +1118,11 @@ def _print_suite_result(summary: dict[str, object], *, compact: bool) -> None:
     official = summary.get("official_tracks") if isinstance(summary.get("official_tracks"), dict) else {}
     print("\nBenchmark complete")
     print(f"  Suite: {summary.get('suite_id')} | Harness: {summary.get('adapter')} | Tasks: {summary.get('task_count')}")
+    identity = summary.get("model_identity") if isinstance(summary.get("model_identity"), dict) else {}
+    requested_model = summary.get("model")
+    detected_models = identity.get("detected_models") if isinstance(identity.get("detected_models"), list) else []
+    observed = ", ".join(str(item) for item in detected_models) if detected_models else "not exposed by harness output"
+    print(f"  Model: requested={requested_model} | observed={observed} | identity={identity.get('status', 'unknown')}")
     print(
         "  Local: "
         f"strict={summary.get('mean_score')} | verified={summary.get('mean_verified_normalized_score')} | "
@@ -1119,6 +1137,18 @@ def _print_suite_result(summary: dict[str, object], *, compact: bool) -> None:
     if decision:
         print(f"  Decision index: {decision.get('value')} ({decision.get('status')})")
     print(f"  Reports: {summary.get('suite_run_dir')}")
+
+
+def _summary_detected_models(summary: dict[str, object]) -> list[str]:
+    """Read only parser-derived model identities from a saved task summary."""
+    identity = summary.get("model_identity")
+    if isinstance(identity, dict) and isinstance(identity.get("detected_models"), list):
+        return [str(model) for model in identity["detected_models"] if isinstance(model, str)]
+    detected = summary.get("detected_models")
+    if isinstance(detected, list):
+        return [str(model) for model in detected if isinstance(model, str)]
+    detected = summary.get("detected_model")
+    return [detected] if isinstance(detected, str) else []
 
 
 def _official_track_summary(tasks: list[dict[str, object]]) -> dict[str, object]:
