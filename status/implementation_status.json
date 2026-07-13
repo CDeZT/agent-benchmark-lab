@@ -206,7 +206,7 @@
       "id": "live_terminal_progress",
       "title": "Coding-agent-style terminal TUI and recoverable run status",
       "status": "implemented",
-      "evidence": ["SuiteProgress receives real task, repetition, and adapter lifecycle events", "Wide interactive terminals render an alternate-screen dashboard with progress, current task, run health, recent attempts, and spinner", "Compact/plain/dumb terminal modes degrade safely and full TUI restores the terminal on completion", "Each live suite atomically updates suite-*/live_status.json with display mode and recent attempts", "The launcher uses compact final output while raw JSON remains available for scripts"],
+      "evidence": ["SuiteProgress receives real task, repetition, adapter lifecycle, and parser-derived detected-model events", "Wide interactive terminals render an alternate-screen coding-agent execution view with requested/observed model, current task, progress, recent attempts, and spinner", "Compact/plain/dumb terminal modes degrade safely and full TUI restores the terminal on completion", "Each live suite atomically updates suite-*/live_status.json with display mode, recent attempts, and separate requested/observed model fields", "The launcher uses compact final output while raw JSON remains available for scripts"],
       "remaining": ["Stream only safe, non-sensitive harness tool events when adapters expose them", "Add a dashboard live-run view as part of future desktop productization"]
     },
     {

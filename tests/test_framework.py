@@ -822,17 +822,24 @@ class FrameworkTests(unittest.TestCase):
                 "python-bugfix",
                 1,
                 "repetition.finished",
-                {"repetition": 1, "duration_seconds": 1.0, "score": 62.0},
+                {
+                    "repetition": 1,
+                    "duration_seconds": 1.0,
+                    "score": 62.0,
+                    "detected_model": "example-model-v1",
+                },
             )
             reporter.finish()
             state = json.loads((Path(tmp) / "live_status.json").read_text(encoding="utf-8"))
 
         self.assertIn("\033[?1049h", stream.getvalue())
         self.assertIn("\033[?1049l", stream.getvalue())
-        self.assertIn("CURRENT TASK", stream.getvalue())
-        self.assertIn("RECENT ATTEMPTS", stream.getvalue())
+        self.assertIn("python-bugfix", stream.getvalue())
+        self.assertIn("Recent activity", stream.getvalue())
+        self.assertIn("Model requested", stream.getvalue())
         self.assertEqual(state["display"]["mode"], "full")
         self.assertEqual(state["recent_attempts"][0]["task_id"], "python-bugfix")
+        self.assertEqual(state["model"]["observed"], "example-model-v1")
 
     def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
         suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])

@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-13 (iteration 53)
+
+- Reworked the first full-screen TUI after user feedback that its box-heavy dashboard did not resemble a polished coding-agent interface. The new view is intentionally quieter: a thin hierarchy, persistent harness/requested-model/budget context, focused current execution, progress/ETA, a short activity stream, and footer model evidence.
+- Added observed-model propagation from real runner results into `SuiteProgress` and `live_status.json`. Requested and observed identities are deliberately distinct; `unspecified` remains the current CLI default until harness output supplies evidence.
+
 ## 2026-07-13 (iteration 52)
 
 - Reviewed OpenCode's public TUI direction and upgraded the benchmark's standard-library progress renderer into a coding-agent-style alternate-screen dashboard. It uses stable panels for progress, current task, run health, recent attempts, ETA and a lightweight spinner, then restores the original terminal before printing the completion summary.

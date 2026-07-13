@@ -186,7 +186,7 @@ AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" agent-benchmark ope
 
 底层 `run`、`run-suite`、`run-matrix` 和各自 resume 命令也会在成功完成后自动刷新 `<runs-dir>/dashboard/index.html`；启动器只是额外帮你自动打开它。
 
-每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、最近三次 attempt、耗时和 ETA。因此即使终端断开或被清屏，也可以直接查看这个文件确认是否仍在运行。默认的宽交互终端会进入独立全屏 TUI：固定显示 Progress、Current Task、Run Health、Recent Attempts 和 spinner；完成或失败后会恢复原 shell。`AGENT_BENCH_TUI=compact` 可强制原有单行样式，`AGENT_BENCH_TUI=full` 可强制全屏，窄终端或 `TERM=dumb` 会自动退化。需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
+每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、最近三次 attempt、耗时、ETA，以及 requested/observed model。因此即使终端断开或被清屏，也可以直接查看这个文件确认是否仍在运行。默认的宽交互终端会进入独立全屏 TUI：它采用安静的 coding-agent 执行视图，固定显示当前 harness、请求模型、实际观察模型、运行模式、当前题目、进度、活动记录和 spinner；完成或失败后会恢复原 shell。`unspecified` 会诚实显示为“current CLI default”，直至 harness 输出给出模型证据，不能据此宣称同模型。`AGENT_BENCH_TUI=compact` 可强制原有单行样式，`AGENT_BENCH_TUI=full` 可强制全屏，窄终端或 `TERM=dumb` 会自动退化。需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
 
 **当前边界：** 启动器会检查环境，但不会自动安装 Python/Node/Playwright 依赖、启动 Docker/Colima、完成 provider 登录，或替你处理需要确认的系统级操作。遇到 doctor/preflight 失败时，当前版本仍需要按提示修复。未来会补自动诊断与受控修复，并交付独立原生 macOS App；在那之前，不应把现有 CLI 流程理解为零配置产品。
 

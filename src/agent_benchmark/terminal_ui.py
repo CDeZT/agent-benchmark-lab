@@ -56,6 +56,8 @@ class SuiteProgress:
         adapter: str,
         repetitions: int,
         task_count: int,
+        model: str = "unspecified",
+        budget_profile: str = "open_ended",
         enabled: bool | None = None,
         stream: TextIO | None = None,
     ) -> None:
@@ -63,6 +65,9 @@ class SuiteProgress:
         self.status_path = suite_run_dir / "live_status.json"
         self.suite_id = suite_id
         self.adapter = adapter
+        self.requested_model = model
+        self.budget_profile = budget_profile
+        self.observed_model: str | None = None
         self.repetitions = repetitions
         self.task_count = task_count
         self.total_attempts = task_count * repetitions
@@ -145,6 +150,9 @@ class SuiteProgress:
             return
         if event_name == "repetition.finished":
             duration = payload.get("duration_seconds")
+            detected_model = payload.get("detected_model")
+            if isinstance(detected_model, str) and detected_model.strip():
+                self.observed_model = detected_model.strip()
             self._complete_attempt(
                 float(duration) if isinstance(duration, (int, float)) else None,
                 task_id=task_id,
@@ -238,6 +246,11 @@ class SuiteProgress:
             "status": self._status,
             "suite_id": self.suite_id,
             "adapter": self.adapter,
+            "model": {
+                "requested": self.requested_model,
+                "observed": self.observed_model,
+                "identity_status": "observed" if self.observed_model else "awaiting_harness_evidence",
+            },
             "repetitions": self.repetitions,
             "started_at": self._started_at,
             "updated_at": _utc_now(),
@@ -285,10 +298,9 @@ class SuiteProgress:
                 self.stream.flush()
 
     def _render_full_screen_locked(self) -> None:
-        """Render a compact coding-agent-style dashboard on the alternate screen."""
+        """Render a quiet, model-forward execution view inspired by coding agents."""
         dimensions = shutil.get_terminal_size(fallback=(100, 24))
         width = max(72, dimensions.columns)
-        inner = width - 2
         eta = self._eta_seconds_locked()
         elapsed = self._elapsed_seconds()
         percent = 100 * self._completed_attempts / self.total_attempts if self.total_attempts else 100.0
@@ -296,50 +308,47 @@ class SuiteProgress:
         task_index = self._current.get("task_index")
         repetition = self._current.get("repetition")
         phase = str(self._current.get("phase", "starting"))
-        filled = round(32 * self._completed_attempts / self.total_attempts) if self.total_attempts else 32
-        bar = "#" * filled + "-" * (32 - filled)
-        spinner = "|/-\\"[int(elapsed * 4) % 4]
-        status = f" RUNNING {spinner} " if self._status == "in_progress" else f" {self._status.upper()} "
+        filled = round(30 * self._completed_attempts / self.total_attempts) if self.total_attempts else 30
+        bar = "█" * filled + "░" * (30 - filled)
+        spinner = "◐◓◑◒"[int(elapsed * 4) % 4]
+        status = f"RUNNING {spinner}" if self._status == "in_progress" else self._status.upper()
+        requested_model = "current CLI default" if self.requested_model == "unspecified" else self.requested_model
+        observed_model = self.observed_model or "waiting for harness evidence"
+        rule = "─" * width
 
-        def row(text: str, *, colour: str | None = None) -> str:
-            plain = _trim(text, inner - 2)
-            rendered = _colour(plain, colour, self._colour_enabled) if colour else plain
-            return "│ " + rendered + " " * (inner - 2 - len(plain)) + " │"
+        def line(text: str = "", *, colour: str | None = None) -> str:
+            plain = _trim(text, width)
+            return _colour(plain, colour, self._colour_enabled) if colour else plain
 
-        def divider(label: str) -> str:
-            plain = f" {label} "
-            return "├" + plain + "─" * max(0, width - 2 - len(plain)) + "┤"
-
-        title = " Agent Benchmark Lab "
-        top_fill = max(0, width - 2 - len(title) - len(status))
         lines = [
-            "╭" + _colour(title, "1;36", self._colour_enabled) + "─" * top_fill + _colour(status, "1;33", self._colour_enabled) + "╮",
-            row(f"Harness  {self.adapter}    Suite  {self.suite_id}    Repeats  {self.repetitions}"),
-            divider("PROGRESS"),
-            row(f"[{bar}]  {self._completed_attempts}/{self.total_attempts} attempts  ({percent:5.1f}%)", colour="1;36"),
-            divider("CURRENT TASK"),
-            row(f"Task      {task_index or 0}/{self.task_count}  {_trim(task, max(12, inner - 24))}", colour="1;37"),
-            row(f"Repeat    {repetition or '-'} / {self.repetitions}"),
-            row(f"Phase     {phase.upper()}"),
-            divider("RUN HEALTH"),
-            row(f"Elapsed   {_format_duration(elapsed)}    Estimated remaining   {_format_duration(eta)}"),
-            row(f"State     {_trim(str(self.status_path), max(12, inner - 12))}", colour="2"),
-            divider("RECENT ATTEMPTS"),
+            line("Agent Benchmark Lab", colour="1;36") + " " * max(1, width - len("Agent Benchmark Lab") - len(status)) + line(status, colour="1;33"),
+            line(f"{self.adapter}  ·  {requested_model}  ·  {self.budget_profile}  ·  {self.suite_id}", colour="2"),
+            rule,
+            line(f"{spinner}  {_trim(task, max(12, width - 24))}", colour="1;37"),
+            line(f"   task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}  ·  {phase}", colour="2"),
+            "",
+            line(f"[{bar}]  {self._completed_attempts}/{self.total_attempts} attempts  {percent:5.1f}%", colour="1;36"),
+            line(f"elapsed {_format_duration(elapsed)}     ETA {_format_duration(eta)}", colour="2"),
+            "",
+            line("Recent activity", colour="1;37"),
         ]
         if self._recent_attempts:
             for attempt in reversed(self._recent_attempts):
                 score = attempt.get("score")
-                score_text = f" score={float(score):.1f}" if isinstance(score, (int, float)) else ""
+                score_text = f"  score {float(score):.1f}" if isinstance(score, (int, float)) else ""
                 repeat = attempt.get("repetition") or "-"
                 duration = attempt.get("duration_seconds")
                 duration_text = _format_duration(float(duration)) if isinstance(duration, (int, float)) else "unknown"
-                lines.append(row(f"{attempt['task_id']}  r{repeat}  {duration_text}{score_text}"))
+                lines.append(line(f"  ✓  {attempt['task_id']}  ·  r{repeat}  ·  {duration_text}{score_text}", colour="2"))
         else:
-            lines.append(row("No completed attempts yet. ETA becomes available after the first one.", colour="2"))
+            lines.append(line("  No completed attempts yet. ETA appears after the first one.", colour="2"))
         lines.extend(
             [
-                "╰" + "─" * (width - 2) + "╯",
-                _colour("Ctrl-C preserves checkpoints. The live state and evidence remain in the result directory.", "2", self._colour_enabled),
+                "",
+                rule,
+                line(f"Model requested: {requested_model}    Observed: {observed_model}", colour="2"),
+                line(f"State: {_trim(str(self.status_path), max(12, width - 7))}", colour="2"),
+                line("Ctrl-C preserves checkpoints and evidence.", colour="2"),
             ]
         )
         self.stream.write("\033[H\033[2J" + "\n".join(lines) + "\n")

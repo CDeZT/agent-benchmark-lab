@@ -123,6 +123,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - Dashboard 静态历史视图已存在；如需再做 live server 或多矩阵趋势图，应在有更多 fingerprinted matrix 证据后进行。
 - 长运行 UX 不是装饰：`SuiteProgress` 使用 runner 的真实 repetition/adapter 事件，向 stderr 动态渲染，并原子保存 `suite-*/live_status.json`。不得为了 UI 修改 score、证据或 stdout 的完整 JSON 协议；ETA 必须来自已完成 attempts 的真实时长，第一条完成前必须保持 calculating/unavailable。`--summary` 是启动器默认的紧凑完成输出，完整 JSON 仍要保留给脚本和审计。
 - 宽交互终端默认运行 alternate-screen 全屏 TUI，显示 Progress、Current Task、Run Health、Recent Attempts 和 spinner。任何完成、失败或 Ctrl-C 路径都必须恢复 cursor 与原 shell；`AGENT_BENCH_TUI=compact`、`AGENT_BENCH_TUI=full`、`AGENT_BENCH_PROGRESS=plain` 和 `TERM=dumb` 是兼容性边界。保持 `live_status.json` 的 recent attempts/display 字段与测试同步。
+- TUI 中的模型必须同时保留 requested 与 parser-derived observed 两条事实；没有 observed model 时只显示当前 CLI default/awaiting evidence，绝不能为了视觉完整性把 canonical label、registry 或旧配置写成已验证身份。
 - 用户已明确提出一个**尚未实现且不能丢失**的产品化要求：正常使用不应要求理解环境变量、Python/Node/Playwright/Docker 或 CLI 安装。未来必须先做付费 run 前的自动 readiness 诊断，再在安全范围内自动修复依赖、浏览器运行时、Docker/Colima 和启动器；涉及网络、管理员权限、provider 登录或系统选择时才用中文清晰说明并征得确认，绝不能把原始栈追踪当作用户提示。
 - 最终交付首选独立原生 macOS App，不是只做浏览器页面。它应覆盖引导安装、harness 状态、结果目录选择、运行配置、实时进度/日志、恢复/历史和完成后 dashboard。当前 `./benchmark install` + `agent-benchmark` 只是中间 CLI 流程：会 doctor/preflight，却**不会**自动安装或修复环境，不能误报为已完成产品化。
 

@@ -195,7 +195,13 @@ def run_task(
         _notify_progress(
             progress_callback,
             "repetition.finished",
-            {"run_id": run_id, "repetition": repetition, "duration_seconds": duration_seconds, "score": score.total},
+            {
+                "run_id": run_id,
+                "repetition": repetition,
+                "duration_seconds": duration_seconds,
+                "score": score.total,
+                "detected_model": result.detected_model,
+            },
         )
         _write_checkpoint(experiment_dir, config.repetitions)
 

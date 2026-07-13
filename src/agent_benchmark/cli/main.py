@@ -994,6 +994,8 @@ def _run_suite_with_config(
         suite_run_dir,
         suite_id=suite.suite_id,
         adapter=config.adapter,
+        model=config.model,
+        budget_profile=config.budget_profile,
         repetitions=config.repetitions,
         task_count=len(suite.tasks),
         enabled=progress,
