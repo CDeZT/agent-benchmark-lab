@@ -38,11 +38,25 @@ def parse_harness_output(adapter: str, stdout: str, stderr: str) -> HarnessEvide
         return _parse_codex(stdout, stderr)
     if adapter == "aider":
         return _parse_aider(stdout, stderr)
+    if adapter == "antigravity":
+        return _parse_antigravity(stdout, stderr)
     return HarnessEvidence()
 
 
 def _strip_ansi(text: str) -> str:
     return _ANSI_ESCAPE.sub("", text)
+
+
+def _parse_antigravity(stdout: str, stderr: str) -> HarnessEvidence:
+    """Keep AGY print-mode evidence empty until it exposes a stable schema.
+
+    Antigravity CLI 1.1.1 prints a human response, not a documented structured
+    event stream.  In particular, text that happens to mention a model, token,
+    cost, or shell command is agent-authored content rather than harness
+    telemetry, so it must not change benchmark dimensions.
+    """
+    del stdout, stderr
+    return HarnessEvidence()
 
 
 def normalize_model_name(value: str) -> str:

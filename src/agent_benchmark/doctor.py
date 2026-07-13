@@ -18,6 +18,7 @@ class DoctorCheck:
 
 RECOMMENDED_COMMANDS = {
     "aider": "built-in default uses aider --yes-always --no-git --no-auto-commits --no-stream --message-file {instruction_file}, adding --model only when AGENT_BENCH_MODEL is not unspecified",
+    "antigravity": "built-in default uses agy --dangerously-skip-permissions --print, adding --model only when AGENT_BENCH_MODEL is not unspecified",
     "opencode": "built-in default uses opencode run --auto --format json, adding -m only when AGENT_BENCH_MODEL is not unspecified",
     "claude-code": "built-in default uses claude -p --dangerously-skip-permissions --no-session-persistence, adding --model only when AGENT_BENCH_MODEL is not unspecified",
     "codex": "built-in default uses codex exec --json --ephemeral --sandbox workspace-write --skip-git-repo-check -C {workspace}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
@@ -35,6 +36,7 @@ def run_doctor() -> dict[str, Any]:
         _command_check("claude", ["claude", "--version"]),
         _command_check("codex", ["codex", "--version"]),
         _command_check("aider", ["aider", "--version"]),
+        _antigravity_check(),
         _command_check("grok", ["grok", "--version"]),
         _mimo_check(),
         _docker_check(),
@@ -44,6 +46,7 @@ def run_doctor() -> dict[str, Any]:
         _env_check("AGENT_BENCH_CLAUDE_CODE_COMMAND", recommended=RECOMMENDED_COMMANDS["claude-code"]),
         _env_check("AGENT_BENCH_CODEX_COMMAND", recommended=RECOMMENDED_COMMANDS["codex"]),
         _env_check("AGENT_BENCH_AIDER_COMMAND", recommended=RECOMMENDED_COMMANDS["aider"]),
+        _env_check("AGENT_BENCH_ANTIGRAVITY_COMMAND", recommended=RECOMMENDED_COMMANDS["antigravity"]),
         _env_check("AGENT_BENCH_GROK_COMMAND", recommended=RECOMMENDED_COMMANDS["grok"]),
         _env_check("AGENT_BENCH_MIMO_COMMAND", recommended=RECOMMENDED_COMMANDS["mimo"]),
     ]
@@ -86,6 +89,13 @@ def _mimo_check() -> DoctorCheck:
     if not Path(path).is_file():
         return DoctorCheck(name="command:mimo", status="error", details={"reason": "not found on PATH or at ~/.mimocode/bin/mimo"})
     return _command_check_path("mimo", path, [path, "--version"])
+
+
+def _antigravity_check() -> DoctorCheck:
+    path = shutil.which("agy") or str(Path.home() / ".local" / "bin" / "agy")
+    if not Path(path).is_file():
+        return DoctorCheck(name="command:agy", status="error", details={"reason": "not found on PATH or at ~/.local/bin/agy"})
+    return _command_check_path("agy", path, [path, "--version"])
 
 
 def _command_check_path(binary: str, path: str, version_command: list[str]) -> DoctorCheck:

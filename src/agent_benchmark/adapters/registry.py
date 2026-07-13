@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from agent_benchmark.adapters.aider import AiderAdapter
+from agent_benchmark.adapters.antigravity import AntigravityAdapter
 from agent_benchmark.adapters.base import HarnessAdapter
 from agent_benchmark.adapters.claude_code import ClaudeCodeAdapter
 from agent_benchmark.adapters.codex import CodexAdapter
@@ -20,6 +21,7 @@ AdapterFactory = Callable[[], HarnessAdapter]
 
 _REGISTRY: dict[str, AdapterFactory] = {
     "aider": AiderAdapter,
+    "antigravity": AntigravityAdapter,
     "claude-code": ClaudeCodeAdapter,
     "codex": CodexAdapter,
     "dummy": DummyAdapter,

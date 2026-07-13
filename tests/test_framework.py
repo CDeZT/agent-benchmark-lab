@@ -1750,6 +1750,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("claude-code", rendered)
         self.assertIn("codex", rendered)
         self.assertIn("aider", rendered)
+        self.assertIn("antigravity", rendered)
         self.assertIn("grok", rendered)
         self.assertIn("mimo", rendered)
 
@@ -1765,6 +1766,7 @@ class FrameworkTests(unittest.TestCase):
 
     def test_real_harness_adapters_have_default_templates(self) -> None:
         from agent_benchmark.adapters.aider import AiderAdapter
+        from agent_benchmark.adapters.antigravity import AntigravityAdapter
         from agent_benchmark.adapters.claude_code import ClaudeCodeAdapter
         from agent_benchmark.adapters.codex import CodexAdapter
         from agent_benchmark.adapters.grok import GrokAdapter
@@ -1782,8 +1784,12 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("--skip-git-repo-check", CodexAdapter().command_template() or "")
         self.assertIn("aider --yes-always", AiderAdapter().command_template() or "")
         self.assertIn("--message-file", AiderAdapter().command_template() or "")
+        self.assertIn("agy", AntigravityAdapter().command_template() or "")
+        self.assertIn("--print", AntigravityAdapter().command_template() or "")
+        self.assertIn("--model", AntigravityAdapter().command_template() or "")
         self.assertIn("codex", available_adapters())
         self.assertIn("aider", available_adapters())
+        self.assertIn("antigravity", available_adapters())
         self.assertIn("grok", available_adapters())
         self.assertIn("mimo", available_adapters())
 
@@ -1797,6 +1803,7 @@ class FrameworkTests(unittest.TestCase):
         # Built-in names still resolve to code adapters; configured-only names use JSON.
         self.assertEqual(adapter_by_name("grok").name, "grok")
         self.assertEqual(adapter_by_name("mimo").name, "mimo")
+        self.assertEqual(adapter_by_name("antigravity").name, "antigravity")
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "harnesses.json"
             path.write_text(
@@ -2546,6 +2553,29 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(probe.status, "configured")
         self.assertEqual(probe.model, "gpt-5.6-terra")
+
+    def test_antigravity_default_probe_does_not_spend_an_inference_or_invent_identity(self) -> None:
+        with patch("agent_benchmark.model_probe.shutil.which", return_value="/usr/local/bin/agy"), patch(
+            "agent_benchmark.model_probe.subprocess.run"
+        ) as run:
+            probe = probe_default_model(adapter="antigravity", requested_model="unspecified")
+
+        self.assertEqual(probe.status, "unsupported")
+        self.assertIsNone(probe.model)
+        self.assertIn("no reliable default-model", probe.detail)
+        run.assert_not_called()
+
+    def test_antigravity_print_text_is_not_mistaken_for_harness_telemetry(self) -> None:
+        evidence = parse_harness_output(
+            "antigravity",
+            "I used model Gemini 3.5 Flash and ran shell commands. Cost: $0.01.",
+            "Tokens: 100 in / 10 out",
+        )
+
+        self.assertIsNone(evidence.model)
+        self.assertIsNone(evidence.input_tokens)
+        self.assertIsNone(evidence.cost_usd)
+        self.assertEqual(evidence.tool_calls, [])
 
     def test_unknown_adapter_parser_returns_empty(self) -> None:
         """Prove parser returns empty evidence for unknown adapters."""

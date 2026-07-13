@@ -3,7 +3,7 @@
   "updated_at": "2026-07-13",
   "summary": {
     "current_phase": "early_phase_1_minimal_working_benchmark",
-    "plain_language": "The repository has a usable personal benchmark foundation: 26 locally runnable tasks, five SWE-bench metadata records quarantined as external_frozen, and thirteen suites. comprehensive-screening-v1 gives one resumable command for a fixed 11-task local cohort plus a 9-task SWE-bench Verified hard cohort and one diagnostic tail, while deliberately separating local multidimensional scores from official resolution rate. Codex, Aider, Claude Code, opencode, Grok, and MimoCode have built-in adapter contracts. OpenCode now uses JSONL plus a saved export-backed default-model probe, observed locally as LongCat-2.0; Mimo JSONL token/cost telemetry is captured conservatively, while a missing Mimo model field remains pending rather than guessed. The corpus has baseline/reference contrast for 21 records, but five dependency-heavy container tasks still need the same Docker-backed corpus audit and no task is empirically selection-ready yet."
+    "plain_language": "The repository has a usable personal benchmark foundation: 26 locally runnable tasks, five SWE-bench metadata records quarantined as external_frozen, and thirteen suites. comprehensive-screening-v1 gives one resumable command for a fixed 11-task local cohort plus a 9-task SWE-bench Verified hard cohort and one diagnostic tail, while deliberately separating local multidimensional scores from official resolution rate. Codex, Aider, Antigravity CLI, Claude Code, opencode, Grok, and MimoCode have built-in adapter contracts. Antigravity uses agy --print with optional explicit --model but has no stable structured identity or telemetry schema, so it remains unverified rather than guessed. OpenCode now uses JSONL plus a saved export-backed default-model probe, observed locally as LongCat-2.0; Mimo JSONL token/cost telemetry is captured conservatively, while a missing Mimo model field remains pending rather than guessed. The corpus has baseline/reference contrast for 21 records, but five dependency-heavy container tasks still need the same Docker-backed corpus audit and no task is empirically selection-ready yet."
   },
   "items": [
     {
@@ -66,7 +66,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status, selected invocation value, saved Claude and OpenCode startup probes, configured-but-unverified defaults, and observed model drift are persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "174 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status, selected invocation value, saved Claude and OpenCode startup probes, configured-but-unverified defaults, and observed model drift are persisted", "Antigravity print-mode natural language is not parsed as telemetry", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "176 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Complete Docker-backed corpus audit for dependency-heavy tasks"]
     },
     {
@@ -157,7 +157,7 @@
       "id": "real_harness_adapters",
       "title": "Real coding-agent adapters",
       "status": "partial",
-      "evidence": ["Built-in default command templates exist for Codex, Aider, Claude Code, opencode, Grok, and MimoCode", "doctor detects local opencode, Claude Code, Grok, and MimoCode versions", "OpenCode local default was observed as LongCat-2.0 through an isolated JSON session export and its explicit -m invocation was tested", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Mimo JSONL parser records explicit input/output token and cost values without inventing a model identity", "detected_model and model_identity are in summaries", "Historic unversioned results are excluded from current selection statistics"],
+      "evidence": ["Built-in default command templates exist for Codex, Aider, Antigravity CLI, Claude Code, opencode, Grok, and MimoCode", "doctor detects local agy, opencode, Claude Code, Grok, and MimoCode versions", "Antigravity agy --print supports an explicit --model request but has no stable structured default identity or telemetry and therefore consumes no default-model probe", "OpenCode local default was observed as LongCat-2.0 through an isolated JSON session export and its explicit -m invocation was tested", "command templates support instruction_file, prompt, workspace, canonical model, and adapter model env", "Mimo JSONL parser records explicit input/output token and cost values without inventing a model identity", "detected_model and model_identity are in summaries", "Historic unversioned results are excluded from current selection statistics"],
       "remaining": ["Rerun fingerprinted smoke checks", "Run larger registry-backed benchmark matrices", "Improve provider-specific tool trace parsing", "Handle provider-specific permissions and interaction behavior"]
     },
     {
@@ -199,7 +199,7 @@
       "id": "doctor_command",
       "title": "Local environment and harness diagnostics",
       "status": "implemented",
-      "evidence": ["agent-benchmark doctor checks python3, node, cc, opencode, claude, Playwright Chromium, Docker daemon readiness, and adapter command env vars"],
+      "evidence": ["agent-benchmark doctor checks python3, node, cc, agy, opencode, claude, Playwright Chromium, Docker daemon readiness, and adapter command env vars"],
       "remaining": ["Add provider credential checks without printing secrets", "Report active container runtime name when Docker is ready"]
     },
     {

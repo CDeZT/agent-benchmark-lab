@@ -1,6 +1,6 @@
 # Adapter Contract
 
-Adapters connect Agent Benchmark Lab to real harnesses such as Codex, Aider, Claude Code, opencode, Grok, and MimoCode.
+Adapters connect Agent Benchmark Lab to real harnesses such as Codex, Aider, Antigravity CLI, Claude Code, opencode, Grok, and MimoCode.
 
 ## Required Behavior
 
@@ -58,6 +58,22 @@ Implemented. Built-in default uses Aider's one-message scripting mode:
 `aider --yes-always --no-git --no-auto-commits --no-stream --message-file {instruction_file}`
 
 When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `--model "$AGENT_BENCH_MODEL"`. Aider's git integration is disabled because each benchmark run owns a disposable workspace. Only model/token/cost fields explicitly printed by Aider are parsed; a workspace diff alone is heuristic editing evidence, not verified tool telemetry. Override with `AGENT_BENCH_AIDER_COMMAND`.
+
+### antigravity
+
+Implemented. This adapter targets Google Antigravity CLI's official `agy`
+command:
+
+`agy --dangerously-skip-permissions --print "$(cat {instruction_file})"`
+
+It first uses `agy` from PATH, then falls back to the standard macOS/Linux
+installation location `~/.local/bin/agy`. When `AGENT_BENCH_MODEL` is not
+`unspecified`, the template adds `--model "$AGENT_BENCH_MODEL"`. AGY 1.1.1
+has a usable non-interactive invocation but its print output is natural
+language, not a stable telemetry schema. Do not parse text that mentions a
+model, token count, cost, command, or tool as harness evidence; default model
+identity is also pending without a paid probe. Override with
+`AGENT_BENCH_ANTIGRAVITY_COMMAND`.
 
 ### grok
 
@@ -123,6 +139,7 @@ Built-in default templates:
 - opencode uses `opencode run --auto --format json`; its current local CLI accepts `-m provider/model` for an explicit model experiment. In `unspecified` mode, the adapter uses the present OpenCode default and the startup probe records `opencode export <session-id>` metadata before task 1.
 - claude-code uses `claude -p --output-format json --dangerously-skip-permissions --no-session-persistence "$(cat {instruction_file})"` when `AGENT_BENCH_MODEL=unspecified`, otherwise it adds `--model "$AGENT_BENCH_MODEL"`.
 - codex uses the JSONL `exec` template above; aider uses `--message-file` with git auto-commits disabled.
+- antigravity uses `agy --dangerously-skip-permissions --print`; its current plain response is evidence-free until AGY publishes a stable machine-readable protocol.
 
 You can still override them with:
 
@@ -130,6 +147,7 @@ You can still override them with:
 - `AGENT_BENCH_CLAUDE_CODE_COMMAND`
 - `AGENT_BENCH_CODEX_COMMAND`
 - `AGENT_BENCH_AIDER_COMMAND`
+- `AGENT_BENCH_ANTIGRAVITY_COMMAND`
 
 Claude Code's default template now uses `--output-format json`, so the runner can collect structured result metadata such as actual model identity, token usage, and cost when the configured provider exposes it.
 

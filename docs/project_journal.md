@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-13 (iteration 61)
+
+- Added the first-class `antigravity` adapter for Google Antigravity CLI (`agy`). The adapter uses the real non-interactive `--print` mode, automatic permission approval inside the already-isolated benchmark workspace, and `--model` only when the experiment explicitly requests one.
+- Verified local installation and capabilities without a paid inference: `agy 1.1.1`, `--print`, `--model`, and the local model list all work. `doctor` now detects `agy` and its override environment variable.
+- Established an evidence boundary rather than guessing: AGY 1.1.1 print mode has no documented structured default-model, token, cost, or tool trace. Its default identity probe intentionally consumes no model call and reports unsupported; its plain response cannot be parsed as harness telemetry. Added regression coverage for both constraints.
+- Updated bilingual README, user/developer guides, handoff, implementation status, and next-agent rules. This iteration does not modify ignored `runs/` artifacts and does not claim a real AGY benchmark result.
+
 ## 2026-07-13 (iteration 60)
 
 - Replaced the project-owned full-screen ANSI cursor renderer after real iTerm output leaked cursor-control text into the terminal. The TUI now uses `rich.Live` to own alternate-screen lifecycle and redraws; it fills wide terminals with current-task and run-context columns plus an evidence-safe activity stream.

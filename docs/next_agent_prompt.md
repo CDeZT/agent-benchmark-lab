@@ -60,7 +60,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - `container_required` 任务已有 Docker evaluator v1；当前 Colima Docker daemon 可用，且已有 `python-fullstack` 容器运行证据。保留每次 run 的 `environment.Dockerfile`、`environment.json` 和 `environment-build.log` 作为环境证据。
 - 模型并非固定：Claude Code 和 opencode 后面的默认模型会被用户随时调整。普通实测使用 `--models unspecified`，让每个 CLI 使用当下默认模型；这叫 `cli_default_configurations`，是完整当前配置对比，不能写成同模型对比。运行后记录 `default_detected` 或 `default_unverified`。
 - `config/harnesses.example.json` 只是新增 headless CLI 的示例，不得把其中名称当作已安装或可运行 adapter。只有内置 adapter、显式本地 `config/harnesses.json` 或 `AGENT_BENCH_HARNESSES_FILE` 指向的 registry 才能进入 `list-adapters` 和真实 run。
-- 内置 adapter 现包括 `codex` 与 `aider`。Codex 默认 `exec --json` 的结构化 command/file-change 事件可作为 verified tool telemetry；Aider 未输出结构化 trace 时，workspace diff 只能是 heuristic，不得抬高 verified coverage。两者都必须先通过 `doctor` 与单题真实 smoke，再进入矩阵。
+- 内置 adapter 现包括 `codex`、`aider`、`antigravity`、`claude-code`、`opencode`、`grok` 和 `mimo`。Codex 默认 `exec --json` 的结构化 command/file-change 事件可作为 verified tool telemetry；Aider 未输出结构化 trace 时，workspace diff 只能是 heuristic，不得抬高 verified coverage。Antigravity 使用官方 `agy --print`，支持显式 `--model`，但当前 1.1.1 print 输出没有可靠结构化模型、token、cost 或工具遥测；不得从 agent 自然语言回复猜这些字段，也不得为了默认身份另花一次推理。它只能作为 `default_unverified` / `requested_unverified` 进入结果，直到真实稳定协议出现。所有 adapter 都必须先通过 `doctor` 与单题真实 smoke，再进入矩阵。
 - 只有明确想测“同一模型不同 harness”时，才使用 canonical model + adapter-specific model registry；检查 `model_identity.status`，只有 `verified_match` 才能做同模型结论。不要把 CLI 参数标签、registry 或旧配置当作模型身份事实。
 - 在调用真实 harness 前先执行 `preflight-matrix`。如果它报告 registry identity hint mismatch，配置可以用于调试但不可用于公平排名；先修正映射，再花费 token。
 - 当前本机 opencode 1.17.15 已实测 `run --auto --format json -m provider/model` 成功；`unspecified` 模式会创建一次临时 JSON session 后用 `opencode export <session-id>` 读取真实默认模型（当前为 `LongCat-2.0`），并缓存到 suite 的 `model_probe.json`。显式模型结论仍须以每个 task 输出的身份核验为准，不能只相信参数或 registry。
@@ -94,11 +94,11 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - static HTML visual checks。
 - process planning evidence checks。
 - 10 维度评分体系；所有非零分都必须有真实执行证据。
-- dummy/generic/opencode/claude-code/codex/aider/grok/mimo adapters。
+- dummy/generic/opencode/claude-code/codex/aider/antigravity/grok/mimo adapters。
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
-- 156 个 unittest 测试函数，应该全部通过。
+- 176 个 unittest 测试函数，应该全部通过。
 - `agent-benchmark dashboard` 已可从 `runs/` 生成历史 HTML/JSON 看板，并标注 fingerprint 与模型身份是否可用于当前结论。
 - `mimo` 是 MimoCode 的真实本机命令。内置 adapter 优先使用 PATH，其次 `~/.mimocode/bin/mimo`，默认调用 `mimo run --format json`；`AGENT_BENCH_MODEL=unspecified` 不传 `-m`，显式模型才传。Mimo JSONL 没有明确 `model` 字段时，只记录明确的 token/cost/tool 遥测，身份必须是 pending，绝不能把请求模型或本机旧配置显示成 observed。
 - Grok 内置命令是 `--output-format streaming-json`；只从明确 event 字段解析 model/usage/cost/tool telemetry。若真实 CLI 不输出这些字段，评分与 TUI 都保留 unavailable/pending。

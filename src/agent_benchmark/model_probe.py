@@ -65,6 +65,8 @@ def probe_default_model(*, adapter: str, requested_model: str) -> ModelProbe:
         return _configured_codex_model()
     if adapter == "opencode":
         return _probe_opencode_default()
+    if adapter == "antigravity":
+        return _antigravity_default_model()
     if adapter != "claude-code":
         return ModelProbe(adapter, "unsupported", None, None, "This adapter has no safe structured default-model probe yet.")
     if os.environ.get("AGENT_BENCH_CLAUDE_CODE_COMMAND"):
@@ -131,6 +133,32 @@ def _configured_codex_model() -> ModelProbe:
     if isinstance(model, str) and model.strip():
         return ModelProbe("codex", "configured", model.strip(), None, f"Declared in {config_path}; task output must still verify it.")
     return ModelProbe("codex", "unsupported", None, None, "Codex config has no default model declaration.")
+
+
+def _antigravity_default_model() -> ModelProbe:
+    """Explain the current identity boundary without spending an AGY inference.
+
+    ``agy models`` lists choices but does not identify the active default, and
+    print-mode output has no stable structured model field.  Running a probe
+    would consume an inference yet still leave identity unverified, so avoid it.
+    """
+    if os.environ.get("AGENT_BENCH_ANTIGRAVITY_COMMAND"):
+        return ModelProbe(
+            "antigravity",
+            "custom_command",
+            None,
+            None,
+            "A custom Antigravity command is configured, so the built-in identity boundary is not assumed equivalent.",
+        )
+    if not shutil.which("agy") and not (Path.home() / ".local" / "bin" / "agy").is_file():
+        return ModelProbe("antigravity", "unavailable", None, None, "Antigravity CLI (agy) is not on PATH or at ~/.local/bin/agy.")
+    return ModelProbe(
+        "antigravity",
+        "unsupported",
+        None,
+        None,
+        "AGY print mode has no reliable default-model identity field; no paid probe is run and task output must provide evidence.",
+    )
 
 
 def _probe_opencode_default() -> ModelProbe:
