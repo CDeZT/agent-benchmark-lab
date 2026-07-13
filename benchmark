@@ -2,12 +2,28 @@
 # Friendly macOS launcher for one full single-harness benchmark experiment.
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+# Resolve symlinks so `agent-benchmark` can be installed in ~/.local/bin
+# while keeping the repository root as the execution directory.
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -h "$SOURCE" ]]; do
+  SOURCE_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$SOURCE_DIR/$SOURCE"
+done
+SOURCE="$(cd -P "$(dirname "$SOURCE")" && pwd)/$(basename "$SOURCE")"
+ROOT="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+CALLER_DIR="$(pwd -P)"
 cd "$ROOT"
 
 usage() {
   cat <<'EOF'
 Usage: ./benchmark [adapter] [suite]
+
+Install a short command once:
+  ./benchmark install
+
+Then create a result folder, enter it, and run:
+  agent-benchmark claude-code
 
 Runs a complete benchmark, refreshes the dashboard, and opens it on macOS.
 
@@ -21,7 +37,7 @@ Defaults:
   suite: comprehensive-screening-v1
   repetitions: 3
   budget profile: stress
-  results directory: ~/Documents/AgentBenchmarkResults
+  results directory: the current directory (when called outside this repo)
 EOF
 }
 
@@ -30,11 +46,31 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "install" ]]; then
+  INSTALL_DIR="$HOME/.local/bin"
+  INSTALL_PATH="$INSTALL_DIR/agent-benchmark"
+  mkdir -p "$INSTALL_DIR"
+  ln -sfn "$SOURCE" "$INSTALL_PATH"
+  echo "Installed: $INSTALL_PATH"
+  if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+    echo "Add this directory to PATH before using the short command: $INSTALL_DIR"
+  fi
+  exit 0
+fi
+
 ADAPTER="${1:-claude-code}"
 SUITE="${2:-${AGENT_BENCH_SUITE:-comprehensive-screening-v1}}"
 REPETITIONS="${AGENT_BENCH_REPETITIONS:-3}"
 BUDGET_PROFILE="${AGENT_BENCH_BUDGET_PROFILE:-stress}"
-RESULTS_DIR="${AGENT_BENCH_RESULTS_DIR:-$HOME/Documents/AgentBenchmarkResults}"
+# A command launched from a user-created directory should keep every artifact
+# there. Running ./benchmark inside the repository retains the conventional
+# ignored runs/ location instead of polluting the source tree root.
+if [[ "$CALLER_DIR" == "$ROOT" ]]; then
+  DEFAULT_RESULTS_DIR="$ROOT/runs"
+else
+  DEFAULT_RESULTS_DIR="$CALLER_DIR"
+fi
+RESULTS_DIR="${AGENT_BENCH_RESULTS_DIR:-$DEFAULT_RESULTS_DIR}"
 LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-current-default}"
 
 mkdir -p "$RESULTS_DIR"

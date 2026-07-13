@@ -21,7 +21,7 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - `balanced-v1` decision index now combines local verified-normalized score (55%) with official SWE resolution rate (45%) for personal tool selection. It retains a profile fingerprint and evidence gates (3 repetitions, local coverage >=60%, at least 9 scorable official attempts); never let it replace the separate native tracks or present it as a universal benchmark score.
 - The public repository uses GPL-3.0. Before adding distributable third-party task text, assets, source, or datasets, check redistributability and preserve notices; do not treat ignored external evaluator artifacts as GPL relicensable project code.
 - `README.md` is bilingual English/Chinese for GitHub visitors; keep the two language sections semantically synchronized when public-facing workflow, cohort, license, or score interpretation changes.
-- CLI completion now refreshes `<runs-dir>/dashboard/index.html` automatically. The executable root launcher `./benchmark claude-code` is the user-facing macOS path: it defaults to three-repeat comprehensive screening, stores results in `~/Documents/AgentBenchmarkResults`, and opens the dashboard. Keep the launcher orchestration-only and preserve its smaller-suite second argument.
+- CLI completion now refreshes `<runs-dir>/dashboard/index.html` automatically. The user-facing macOS path is `./benchmark install` once, then `agent-benchmark claude-code` from a user-created result directory: that current directory is the runs root, and the launcher opens its dashboard. Keep the launcher orchestration-only and preserve its smaller-suite second argument.
 
 ## User Intent Summary
 

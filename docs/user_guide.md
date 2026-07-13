@@ -158,22 +158,30 @@ Decision Index = 55% x local verified-normalized score
 
 ### 不想拼命令时：极简启动器
 
-在仓库根目录直接运行：
+先在仓库根目录安装一次短命令：
 
 ```bash
-./benchmark claude-code
+./benchmark install
 ```
 
-它默认使用 `comprehensive-screening-v1`、`unspecified` 当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。全部结果放在 `~/Documents/AgentBenchmarkResults`，不会污染源码目录。想先用小一些的本地硬题检查流程：
+之后，你可以新建一个本次实验专用目录，进入它，再执行：
 
 ```bash
-./benchmark claude-code hard-discrimination
+mkdir -p ~/Documents/claude-benchmark-2026-07
+cd ~/Documents/claude-benchmark-2026-07
+agent-benchmark claude-code
+```
+
+它默认使用 `comprehensive-screening-v1`、`unspecified` 当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。所有 task 证据、suite report、matrix/bridge artifacts 和 `dashboard/` 都放在**当前目录**，不会污染源码目录。想先用小一些的本地硬题检查流程：
+
+```bash
+agent-benchmark claude-code hard-discrimination
 ```
 
 可用环境变量覆盖默认归档目录而不改变命令形状：
 
 ```bash
-AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" ./benchmark opencode
+AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" agent-benchmark opencode
 ```
 
 底层 `run`、`run-suite`、`run-matrix` 和各自 resume 命令也会在成功完成后自动刷新 `<runs-dir>/dashboard/index.html`；启动器只是额外帮你自动打开它。

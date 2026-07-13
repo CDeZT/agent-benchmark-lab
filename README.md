@@ -81,13 +81,21 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
 
 ### One Friendly Command
 
-On macOS, use the repository launcher instead of composing CLI flags:
+On macOS, install the short command once from the repository:
 
 ```bash
-./benchmark claude-code
+./benchmark install
 ```
 
-It runs doctor and preflight, uses the fixed full cohort with three repetitions, saves everything under `~/Documents/AgentBenchmarkResults`, refreshes the dashboard, and opens the dashboard when finished. Use `./benchmark opencode hard-discrimination` for a smaller local run. Override the results directory with `AGENT_BENCH_RESULTS_DIR=/path/to/results`.
+Then create a folder for one experiment, enter it, and run one short command:
+
+```bash
+mkdir -p ~/Documents/claude-benchmark-2026-07
+cd ~/Documents/claude-benchmark-2026-07
+agent-benchmark claude-code
+```
+
+It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. Use `agent-benchmark opencode hard-discrimination` for a smaller local run. Override the destination explicitly with `AGENT_BENCH_RESULTS_DIR=/path/to/results`.
 
 ## Run The Full Fixed Cohort
 
@@ -222,13 +230,21 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
 
 ### 一条友好命令
 
-在 macOS 上，不必手动拼接 CLI 参数，直接运行：
+在 macOS 上，先在仓库根目录安装一次短命令：
 
 ```bash
-./benchmark claude-code
+./benchmark install
 ```
 
-它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，将所有原始证据和结论保存到 `~/Documents/AgentBenchmarkResults`，刷新 dashboard，并在结束后自动打开看板。较小的本地实验可以用 `./benchmark opencode hard-discrimination`。使用 `AGENT_BENCH_RESULTS_DIR=/你的/结果目录` 可覆盖默认结果目录。
+之后新建本次实验的文件夹，进入它，只运行一条短命令：
+
+```bash
+mkdir -p ~/Documents/claude-benchmark-2026-07
+cd ~/Documents/claude-benchmark-2026-07
+agent-benchmark claude-code
+```
+
+它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。较小的本地实验可以用 `agent-benchmark opencode hard-discrimination`。使用 `AGENT_BENCH_RESULTS_DIR=/你的/结果目录` 可显式覆盖输出位置。
 
 ## 运行固定完整卷
 

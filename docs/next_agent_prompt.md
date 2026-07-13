@@ -104,7 +104,7 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - `terminal-bench-bridge` 已实现：默认只出 plan，`--execute` 才调用官方 `tb run`；结果在独立 terminal 轨道，不得并入 SWE-bench 分数。
 - `comprehensive-screening-v1` 是当前的一键完整筛选卷：11 个本地 expert->easy comparative task、9 个 SWE-bench hard ranking candidate、1 个 diagnostic tail。先用 `preflight-matrix`，再 `run-suite`。官方题通过独立 bridge repetition 运行；报告必须保留本地十维/领域分与官方 resolved/scorable/rate 两条轨道，不能把官方 30 分占位、官方任务或 diagnostic tail 混入本地雷达、平均或排行榜。
 - `config/decision_index_profiles.json` 的 `balanced-v1` 是单独、版本化的个人决策辅助层：55% local verified-normalized + 45% official SWE resolution。profile SHA-256、输入和 warnings 必须保存；三重复、本地 coverage >=60%、至少 9 个 official scorable attempts 前只能标 `provisional`，不能将其宣传成客观总分或改变原始分轨。
-- `run`、`run-suite`、`run-matrix` 及 resume 命令完成后会自动刷新 `<runs-dir>/dashboard/index.html`。用户优先入口是根目录可执行文件 `./benchmark [adapter] [suite]`：默认 Claude Code + comprehensive-screening-v1 + 3 repetitions，归档到 `~/Documents/AgentBenchmarkResults` 并在 macOS 自动打开 dashboard。不要让它复制 runner/scorer 实现或把 dashboard rebuild 放到内部 task 循环。
+- `run`、`run-suite`、`run-matrix` 及 resume 命令完成后会自动刷新 `<runs-dir>/dashboard/index.html`。用户优先入口是先运行一次 `./benchmark install`，再在自己创建的结果目录中执行 `agent-benchmark [adapter] [suite]`：默认 Claude Code + comprehensive-screening-v1 + 3 repetitions，当前目录就是 runs root，并在 macOS 自动打开 dashboard。不要让它复制 runner/scorer 实现或把 dashboard rebuild 放到内部 task 循环。
 - Colima 已提升到 4CPU/8GiB。正在/应继续恢复 `runs/swebench-bridge-sympy-sympy-13878-20260712T084135Z-1c654435` 的官方评测（复用 patch）。
 - 实时 fingerprinted CLI-default calibration 矩阵：`runs/matrix-20260712T094706Z-39b0f8c0`。若中断，用 `resume-matrix --matrix-run-dir` 恢复。
 

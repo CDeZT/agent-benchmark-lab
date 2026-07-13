@@ -1,5 +1,9 @@
 # Project Journal
 
+## 2026-07-13 (iteration 49)
+
+- Refined the launcher workflow to match the user's preferred mental model: after one `./benchmark install`, `agent-benchmark claude-code` may be invoked from any user-created experiment folder, and that current folder becomes the complete artifact and dashboard root.
+
 ## 2026-07-13 (iteration 48)
 
 - Made the benchmark behave like a user-facing run tool: completed CLI runs and resume paths automatically refresh the dashboard under the selected results root.
