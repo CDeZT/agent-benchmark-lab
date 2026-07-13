@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-13 (iteration 51)
+
+- Replaced the long silent `run-suite` experience with a dependency-free live terminal progress layer. It receives real task/repetition/adapter lifecycle events, shows current phase, elapsed time, completed attempts and a completed-duration ETA, and keeps stdout available for machine-readable final output.
+- Added atomic `suite-*/live_status.json` snapshots so users can see whether a long run started, what is active, and its recoverable state even if terminal scrollback is lost. The friendly launcher now requests a compact conclusion rather than dumping a full suite JSON after completion.
+- Added regression coverage for persisted progress state, a real dummy suite writing that state, and compact completion output.
+
 ## 2026-07-13 (iteration 50)
 
 - Preserved an explicit deferred productization requirement after the user noted that the current CLI workflow still feels too technical. The long-term target is one-action use from a chosen result directory: diagnose prerequisites before paid work, safely repair supported dependencies/runtimes, give plain-language confirmation for privileged/network/auth actions, and put all evidence plus dashboard in the chosen folder.

@@ -38,6 +38,7 @@ from agent_benchmark.unified_external import (
 )
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
+from agent_benchmark.terminal_ui import SuiteProgress
 from agent_benchmark.taxonomy import EVALUATION_AXES, axes_for_task, build_scorecard
 
 
@@ -219,11 +220,15 @@ def main(argv: list[str] | None = None) -> int:
     suite_run_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     suite_run_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
     suite_run_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    suite_run_parser.add_argument("--summary", action="store_true", help="Print a compact completion summary instead of the full suite JSON.")
+    suite_run_parser.add_argument("--no-progress", action="store_true", help="Disable the live terminal progress display and live_status.json updates.")
 
     resume_suite_parser = subparsers.add_parser("resume-suite", help="Resume an interrupted suite run from saved task summaries.")
     resume_suite_parser.add_argument("--suite-run-dir", required=True, help="Path containing suite_manifest.json.")
     resume_suite_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     resume_suite_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
+    resume_suite_parser.add_argument("--summary", action="store_true", help="Print a compact completion summary instead of the full suite JSON.")
+    resume_suite_parser.add_argument("--no-progress", action="store_true", help="Disable the live terminal progress display and live_status.json updates.")
 
     matrix_parser = subparsers.add_parser("run-matrix", help="Run a suite across adapter/model/profile combinations.")
     matrix_parser.add_argument("--suite", required=True, help="Suite id or path.")
@@ -236,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
     matrix_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     matrix_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
     matrix_parser.add_argument("--runs-dir", default=str(DEFAULT_RUNS_DIR))
+    matrix_parser.add_argument("--no-progress", action="store_true", help="Disable live progress while each suite combination runs.")
 
     preflight_parser = subparsers.add_parser(
         "preflight-matrix",
@@ -255,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     resume_matrix_parser.add_argument("--matrix-run-dir", required=True, help="Path containing matrix_manifest.json.")
     resume_matrix_parser.add_argument("--tasks-dir", default=str(DEFAULT_TASKS_DIR))
     resume_matrix_parser.add_argument("--suites-dir", default=str(DEFAULT_SUITES_DIR))
+    resume_matrix_parser.add_argument("--no-progress", action="store_true", help="Disable live progress while each suite combination runs.")
 
     args = parser.parse_args(argv)
     if args.command == "list-tasks":
@@ -645,8 +652,13 @@ def _run_suite(args: argparse.Namespace) -> int:
     suite_path = _resolve_suite(Path(args.suite), Path(args.suites_dir))
     suite = load_suite(suite_path)
     config = _config_from_args(args)
-    suite_summary = _run_suite_with_config(suite, config, Path(args.tasks_dir))
-    print(json.dumps(suite_summary, ensure_ascii=False, indent=2))
+    suite_summary = _run_suite_with_config(
+        suite,
+        config,
+        Path(args.tasks_dir),
+        progress=False if args.no_progress else None,
+    )
+    _print_suite_result(suite_summary, compact=args.summary)
     _emit_dashboard_refresh(config.runs_dir, Path(args.tasks_dir))
     return 0
 
@@ -659,8 +671,14 @@ def _resume_suite(args: argparse.Namespace) -> int:
     config = _config_from_saved_data(data["config"], Path(data["runs_dir"]))
     saved_tasks_dir = Path(data["tasks_dir"])
     tasks_dir = saved_tasks_dir if saved_tasks_dir.is_dir() else Path(args.tasks_dir)
-    summary = _run_suite_with_config(suite, config, tasks_dir, suite_run_dir=suite_run_dir)
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    summary = _run_suite_with_config(
+        suite,
+        config,
+        tasks_dir,
+        suite_run_dir=suite_run_dir,
+        progress=False if args.no_progress else None,
+    )
+    _print_suite_result(summary, compact=args.summary)
     _emit_dashboard_refresh(config.runs_dir, tasks_dir)
     return 0
 
@@ -674,6 +692,7 @@ def _run_matrix(args: argparse.Namespace) -> int:
         combination_specs,
         Path(args.tasks_dir),
         Path(args.runs_dir),
+        progress=False if args.no_progress else None,
     )
     print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
     _emit_dashboard_refresh(Path(args.runs_dir), Path(args.tasks_dir))
@@ -772,6 +791,7 @@ def _resume_matrix(args: argparse.Namespace) -> int:
         tasks_dir,
         Path(manifest["runs_dir"]),
         matrix_run_dir=matrix_run_dir,
+        progress=False if args.no_progress else None,
     )
     print(json.dumps(matrix_summary, ensure_ascii=False, indent=2))
     _emit_dashboard_refresh(Path(manifest["runs_dir"]), tasks_dir)
@@ -803,6 +823,7 @@ def _run_matrix_with_specs(
     tasks_dir: Path,
     runs_dir: Path,
     matrix_run_dir: Path | None = None,
+    progress: bool | None = False,
 ) -> dict[str, object]:
     _validate_matrix_specs(combination_specs)
     current_fingerprints = _suite_task_fingerprints(suite, tasks_dir)
@@ -849,6 +870,7 @@ def _run_matrix_with_specs(
             config,
             tasks_dir,
             suite_run_dir=suite_runs_dir / f"suite-{stem}",
+            progress=progress,
         )
         summary_path.write_text(json.dumps(suite_summary, ensure_ascii=False, indent=2), encoding="utf-8")
         combinations.append(suite_summary)
@@ -941,6 +963,7 @@ def _run_suite_with_config(
     config: ExperimentConfig,
     tasks_dir: Path,
     suite_run_dir: Path | None = None,
+    progress: bool | None = False,
 ) -> dict[str, object]:
     current_fingerprints = _suite_task_fingerprints(suite, tasks_dir)
     if suite_run_dir is None:
@@ -967,27 +990,62 @@ def _run_suite_with_config(
     summaries_dir.mkdir(parents=True, exist_ok=True)
     pilots_file = Path(getattr(config, "pilots_file", None) or DEFAULT_AUTHORITATIVE_PILOTS_PATH)
     registry_path = Path(getattr(config, "registry_path", None) or DEFAULT_AUTHORITATIVE_CORPORA_PATH)
-    for task_id in suite.tasks:
-        summary_path = summaries_dir / f"{_suite_summary_stem(task_id)}.json"
-        if summary_path.is_file():
-            summaries.append(json.loads(summary_path.read_text(encoding="utf-8")))
-            continue
-        if is_external_task_id(task_id):
-            # Authoritative tasks use the same suite loop and summary shape as local tasks.
-            task_summary = run_external_task_as_summary(
-                task_id,
-                config,
-                pilots_file=pilots_file,
-                registry_path=registry_path,
-                execute=True,
-            )
-        else:
-            task = load_task(_resolve_task(Path(task_id), tasks_dir))
-            ensure_task_environment_supported(task)
-            task_summary = run_task(task, config)
-        summary_path.write_text(json.dumps(task_summary, ensure_ascii=False, indent=2), encoding="utf-8")
-        summaries.append(task_summary)
-        _write_suite_checkpoint(suite_run_dir, suite.tasks)
+    reporter = SuiteProgress(
+        suite_run_dir,
+        suite_id=suite.suite_id,
+        adapter=config.adapter,
+        repetitions=config.repetitions,
+        task_count=len(suite.tasks),
+        enabled=progress,
+    ) if progress is not False else None
+    if reporter:
+        reporter.start()
+    try:
+        for task_index, task_id in enumerate(suite.tasks, start=1):
+            summary_path = summaries_dir / f"{_suite_summary_stem(task_id)}.json"
+            external = is_external_task_id(task_id)
+            if summary_path.is_file():
+                task_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+                summaries.append(task_summary)
+                if reporter:
+                    reporter.recovered_task(_summary_duration(task_summary))
+                continue
+            if reporter:
+                reporter.task_started(task_id, task_index, external=external)
+            if external:
+                # Authoritative tasks use the same suite loop and summary shape as local tasks.
+                task_summary = run_external_task_as_summary(
+                    task_id,
+                    config,
+                    pilots_file=pilots_file,
+                    registry_path=registry_path,
+                    execute=True,
+                )
+                if reporter:
+                    reporter.complete_external_task(_summary_duration(task_summary))
+            else:
+                task = load_task(_resolve_task(Path(task_id), tasks_dir))
+                ensure_task_environment_supported(task)
+                task_summary = run_task(
+                    task,
+                    config,
+                    progress_callback=(
+                        lambda event_name, payload, task_id=task_id, task_index=task_index: reporter.event(
+                            task_id, task_index, event_name, payload
+                        )
+                    ) if reporter else None,
+                )
+            summary_path.write_text(json.dumps(task_summary, ensure_ascii=False, indent=2), encoding="utf-8")
+            summaries.append(task_summary)
+            _write_suite_checkpoint(suite_run_dir, suite.tasks)
+    except KeyboardInterrupt:
+        if reporter:
+            reporter.finish("interrupted")
+        raise
+    except BaseException:
+        if reporter:
+            reporter.finish("failed")
+        raise
 
     official_tasks = [
         item
@@ -1027,7 +1085,38 @@ def _run_suite_with_config(
     write_suite_summary(suite_run_dir, suite_summary)
     _write_suite_manifest(suite_run_dir, suite_run_id, suite, config, tasks_dir, "complete")
     _write_suite_checkpoint(suite_run_dir, suite.tasks, complete=True)
+    if reporter:
+        reporter.finish()
     return suite_summary
+
+
+def _summary_duration(summary: dict[str, object]) -> float | None:
+    value = summary.get("mean_duration_seconds")
+    return float(value) * int(summary.get("repetitions") or 1) if isinstance(value, (int, float)) else None
+
+
+def _print_suite_result(summary: dict[str, object], *, compact: bool) -> None:
+    if not compact:
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return
+    decision = summary.get("decision_index") if isinstance(summary.get("decision_index"), dict) else {}
+    official = summary.get("official_tracks") if isinstance(summary.get("official_tracks"), dict) else {}
+    print("\nBenchmark complete")
+    print(f"  Suite: {summary.get('suite_id')} | Harness: {summary.get('adapter')} | Tasks: {summary.get('task_count')}")
+    print(
+        "  Local: "
+        f"strict={summary.get('mean_score')} | verified={summary.get('mean_verified_normalized_score')} | "
+        f"coverage={summary.get('mean_verified_coverage_percent')}%"
+    )
+    if official.get("task_count"):
+        print(
+            "  Official SWE: "
+            f"resolved={official.get('resolved_attempt_count')}/{official.get('scorable_attempt_count')} | "
+            f"rate={official.get('resolution_rate_percent')}%"
+        )
+    if decision:
+        print(f"  Decision index: {decision.get('value')} ({decision.get('status')})")
+    print(f"  Reports: {summary.get('suite_run_dir')}")
 
 
 def _official_track_summary(tasks: list[dict[str, object]]) -> dict[str, object]:

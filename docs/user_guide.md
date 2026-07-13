@@ -172,7 +172,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-它默认使用 `comprehensive-screening-v1`、`unspecified` 当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。所有 task 证据、suite report、matrix/bridge artifacts 和 `dashboard/` 都放在**当前目录**，不会污染源码目录。想先用小一些的本地硬题检查流程：
+它默认使用 `comprehensive-screening-v1`、`unspecified` 当前 CLI 默认模型、`stress`、三重复，并自动完成：环境 doctor、preflight、实际 suite run、dashboard 刷新和 macOS 浏览器打开。所有 task 证据、suite report、matrix/bridge artifacts 和 `dashboard/` 都放在**当前目录**，不会污染源码目录。运行时终端会实时显示当前 task、重复次数、agent/评分阶段、已完成 attempts、耗时和基于已完成 attempts 的 ETA；首次 attempt 完成前 ETA 会诚实显示为 `calculating`。想先用小一些的本地硬题检查流程：
 
 ```bash
 agent-benchmark claude-code hard-discrimination
@@ -185,6 +185,8 @@ AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyBenchmarkResults" agent-benchmark ope
 ```
 
 底层 `run`、`run-suite`、`run-matrix` 和各自 resume 命令也会在成功完成后自动刷新 `<runs-dir>/dashboard/index.html`；启动器只是额外帮你自动打开它。
+
+每个有实时 UI 的 suite 在 `suite-*/live_status.json` 保存可恢复的状态，包括当前 task/repetition/phase、完成 attempts、耗时和 ETA。因此即使终端断开或被清屏，也可以直接查看这个文件确认是否仍在运行。默认交互终端使用单行动态进度；需要把进度留在 CI 日志时使用 `AGENT_BENCH_PROGRESS=plain`，需要静默时为 `run-suite`、`resume-suite`、`run-matrix` 或 `resume-matrix` 添加 `--no-progress`。启动器默认只显示紧凑完成摘要；环境与预检的详细输出在当前结果目录的 `.agent-benchmark-launcher/`，完整原始结果仍保存在 suite 目录内。
 
 **当前边界：** 启动器会检查环境，但不会自动安装 Python/Node/Playwright 依赖、启动 Docker/Colima、完成 provider 登录，或替你处理需要确认的系统级操作。遇到 doctor/preflight 失败时，当前版本仍需要按提示修复。未来会补自动诊断与受控修复，并交付独立原生 macOS App；在那之前，不应把现有 CLI 流程理解为零配置产品。
 

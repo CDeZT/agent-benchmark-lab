@@ -11,6 +11,7 @@ import shutil
 import statistics
 import time
 import uuid
+from typing import Callable
 
 from agent_benchmark.adapters import adapter_by_name
 from agent_benchmark.metrics import confidence_interval_95
@@ -56,6 +57,7 @@ def run_task(
     task: TaskSpec,
     config: ExperimentConfig,
     resume_experiment_dir: Path | None = None,
+    progress_callback: Callable[[str, dict[str, object]], None] | None = None,
 ) -> dict[str, object]:
     config.validate()
     ensure_task_environment_supported(task)
@@ -105,6 +107,7 @@ def run_task(
                 "task_fingerprint": fingerprint,
             },
         )
+        _notify_progress(progress_callback, "repetition.started", {"run_id": run_id, "repetition": repetition})
 
         _copy_workspace(task.workspace_path, workspace)
         _copy_workspace(task.workspace_path, baseline)
@@ -120,6 +123,7 @@ def run_task(
             (run_dir / "instruction.txt").write_text(runtime_task.instruction, encoding="utf-8")
 
         try:
+            _notify_progress(progress_callback, "adapter.started", {"run_id": run_id, "repetition": repetition})
             adapter_result = _run_adapter_with_env(adapter, runtime_task, workspace, recorder, config)
         except KeyboardInterrupt:
             duration_seconds = time.monotonic() - run_start
@@ -136,6 +140,11 @@ def run_task(
             raise
         (run_dir / "stdout.log").write_text(adapter_result.stdout, encoding="utf-8")
         (run_dir / "stderr.log").write_text(adapter_result.stderr, encoding="utf-8")
+        _notify_progress(
+            progress_callback,
+            "adapter.finished",
+            {"run_id": run_id, "repetition": repetition, "exit_code": adapter_result.exit_code},
+        )
         changed_files = _changed_files(baseline, workspace, task)
         diff_text = _unified_diff(baseline, workspace, changed_files)
         (run_dir / "diff.patch").write_text(diff_text, encoding="utf-8")
@@ -183,6 +192,11 @@ def run_task(
         results.append(result)
         (run_dir / "result.json").write_text(_result_json(result), encoding="utf-8")
         recorder.event("run.finished", {"run_id": run_id, "score": score.total, "duration_seconds": duration_seconds})
+        _notify_progress(
+            progress_callback,
+            "repetition.finished",
+            {"run_id": run_id, "repetition": repetition, "duration_seconds": duration_seconds, "score": score.total},
+        )
         _write_checkpoint(experiment_dir, config.repetitions)
 
     summary = _summarize(results, experiment_id, experiment_dir, task, config, fingerprint)
@@ -192,6 +206,20 @@ def run_task(
     _write_experiment_manifest(experiment_dir, experiment_id, task, config, "complete", fingerprint)
     _write_checkpoint(experiment_dir, config.repetitions, complete=True)
     return summary
+
+
+def _notify_progress(
+    callback: Callable[[str, dict[str, object]], None] | None,
+    event_name: str,
+    payload: dict[str, object],
+) -> None:
+    """Keep display failures from affecting benchmark execution or evidence."""
+    if callback is None:
+        return
+    try:
+        callback(event_name, payload)
+    except Exception:  # noqa: BLE001 - observability must never break a paid run.
+        return
 
 
 def ensure_task_environment_supported(task: TaskSpec) -> None:

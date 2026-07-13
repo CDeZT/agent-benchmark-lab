@@ -25,7 +25,8 @@ Install a short command once:
 Then create a result folder, enter it, and run:
   agent-benchmark claude-code
 
-Runs a complete benchmark, refreshes the dashboard, and opens it on macOS.
+Runs a complete benchmark with live progress, refreshes the dashboard, and
+opens it on macOS. Live state is saved as suite-*/live_status.json.
 
 Examples:
   ./benchmark claude-code
@@ -74,23 +75,49 @@ RESULTS_DIR="${AGENT_BENCH_RESULTS_DIR:-$DEFAULT_RESULTS_DIR}"
 LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-current-default}"
 
 mkdir -p "$RESULTS_DIR"
+LAUNCHER_LOG_DIR="$RESULTS_DIR/.agent-benchmark-launcher"
+mkdir -p "$LAUNCHER_LOG_DIR"
 
-echo "Agent Benchmark Lab"
-echo "  Adapter: $ADAPTER"
-echo "  Suite: $SUITE"
-echo "  Repetitions: $REPETITIONS"
-echo "  Results: $RESULTS_DIR"
-echo
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  BOLD=$'\033[1m'
+  CYAN=$'\033[36m'
+  DIM=$'\033[2m'
+  RESET=$'\033[0m'
+else
+  BOLD=""
+  CYAN=""
+  DIM=""
+  RESET=""
+fi
 
-PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor || exit $?
-PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix \
+printf '\n%s%sAgent Benchmark Lab%s\n' "$BOLD" "$CYAN" "$RESET"
+printf '  %sHarness%s   %s\n' "$DIM" "$RESET" "$ADAPTER"
+printf '  %sCohort%s    %s\n' "$DIM" "$RESET" "$SUITE"
+printf '  %sRepeats%s   %s\n' "$DIM" "$RESET" "$REPETITIONS"
+printf '  %sResults%s   %s\n\n' "$DIM" "$RESET" "$RESULTS_DIR"
+
+printf '%sChecking environment...%s\n' "$DIM" "$RESET"
+if ! PYTHONPATH=src python3 -m agent_benchmark.cli.main doctor > "$LAUNCHER_LOG_DIR/doctor.log" 2>&1; then
+  printf '%sEnvironment check failed. Details:%s\n' "$BOLD" "$RESET"
+  sed -n '1,200p' "$LAUNCHER_LOG_DIR/doctor.log"
+  exit 1
+fi
+printf '  %sready%s  details: %s\n' "$CYAN" "$RESET" "$LAUNCHER_LOG_DIR/doctor.log"
+printf '%sChecking cohort readiness...%s\n' "$DIM" "$RESET"
+if ! PYTHONPATH=src python3 -m agent_benchmark.cli.main preflight-matrix \
   --suite "$SUITE" \
   --adapters "$ADAPTER" \
   --models unspecified \
   --budget-profiles "$BUDGET_PROFILE" \
-  --repetitions "$REPETITIONS" || exit $?
+  --repetitions "$REPETITIONS" > "$LAUNCHER_LOG_DIR/preflight.log" 2>&1; then
+  printf '%sCohort preflight failed. Details:%s\n' "$BOLD" "$RESET"
+  sed -n '1,200p' "$LAUNCHER_LOG_DIR/preflight.log"
+  exit 1
+fi
+printf '  %sready%s  details: %s\n' "$CYAN" "$RESET" "$LAUNCHER_LOG_DIR/preflight.log"
 
 run_status=0
+printf '%sStarting benchmark...%s\n' "$DIM" "$RESET"
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
   --suite "$SUITE" \
   --adapter "$ADAPTER" \
@@ -98,16 +125,16 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \
   --budget-profile "$BUDGET_PROFILE" \
   --repetitions "$REPETITIONS" \
   --label "$LABEL" \
-  --runs-dir "$RESULTS_DIR" || run_status=$?
+  --runs-dir "$RESULTS_DIR" \
+  --summary || run_status=$?
 
 PYTHONPATH=src python3 -m agent_benchmark.cli.main dashboard \
   --runs-dir "$RESULTS_DIR" \
-  --output-dir "$RESULTS_DIR/dashboard" || true
+  --output-dir "$RESULTS_DIR/dashboard" > "$LAUNCHER_LOG_DIR/dashboard.log" 2>&1 || true
 
 DASHBOARD="$RESULTS_DIR/dashboard/index.html"
 if [[ -f "$DASHBOARD" ]]; then
-  echo
-  echo "Dashboard: $DASHBOARD"
+  printf '\n%sDashboard%s  %s\n' "$BOLD" "$RESET" "$DASHBOARD"
   if [[ "${AGENT_BENCH_OPEN_DASHBOARD:-1}" != "0" ]] && command -v open >/dev/null 2>&1; then
     open "$DASHBOARD"
   fi

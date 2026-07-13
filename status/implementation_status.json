@@ -66,7 +66,7 @@
       "id": "evidence_backed_scoring",
       "title": "No fake scoring; every score backed by evidence",
       "status": "partial",
-      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "156 unittest test functions cover framework and scoring behavior"],
+      "evidence": ["Public tests, hidden tests, protected-file hashes, static and browser visual checks, planning artifact checks, and task-contract fingerprints are evidence-backed", "Reports distinguish verified, heuristic, and unavailable dimensions", "Workspace diffs and file-only instruction matches are heuristic evidence rather than verified telemetry or intent", "Unimplemented or unevidenced dimensions remain 0", "cost/token telemetry is recorded but cost_efficiency requires a predeclared task budget, never a tool-count or arbitrary dollar proxy", "model identity status is persisted", "external_frozen records are rejected by generic runs and local ranking", "SWE-bench evaluator error_ids are explicitly unscoreable evaluator_error states", "160 unittest test functions cover framework and scoring behavior"],
       "remaining": ["Replace trace heuristics with causal repair/tool/subagent evidence", "Complete Docker-backed corpus audit for dependency-heavy tasks"]
     },
     {
@@ -201,6 +201,13 @@
       "status": "implemented",
       "evidence": ["agent-benchmark doctor checks python3, node, cc, opencode, claude, Playwright Chromium, Docker daemon readiness, and adapter command env vars"],
       "remaining": ["Add provider credential checks without printing secrets", "Report active container runtime name when Docker is ready"]
+    },
+    {
+      "id": "live_terminal_progress",
+      "title": "Live terminal progress and recoverable run status",
+      "status": "implemented",
+      "evidence": ["SuiteProgress receives real task, repetition, and adapter lifecycle events", "Interactive progress renders task/repetition/phase, completed attempts, elapsed time, and an ETA only after completed attempt durations exist", "Each live suite atomically updates suite-*/live_status.json", "The launcher uses compact final output while raw JSON remains available for scripts"],
+      "remaining": ["Stream only safe, non-sensitive harness tool events when adapters expose them", "Add a dashboard live-run view as part of future desktop productization"]
     },
     {
       "id": "consumer_friendly_setup_and_desktop_app",

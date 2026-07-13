@@ -134,6 +134,7 @@ Progress:
 
 - `agent-benchmark dashboard` writes static `index.html` and `dashboard.json` from saved matrix, suite, task, and SWE-bench bridge artifacts.
 - Fingerprint match/mismatch and model-identity caveats are labeled so historical debugging evidence is not overclaimed.
+- Interactive suite/matrix runs now render live task/repetition progress, current phase, elapsed time, and an evidence-based ETA to stderr. They persist recoverable `suite-*/live_status.json` state and preserve stdout for final machine-readable output.
 
 Remaining:
 

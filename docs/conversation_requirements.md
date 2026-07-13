@@ -30,6 +30,10 @@ The user considers a strong harness to be one that can:
 - Cost and runtime should be recorded, but reliability and completeness matter more.
 - Oneshot ability matters, but it should not be the only mode.
 - Open-ended autonomous completion is important.
+- Long runs must visibly show that they started, what task/repetition is active,
+  how much work is complete, elapsed time, a defensible ETA when available, and
+  where the recoverable live state is saved. The terminal should be concise and
+  pleasant rather than dumping a large JSON result after a long silent wait.
 
 ## Coverage Requirements
 

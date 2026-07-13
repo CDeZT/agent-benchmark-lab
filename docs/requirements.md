@@ -52,11 +52,18 @@ The benchmark should eventually produce:
 - Leaderboards.
 - Mean and variance across repeated runs.
 - Cost and duration reports.
+- Live task/repetition progress, elapsed time, and a clearly labeled ETA once
+  enough completed work exists to estimate it.
 - Failure reason classification.
 - Raw evidence and replayable traces.
 - Practical recommendations for which combination is best for which kind of task.
 
 Scores must not be fake. Each score should be backed by observable evidence such as tests, hidden tests, diffs, logs, screenshots, command traces, or structured evaluator output.
+
+Progress is operational evidence, not a benchmark score: it must distinguish a
+currently running harness, scoring/verification work, a completed attempt, and
+a prerequisite failure. An ETA must be derived from completed attempt durations
+and shown as unavailable until it has a real basis.
 
 ## Product Usability And Delivery
 

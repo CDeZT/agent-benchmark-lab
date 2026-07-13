@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from types import SimpleNamespace
 import unittest
@@ -49,6 +49,7 @@ from agent_benchmark.terminal_bench_bridge import (
 from agent_benchmark.task_schema import build_catalog, load_suite, load_task, validate_all
 from agent_benchmark.task_fingerprint import task_fingerprint
 from agent_benchmark.taxonomy import DEFAULT_AXIS_WEIGHTS, axes_for_task, build_domain_weighted_total, build_scorecard
+from agent_benchmark.terminal_ui import SuiteProgress
 from agent_benchmark.unified_external import (
     bridge_result_to_task_summary,
     external_task_fingerprint,
@@ -751,6 +752,89 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(resumed["tasks"][0]["experiment_id"], first_task["experiment_id"])
         self.assertEqual(checkpoint["completed_tasks"], ["python-bugfix", "c-bugfix"])
         self.assertEqual(checkpoint["status"], "complete")
+
+    def test_suite_progress_persists_live_status_without_terminal_rendering(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            reporter = SuiteProgress(
+                Path(tmp),
+                suite_id="progress-test",
+                adapter="dummy",
+                repetitions=2,
+                task_count=1,
+                enabled=False,
+            )
+            reporter.start()
+            reporter.task_started("python-bugfix", 1)
+            reporter.event("python-bugfix", 1, "repetition.started", {"repetition": 1})
+            reporter.event("python-bugfix", 1, "adapter.finished", {})
+            reporter.event("python-bugfix", 1, "repetition.finished", {"duration_seconds": 2.0})
+            reporter.event("python-bugfix", 1, "repetition.finished", {"duration_seconds": 4.0})
+            reporter.finish()
+            status = json.loads((Path(tmp) / "live_status.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(status["status"], "complete")
+        self.assertEqual(status["progress"]["completed_attempts"], 2)
+        self.assertEqual(status["progress"]["total_attempts"], 2)
+        self.assertEqual(status["progress"]["percent"], 100.0)
+        self.assertEqual(status["current"]["phase"], "complete")
+
+    def test_plain_progress_mode_emits_lines_without_a_tty(self) -> None:
+        stream = StringIO()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"AGENT_BENCH_PROGRESS": "plain"}):
+            reporter = SuiteProgress(
+                Path(tmp),
+                suite_id="plain-progress-test",
+                adapter="dummy",
+                repetitions=1,
+                task_count=1,
+                stream=stream,
+            )
+            reporter.start()
+            reporter.task_started("python-bugfix", 1)
+            reporter.finish()
+
+        self.assertIn("Agent Benchmark Lab", stream.getvalue())
+        self.assertIn("python-bugfix", stream.getvalue())
+
+    def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
+        suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])
+        with tempfile.TemporaryDirectory() as tmp:
+            with redirect_stderr(StringIO()):
+                summary = _run_suite_with_config(
+                    suite,
+                    ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)),
+                    ROOT / "benchmarks" / "tasks",
+                    progress=True,
+                )
+            state = json.loads((Path(summary["suite_run_dir"]) / "live_status.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(state["status"], "complete")
+        self.assertEqual(state["current"]["task_id"], "python-bugfix")
+        self.assertEqual(state["progress"]["completed_attempts"], 1)
+
+    def test_compact_suite_output_avoids_dumping_full_result_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            buffer = StringIO()
+            with redirect_stdout(buffer):
+                code = main(
+                    [
+                        "run-suite",
+                        "--suite",
+                        "real-smoke",
+                        "--adapter",
+                        "dummy",
+                        "--repetitions",
+                        "1",
+                        "--runs-dir",
+                        tmp,
+                        "--summary",
+                        "--no-progress",
+                    ]
+                )
+
+        self.assertEqual(code, 0)
+        self.assertIn("Benchmark complete", buffer.getvalue())
+        self.assertNotIn('"tasks"', buffer.getvalue())
 
     def test_suite_resume_rejects_changed_task_fingerprint(self) -> None:
         suite = SimpleNamespace(suite_id="fingerprint-resume-test", tasks=["python-bugfix"])
