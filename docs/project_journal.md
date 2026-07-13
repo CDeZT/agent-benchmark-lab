@@ -1,5 +1,9 @@
 # Project Journal
 
+## 2026-07-13 (iteration 47)
+
+- Rewrote the GitHub-facing README as a true English/Chinese bilingual entry point. Both language sections now describe the same current scope, full-cohort workflow, decision-index boundary, documentation map, result-quality rules, and GPL-3.0 terms.
+
 ## 2026-07-13 (iteration 46)
 
 - Published the repository under GPL-3.0. The README and developer guidance now state the copyleft boundary and require a redistributability/notice review before adding third-party source, task text, data, or assets.
