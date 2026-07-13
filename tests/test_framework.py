@@ -796,6 +796,44 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("Agent Benchmark Lab", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
 
+    def test_full_tui_uses_alternate_screen_and_restores_terminal(self) -> None:
+        class TtyBuffer(StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        stream = TtyBuffer()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(
+            os.environ,
+            {"AGENT_BENCH_TUI": "full", "TERM": "xterm-256color"},
+            clear=False,
+        ), patch("agent_benchmark.terminal_ui.shutil.get_terminal_size", return_value=os.terminal_size((100, 30))):
+            reporter = SuiteProgress(
+                Path(tmp),
+                suite_id="full-tui-test",
+                adapter="dummy",
+                repetitions=1,
+                task_count=1,
+                stream=stream,
+            )
+            reporter.start()
+            reporter.task_started("python-bugfix", 1)
+            reporter.event("python-bugfix", 1, "repetition.started", {"repetition": 1})
+            reporter.event(
+                "python-bugfix",
+                1,
+                "repetition.finished",
+                {"repetition": 1, "duration_seconds": 1.0, "score": 62.0},
+            )
+            reporter.finish()
+            state = json.loads((Path(tmp) / "live_status.json").read_text(encoding="utf-8"))
+
+        self.assertIn("\033[?1049h", stream.getvalue())
+        self.assertIn("\033[?1049l", stream.getvalue())
+        self.assertIn("CURRENT TASK", stream.getvalue())
+        self.assertIn("RECENT ATTEMPTS", stream.getvalue())
+        self.assertEqual(state["display"]["mode"], "full")
+        self.assertEqual(state["recent_attempts"][0]["task_id"], "python-bugfix")
+
     def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
         suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])
         with tempfile.TemporaryDirectory() as tmp:

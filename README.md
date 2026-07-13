@@ -100,7 +100,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. During the run, a live terminal UI shows the current task/repetition/phase, completed attempts, elapsed time, and an ETA once completed attempts provide a basis; recoverable state is saved in `suite-*/live_status.json`. Use `agent-benchmark opencode hard-discrimination` for a smaller local run. Override the destination explicitly with `AGENT_BENCH_RESULTS_DIR=/path/to/results`.
+It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. On a normal terminal, it opens a coding-agent-style full-screen TUI with progress, current task, run health, ETA, and recent attempts; it restores the shell before printing the completion summary. Recoverable state is saved in `suite-*/live_status.json`. Use `agent-benchmark opencode hard-discrimination` for a smaller local run. Override the destination explicitly with `AGENT_BENCH_RESULTS_DIR=/path/to/results`.
 
 ## Run The Full Fixed Cohort
 
@@ -251,7 +251,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。运行时终端会显示当前任务/重复/阶段、已完成 attempts、耗时和有真实样本依据后的 ETA；可恢复状态保存在 `suite-*/live_status.json`。较小的本地实验可以用 `agent-benchmark opencode hard-discrimination`。使用 `AGENT_BENCH_RESULTS_DIR=/你的/结果目录` 可显式覆盖输出位置。
+它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。在正常终端中，它会打开类似 coding agent 的全屏 TUI，固定显示进度、当前题目、运行健康度、ETA 和最近完成记录；完成后自动恢复普通 shell 再打印摘要。可恢复状态保存在 `suite-*/live_status.json`。较小的本地实验可以用 `agent-benchmark opencode hard-discrimination`。使用 `AGENT_BENCH_RESULTS_DIR=/你的/结果目录` 可显式覆盖输出位置。
 
 ## 运行固定完整卷
 

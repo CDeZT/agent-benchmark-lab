@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-13 (iteration 52)
+
+- Reviewed OpenCode's public TUI direction and upgraded the benchmark's standard-library progress renderer into a coding-agent-style alternate-screen dashboard. It uses stable panels for progress, current task, run health, recent attempts, ETA and a lightweight spinner, then restores the original terminal before printing the completion summary.
+- Added explicit compact/full/plain/dumb terminal behavior and persisted display mode plus recent attempts in `live_status.json`. Verified a real ten-task dummy run in a pseudo-terminal, including alternate-screen enter/restore and final report/dashboard artifacts.
+
 ## 2026-07-13 (iteration 51)
 
 - Replaced the long silent `run-suite` experience with a dependency-free live terminal progress layer. It receives real task/repetition/adapter lifecycle events, shows current phase, elapsed time, completed attempts and a completed-duration ETA, and keeps stdout available for machine-readable final output.
