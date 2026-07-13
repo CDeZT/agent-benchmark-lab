@@ -140,6 +140,29 @@ Remaining:
 - Optional live server and interactive filters.
 - Multi-matrix trend charts once more fingerprinted comparative matrices exist.
 
+## Phase 7: Consumer-Friendly Delivery
+
+Status: planned and intentionally deferred.
+
+Goals:
+
+- Replace prerequisite-heavy normal onboarding with one-action setup and run
+  flows.
+- Diagnose Python/Node/project/browser/Docker/adapter/runtime/auth readiness
+  before charging a model provider, without exposing secrets.
+- Automatically repair supported local prerequisites and clearly request
+  confirmation when an operation needs network access, elevated privileges, or
+  provider authentication.
+- Let a normal user choose an output directory without needing environment
+  variables; preserve command-line overrides for advanced users.
+- Ship a standalone native macOS application with setup, harness readiness, run
+  configuration, live progress/logs, recovery/history, and automatic dashboard
+  access. A browser-only dashboard is not the product delivery target.
+
+Prerequisite: retain the current CLI/launcher as a stable automation backend and
+finish enough core scientific validation that a desktop UI does not obscure
+unreliable scoring.
+
 ## Permanent Requirements
 
 These requirements must stay visible across all phases:
@@ -149,3 +172,5 @@ These requirements must stay visible across all phases:
 - Keep open-ended autonomy and oneshot capability both measurable.
 - Keep all scores tied to evidence.
 - Update `docs/handoff.md` after meaningful phases.
+- Preserve the deferred zero-setup and native macOS app requirement until it is
+  genuinely implemented and verified.

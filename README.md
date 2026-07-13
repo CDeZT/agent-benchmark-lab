@@ -38,6 +38,11 @@ It reports three complementary views:
 
 Official evaluator errors are not model failures. Official tasks never enter the local total, domain axes, radar charts, or matrix ranking.
 
+The current launcher simplifies running, but it still assumes a prepared
+developer environment. Automatic prerequisite repair and a standalone native
+macOS app are planned future work; this repository does not yet claim a
+zero-setup experience.
+
 ## Documentation
 
 | Audience | Document | Purpose |
@@ -186,6 +191,8 @@ harness x model x 固定题目组 x 环境 x 预算档位
 3. **`balanced-v1` 决策指数**：55% 本地 verified-normalized 分 + 45% 官方 SWE 修复率。它是透明的个人选型辅助，不是客观 benchmark 总分。
 
 官方 evaluator 错误不算模型失败；官方题不会进入本地总分、领域轴、雷达图或 matrix 排名。
+
+当前启动器已经简化运行，但仍假定使用者准备好了开发环境。自动修复前置环境与独立原生 macOS App 都是后续计划；本仓库目前不宣称“零配置即可使用”。
 
 ## 文档入口
 

@@ -58,6 +58,40 @@ The benchmark should eventually produce:
 
 Scores must not be fake. Each score should be backed by observable evidence such as tests, hidden tests, diffs, logs, screenshots, command traces, or structured evaluator output.
 
+## Product Usability And Delivery
+
+The current command-line workflow is a useful intermediate delivery path, not the
+final user experience. The user should eventually be able to select or create an
+empty result directory and begin a benchmark with one obvious action, without
+having to understand environment variables, Python/Node dependencies, Docker,
+Playwright, or harness-specific setup.
+
+The future product must:
+
+- Diagnose prerequisites before a paid run: local runtime versions, project
+  dependencies, browser runtime, Docker/Colima availability, adapter binary and
+  version, non-secret authentication readiness, writable result directory, and
+  available disk space.
+- Automatically perform safe, explainable repairs where practical: install
+  project-owned dependencies, install the browser runtime, start a supported
+  local Docker runtime, and install/update the project launcher. Operations
+  requiring network access, administrator privileges, provider login, or a
+  choice that can affect the user's system must ask for confirmation and show a
+  plain-language next step rather than exposing a raw stack trace.
+- Keep normal operation free of required environment-variable knowledge. Power
+  users may retain overrides, but they must not be the primary onboarding path.
+- Present clear readiness, progress, recoverability, and failure explanations;
+  a failed prerequisite must not look like a failed benchmark result.
+- Ultimately ship as a standalone native macOS desktop application, not a
+  browser-only page. It should provide guided setup, harness readiness,
+  result-folder selection, run configuration, live progress/logs, resume and
+  history, and automatic opening of the completed dashboard. Terminal commands
+  remain an advanced/debugging interface.
+
+This is an intentional deferred requirement: do not claim the current
+`benchmark` launcher already installs or repairs the environment merely because
+it runs `doctor` and `preflight`.
+
 ## Task Coverage
 
 The benchmark should eventually cover:

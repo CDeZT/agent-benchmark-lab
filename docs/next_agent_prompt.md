@@ -121,6 +121,8 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - `audit-corpus` 已是默认 audit 的质量门禁；任何新增或改动的可比较任务必须保持 baseline 失败、reference 通过。
 - task run 中断时保留 `runs/<experiment-id>`，读取 checkpoint.json，并用 `resume --experiment-dir` 恢复；suite run 用 `resume-suite --suite-run-dir runs/<suite-run-id>`；matrix run 用 `resume-matrix --matrix-run-dir runs/<matrix-run-id>`。三层都不要重跑已保存的结果，并且恢复时不得绕过 manifest 的任务/组合一致性校验。
 - Dashboard 静态历史视图已存在；如需再做 live server 或多矩阵趋势图，应在有更多 fingerprinted matrix 证据后进行。
+- 用户已明确提出一个**尚未实现且不能丢失**的产品化要求：正常使用不应要求理解环境变量、Python/Node/Playwright/Docker 或 CLI 安装。未来必须先做付费 run 前的自动 readiness 诊断，再在安全范围内自动修复依赖、浏览器运行时、Docker/Colima 和启动器；涉及网络、管理员权限、provider 登录或系统选择时才用中文清晰说明并征得确认，绝不能把原始栈追踪当作用户提示。
+- 最终交付首选独立原生 macOS App，不是只做浏览器页面。它应覆盖引导安装、harness 状态、结果目录选择、运行配置、实时进度/日志、恢复/历史和完成后 dashboard。当前 `./benchmark install` + `agent-benchmark` 只是中间 CLI 流程：会 doctor/preflight，却**不会**自动安装或修复环境，不能误报为已完成产品化。
 
 请继续以“先架构、再实现、再自检、再更新 handoff/status、最后 commit”的节奏推进。
 ```

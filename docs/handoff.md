@@ -22,6 +22,7 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - The public repository uses GPL-3.0. Before adding distributable third-party task text, assets, source, or datasets, check redistributability and preserve notices; do not treat ignored external evaluator artifacts as GPL relicensable project code.
 - `README.md` is bilingual English/Chinese for GitHub visitors; keep the two language sections semantically synchronized when public-facing workflow, cohort, license, or score interpretation changes.
 - CLI completion now refreshes `<runs-dir>/dashboard/index.html` automatically. The user-facing macOS path is `./benchmark install` once, then `agent-benchmark claude-code` from a user-created result directory: that current directory is the runs root, and the launcher opens its dashboard. Keep the launcher orchestration-only and preserve its smaller-suite second argument.
+- The current launcher is still developer-oriented: it checks prerequisites but does not automatically install dependencies, start Docker, complete provider login, or hide all environment concepts. The user has explicitly deferred, not removed, a future zero-setup flow and standalone native macOS app. Do not claim this requirement is complete until automatic diagnosis/remediation, plain-language failures, result-folder selection, progress/recovery, and native-app delivery have real verification.
 
 ## User Intent Summary
 
@@ -36,6 +37,12 @@ The benchmark must measure more than final pass/fail. It should quantify intent 
 The user values reliable results over low cost or short runtime. Repeated runs, mean, and variance are expected.
 
 Embedded engineering and optics should be preserved as long-term domain requirements.
+
+The final product should be usable by someone who does not want to manage
+environment variables or prerequisite tooling: one action from a chosen result
+folder, automatic safe readiness repair, then a completed dashboard. The
+preferred delivery is a standalone native macOS app; the current terminal
+launcher is an intermediate backend workflow, not the final UX.
 
 For the user-facing operating manual, task inventory, score interpretation, and real-run commands, read `docs/user_guide.md` first.
 For repository architecture, extension contracts, test discipline, recovery semantics, and documentation maintenance, read `docs/developer_guide.md` next.

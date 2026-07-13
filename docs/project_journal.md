@@ -1,5 +1,10 @@
 # Project Journal
 
+## 2026-07-13 (iteration 50)
+
+- Preserved an explicit deferred productization requirement after the user noted that the current CLI workflow still feels too technical. The long-term target is one-action use from a chosen result directory: diagnose prerequisites before paid work, safely repair supported dependencies/runtimes, give plain-language confirmation for privileged/network/auth actions, and put all evidence plus dashboard in the chosen folder.
+- Recorded that the intended final delivery is a standalone native macOS application with setup, harness status, run configuration, live progress/logs, recovery/history, and dashboard access. The existing launcher is deliberately documented as an intermediate workflow, not a completed zero-setup or self-healing product.
+
 ## 2026-07-13 (iteration 49)
 
 - Refined the launcher workflow to match the user's preferred mental model: after one `./benchmark install`, `agent-benchmark claude-code` may be invoked from any user-created experiment folder, and that current folder becomes the complete artifact and dashboard root.

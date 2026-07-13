@@ -203,6 +203,13 @@
       "remaining": ["Add provider credential checks without printing secrets", "Report active container runtime name when Docker is ready"]
     },
     {
+      "id": "consumer_friendly_setup_and_desktop_app",
+      "title": "Consumer-friendly setup and standalone native macOS application",
+      "status": "planned",
+      "evidence": ["The benchmark launcher can run doctor/preflight and write a completed experiment into the current result directory", "The current workflow still assumes the user prepared runtimes, dependencies, Docker, CLI harnesses, and provider authentication"],
+      "remaining": ["Add pre-run readiness diagnosis without exposing secrets", "Automatically repair supported prerequisites with confirmation for networked, privileged, or authentication actions", "Remove environment-variable knowledge from the normal path", "Build and verify a standalone native macOS application for setup, harness status, result-folder selection, runs, progress/logs, recovery/history, and dashboard access"]
+    },
+    {
       "id": "next_agent_handoff_prompt",
       "title": "Copy-paste prompt for the next coding agent",
       "status": "implemented",

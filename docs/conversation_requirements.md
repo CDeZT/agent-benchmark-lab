@@ -72,3 +72,25 @@ The user specifically wants embedded engineering and optics to be represented wh
 - `docs/handoff.md` must be updated after each meaningful phase.
 - Development actions and reasoning should be recorded in `docs/project_journal.md`.
 - Future coding agents should be able to continue from the documents without re-asking the user for technical decisions.
+
+## Long-Term Product Usability
+
+- The user explicitly feels the present workflow still has too high a technical
+  threshold: environment variables, Python/Node packages, browser runtimes,
+  Docker, CLI installation, and provider login should not be normal-user
+  responsibilities.
+- The intended end state is a one-action workflow: select/create an output
+  folder, start a run, and receive the completed evidence and dashboard in that
+  folder.
+- Before any paid run, the product should automatically diagnose readiness and
+  safely repair supported prerequisites. It may request confirmation for
+  networked, privileged, destructive, or provider-authentication actions, but
+  it must explain those requests in plain language.
+- The final preferred delivery is a standalone native macOS application with
+  setup guidance, harness status, output-folder selection, configuration,
+  progress/logs, recovery, run history, and dashboard access. A browser page
+  alone is not an acceptable substitute; terminal usage remains an advanced
+  path.
+- This work is deliberately deferred for now so the scientific benchmark core
+  can remain the immediate focus. Future agents must keep it visible and must
+  not mark it complete based only on the current shell launcher.
