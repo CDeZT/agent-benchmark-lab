@@ -29,6 +29,8 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - The launcher now accepts simple `--model MODEL`, `--suite SUITE`, and `--repetitions N` options while preserving the older second positional suite argument. It sends a requested model only to adapters that support CLI selection; opencode explicitly reports that it continues with its configured default. The completion summary includes requested, parser-observed, and identity state.
 - `live_status.json` now preserves `adapter_model`, adapter selection mode, `observed_models`, and `observed_multiple` when a suite sees model drift. Recent attempts retain the parser-derived model for that individual attempt. The TUI must make this distinction visible instead of collapsing the run to its final model.
 - Preflight now separates execution readiness from ranking readiness: a smoke-only or diagnostic suite is executable for adapter verification, but reports the `no_comparative_tasks` warning and can never unlock comparative ranking.
+- The normal user command is unchanged and must remain visually primary: `agent-benchmark claude-code` uses the harness's current default model. Explicit `--model`, `--suite`, and `--repetitions` are advanced overrides, not a required replacement workflow.
+- The full TUI now uses a coding-agent workbench layout rather than a field list: a fixed left rail exposes harness/default-or-observed model/progress/ETA, while a right activity stream shows only real runner lifecycle events. It has no invented tool activity. Keep the alternate-screen and persisted `activity` trace tested.
 
 ## User Intent Summary
 

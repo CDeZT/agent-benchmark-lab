@@ -838,13 +838,15 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("\033[?1049h", stream.getvalue())
         self.assertIn("\033[?1049l", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
-        self.assertIn("Recent activity", stream.getvalue())
+        self.assertIn("ACTIVITY", stream.getvalue())
+        self.assertIn("Benchmark session started", stream.getvalue())
         self.assertIn("requested-model", stream.getvalue())
         self.assertIn("Adapter invocation", stream.getvalue())
         self.assertEqual(state["display"]["mode"], "full")
         self.assertEqual(state["recent_attempts"][0]["task_id"], "python-bugfix")
         self.assertEqual(state["model"]["observed"], "example-model-v1")
         self.assertEqual(state["model"]["selection"], "cli")
+        self.assertIn("result", [item["kind"] for item in state["activity"]])
 
     def test_full_tui_records_multiple_observed_models_without_hiding_drift(self) -> None:
         class TtyBuffer(StringIO):
@@ -882,8 +884,8 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertEqual(state["model"]["identity_status"], "observed_multiple")
         self.assertEqual(state["model"]["observed_models"], ["model-a", "model-b"])
-        self.assertIn("does not accept a model override", stream.getvalue())
-        self.assertIn("multiple observed: model-a, model-b", stream.getvalue())
+        self.assertIn("Requested label: requested-but-not-selectable", stream.getvalue())
+        self.assertIn("observed: multiple observed", stream.getvalue())
 
     def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
         suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])

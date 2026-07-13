@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-13 (iteration 55)
+
+- Restored the product message after user feedback: `agent-benchmark claude-code` remains the normal, primary command and always uses the CLI's current configured default model. Explicit model/suite/repetition flags are retained only as advanced overrides.
+- Replaced the full-screen field list with a visibly different coding-agent workbench: a fixed left rail for harness, model evidence, progress and ETA; a right transcript-like activity stream for real task/repetition/adapter/scoring events. The activity stream is persisted and deliberately never pretends to be harness tool telemetry.
+- Verified the new alternate-screen output through a pseudo-terminal and updated regression coverage for its activity rail and truncated model-rule rendering.
+
 ## 2026-07-13 (iteration 54)
 
 - Made model identity a first-class part of the launcher and live TUI after the user noted that the run experience appeared to show only the harness. `agent-benchmark claude-code --model deepseek-v4-flash` now requests an explicit model for supporting adapters; `--suite` and `--repetitions` provide readable alternatives to positional/environment configuration while retaining the old positional suite form.

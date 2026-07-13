@@ -17,7 +17,7 @@ cd "$ROOT"
 
 usage() {
   cat <<'EOF'
-Usage: ./benchmark [adapter] [suite] [--model MODEL] [--suite SUITE]
+Usage: ./benchmark [adapter] [suite]
 
 Install a short command once:
   ./benchmark install
@@ -29,10 +29,14 @@ Runs a complete benchmark with live progress, refreshes the dashboard, and
 opens it on macOS. Live state is saved as suite-*/live_status.json.
 
 Examples:
-  ./benchmark claude-code --model deepseek-v4-flash
+  ./benchmark
+  ./benchmark claude-code
   ./benchmark opencode hard-discrimination
-  ./benchmark codex --suite hard-discrimination --model gpt-5-codex
   AGENT_BENCH_RESULTS_DIR="$HOME/Documents/MyResults" ./benchmark codex
+
+Advanced explicit configuration (normally unnecessary):
+  ./benchmark claude-code --model deepseek-v4-flash
+  ./benchmark codex --suite hard-discrimination --model gpt-5-codex
 
 Defaults:
   adapter: claude-code

@@ -100,7 +100,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. To request a model without learning the underlying CLI, use `agent-benchmark claude-code --model deepseek-v4-flash`; use `agent-benchmark claude-code --suite hard-discrimination` for a smaller cohort or `--suite real-smoke --repetitions 1` to check one harness cheaply. On a normal terminal, it opens a quiet coding-agent-style full-screen TUI with the harness, model-selection mode, parser-observed model evidence, current task, progress, ETA, and recent attempts. A requested name is never presented as observed fact. Recoverable state is saved in `suite-*/live_status.json`. The old `agent-benchmark opencode hard-discrimination` form remains supported.
+It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. This command always uses the harness's current default model; it is the normal path. On a normal terminal, it opens a split-pane coding-agent-style full-screen TUI with a persistent harness/model/progress rail and a runner-derived activity stream. The actual model is shown only after parser evidence appears. Recoverable state is saved in `suite-*/live_status.json`. A smaller cohort remains `agent-benchmark opencode hard-discrimination`; explicit `--model`, `--suite`, and `--repetitions` options are documented in the user guide as advanced overrides.
 
 ## Run The Full Fixed Cohort
 
@@ -251,7 +251,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。想明确请求一个模型时直接写 `agent-benchmark claude-code --model deepseek-v4-flash`；想换较小题组时写 `agent-benchmark claude-code --suite hard-discrimination`，想低成本检查单个 harness 时写 `--suite real-smoke --repetitions 1`。正常终端会进入安静、接近 coding agent 的全屏 TUI，固定显示 harness、模型选择方式、parser 实际观察到的模型证据、当前题目、进度、ETA 和最近完成记录。请求模型绝不会被伪装成已观察事实。可恢复状态保存在 `suite-*/live_status.json`；旧写法 `agent-benchmark opencode hard-discrimination` 仍可使用。
+它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。这个默认命令始终使用 harness 当前配置的默认模型，才是正常使用路径。正常终端会进入双栏、接近 coding agent 的全屏 TUI：左栏固定显示 harness、模型和进度，右栏显示由 runner 真实事件生成的活动流；只有 parser 观察到证据后才显示实际模型。可恢复状态保存在 `suite-*/live_status.json`；较小题组仍可用旧写法 `agent-benchmark opencode hard-discrimination`。显式 `--model`、`--suite`、`--repetitions` 仅是用户手册里的高级覆盖参数。
 
 ## 运行固定完整卷
 
