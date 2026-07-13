@@ -1,5 +1,11 @@
 # Project Journal
 
+## 2026-07-13 (iteration 58)
+
+- Performed pseudo-terminal visual QA at 80x24 and found that the full TUI positioned its cursor past the viewport, which scrolled the model header out of view. The render is now height-budgeted and has an explicit no-scroll regression.
+- Simplified the live layout into one execution flow: harness/model/status header, human-readable task title, task id/repetition, progress, and runner-derived activity. Removed artifact-path noise from the primary screen.
+- Captured and reviewed a coloured terminal frame with startup-verified `LongCat-2.0` and real workspace changes. The suite now contains 169 unit tests.
+
 ## 2026-07-13 (iteration 57)
 
 - Rebuilt the benchmark TUI around a coloured centered agent-session layout. The model identity is a dedicated first-screen element, with verified startup/harness identities clearly separated from configured-but-unverified hints and pending states.

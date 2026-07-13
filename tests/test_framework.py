@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import sys
 import tempfile
@@ -891,6 +892,39 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(state["model"]["observed_models"], ["model-a", "model-b"])
         self.assertIn("Requested label: requested-but-not-selectable", stream.getvalue())
         self.assertIn("multiple observed", stream.getvalue())
+
+    def test_full_tui_keeps_model_header_inside_a_standard_80x24_terminal(self) -> None:
+        class TtyBuffer(StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        stream = TtyBuffer()
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(
+            os.environ,
+            {"AGENT_BENCH_TUI": "full", "TERM": "xterm-256color"},
+            clear=False,
+        ), patch("agent_benchmark.terminal_ui.shutil.get_terminal_size", return_value=os.terminal_size((80, 24))):
+            reporter = SuiteProgress(
+                Path(tmp),
+                suite_id="standard-terminal-test",
+                adapter="claude-code",
+                repetitions=3,
+                task_count=21,
+                observed_model="LongCat-2.0",
+                observed_source="startup_probe",
+                stream=stream,
+            )
+            reporter.start()
+            reporter.task_started(
+                "embedded-protocol-parser",
+                1,
+                task_title="Implement a UART-style protocol parser with byte stuffing and CRC",
+            )
+
+        rows = [int(value) for value in re.findall(r"\033\[(\d+);1H", stream.getvalue())]
+        self.assertIn("LongCat-2.0", stream.getvalue())
+        self.assertIn("Implement a UART-style protocol parser", stream.getvalue())
+        self.assertLessEqual(max(rows), 24)
 
     def test_tui_records_real_workspace_mutations_as_activity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

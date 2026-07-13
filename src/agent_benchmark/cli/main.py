@@ -1025,9 +1025,9 @@ def _run_suite_with_config(
                 if reporter:
                     reporter.recovered_task(_summary_duration(task_summary))
                 continue
-            if reporter:
-                reporter.task_started(task_id, task_index, external=external)
             if external:
+                if reporter:
+                    reporter.task_started(task_id, task_index, external=True)
                 # Authoritative tasks use the same suite loop and summary shape as local tasks.
                 task_summary = run_external_task_as_summary(
                     task_id,
@@ -1041,6 +1041,8 @@ def _run_suite_with_config(
             else:
                 task = load_task(_resolve_task(Path(task_id), tasks_dir))
                 ensure_task_environment_supported(task)
+                if reporter:
+                    reporter.task_started(task_id, task_index, task_title=task.title)
                 task_summary = run_task(
                     task,
                     config,

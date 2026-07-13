@@ -114,7 +114,7 @@ class SuiteProgress:
             and requested_tui != "compact"
             and os.environ.get("TERM", "").lower() != "dumb"
             and dimensions.columns >= 72
-            and dimensions.lines >= 18
+            and dimensions.lines >= 22
         )
         if requested_tui == "full" and self.interactive:
             self._full_screen = True
@@ -180,13 +180,21 @@ class SuiteProgress:
             self._heartbeat.start()
             self._render_live()
 
-    def task_started(self, task_id: str, task_index: int, *, external: bool = False) -> None:
+    def task_started(
+        self,
+        task_id: str,
+        task_index: int,
+        *,
+        task_title: str | None = None,
+        external: bool = False,
+    ) -> None:
         self._update(
             task_id=task_id,
+            task_title=task_title,
             task_index=task_index,
             repetition=None,
             phase="official evaluator" if external else "preparing workspace",
-            activity=("task", f"Task {task_index}/{self.task_count}: {task_id}"),
+            activity=("task", f"Task {task_index}/{self.task_count}: {task_title or task_id}"),
         )
 
     def event(self, task_id: str, task_index: int, event_name: str, payload: dict[str, object]) -> None:
@@ -443,6 +451,7 @@ class SuiteProgress:
         elapsed = self._elapsed_seconds()
         percent = 100 * self._completed_attempts / self.total_attempts if self.total_attempts else 100.0
         task = str(self._current.get("task_id", "waiting for first task"))
+        task_title = str(self._current.get("task_title") or task)
         task_index = self._current.get("task_index")
         repetition = self._current.get("repetition")
         phase = str(self._current.get("phase", "starting"))
@@ -459,10 +468,13 @@ class SuiteProgress:
             observed_model = self._observed_models[0]
         else:
             observed_model = f"multiple observed: {', '.join(self._observed_models)}"
-        canvas_width = min(92, width - 4)
+        canvas_width = min(78, width - 6)
         left_padding = " " * max(0, (width - canvas_width) // 2)
         rule = "─" * canvas_width
-        activity_limit = max(3, height - 18)
+        # The footer needs one spare row for the cursor.  Keeping the entire
+        # frame inside the actual terminal prevents alternate-screen scrolls
+        # that can hide the model header on a standard 80x24 terminal.
+        activity_limit = max(1, height - 21)
         recent = self._activity[-activity_limit:]
 
         def line(text: str = "", *, colour: str | None = None, centered: bool = False) -> str:
@@ -498,19 +510,16 @@ class SuiteProgress:
             else "workspace details pending"
         )
         lines = [
-            "",
-            line("◆  AGENT BENCHMARK", colour="1;38;5;45", centered=True),
-            line(f"{self.adapter}   ·   {self.budget_profile}   ·   {status}", colour="38;5;250", centered=True),
-            "",
-            line(observed_model, colour="1;38;5;231", centered=True),
-            line(source, colour="1;38;5;114" if self._observed_models else "1;38;5;220", centered=True),
-            line(source_detail, colour="38;5;246", centered=True),
+            line("◈  AGENT BENCHMARK", colour="1;38;5;45"),
+            line(f"{self.adapter}  /  {observed_model}", colour="1;38;5;231"),
+            line(f"{source}   ·   {status}", colour="1;38;5;114" if self._observed_models else "1;38;5;220"),
+            line(source_detail, colour="38;5;246"),
             line(rule),
-            line("NOW", colour="1;38;5;45"),
-            line(f"{spinner}  {_trim(task, max(12, canvas_width - 4))}", colour="1;38;5;231"),
-            line(f"task {task_index or 0}/{self.task_count}   ·   repeat {repetition or '-'}/{self.repetitions}   ·   {phase}", colour="38;5;250"),
-            "",
-            line(f"{_colour('▰' * filled + '▱' * (30 - filled), '1;38;5;45', self._colour_enabled)}  {progress_text}", colour="1;38;5;231"),
+            line("WORKING ON", colour="1;38;5;45"),
+            line(_trim(task_title, max(12, canvas_width - 2)), colour="1;38;5;231"),
+            line(f"{task}   ·   task {task_index or 0}/{self.task_count}   ·   repeat {repetition or '-'}/{self.repetitions}", colour="38;5;246"),
+            line(f"{spinner}  {phase}", colour="1;38;5;220"),
+            line(f"{_colour('█' * filled + '░' * (30 - filled), '1;38;5;45', self._colour_enabled)}  {progress_text}", colour="1;38;5;231"),
             line(f"{elapsed_text}   ·   {workspace_text}", colour="38;5;246"),
             line(rule),
             line("LIVE ACTIVITY", colour="1;38;5;45"),
@@ -521,8 +530,7 @@ class SuiteProgress:
         lines.extend(
             [
                 line(rule),
-                line(_trim(f"State: {self.status_path}", canvas_width), colour="2"),
-                line(f"Requested: {requested_model}   ·   Ctrl-C preserves checkpoints and evidence.", colour="2"),
+                line(f"Ctrl-C preserves checkpoints and evidence   ·   {requested_model}", colour="2"),
             ]
         )
         self._render_frame_locked(lines)
