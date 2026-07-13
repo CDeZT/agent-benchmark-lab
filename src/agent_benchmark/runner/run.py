@@ -111,6 +111,11 @@ def run_task(
 
         _copy_workspace(task.workspace_path, workspace)
         _copy_workspace(task.workspace_path, baseline)
+        _notify_progress(
+            progress_callback,
+            "workspace.ready",
+            {"run_id": run_id, "repetition": repetition, "workspace": str(workspace)},
+        )
 
         instruction = task.instruction + profile_instruction_suffix(config.profile)
         (run_dir / "instruction.txt").write_text(instruction, encoding="utf-8")
@@ -118,6 +123,7 @@ def run_task(
         container_environment: DockerTaskEnvironment | None = None
         runtime_task = task
         if task.metadata.get("environment", "local") == "container_required":
+            _notify_progress(progress_callback, "environment.preparing", {"run_id": run_id, "repetition": repetition})
             container_environment = prepare_docker_environment(task, workspace, run_dir)
             runtime_task = replace(task, instruction=instruction + container_environment.agent_instruction())
             (run_dir / "instruction.txt").write_text(runtime_task.instruction, encoding="utf-8")

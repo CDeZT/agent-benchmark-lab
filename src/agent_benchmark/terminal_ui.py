@@ -49,10 +49,12 @@ def _activity_style(kind: str) -> tuple[str, str]:
     """Map real lifecycle events to a small, stable visual vocabulary."""
     return {
         "system": ("·", "2"),
-        "task": ("▸", "1;36"),
-        "work": ("◌", "1;33"),
-        "verify": ("◇", "1;35"),
-        "result": ("✓", "1;32"),
+        "task": ("◆", "1;38;5;45"),
+        "work": ("◌", "1;38;5;220"),
+        "workspace": ("↳", "38;5;111"),
+        "edit": ("✦", "1;38;5;81"),
+        "verify": ("◇", "1;38;5;213"),
+        "result": ("✓", "1;38;5;114"),
     }.get(kind, ("·", "2"))
 
 
@@ -72,6 +74,8 @@ class SuiteProgress:
         model_selection: str = "environment_only",
         observed_model: str | None = None,
         observed_source: str | None = None,
+        model_hint: str | None = None,
+        model_hint_source: str | None = None,
         budget_profile: str = "open_ended",
         enabled: bool | None = None,
         stream: TextIO | None = None,
@@ -87,6 +91,8 @@ class SuiteProgress:
         self.observed_model = observed_model.strip() if observed_model else None
         self._observed_models = [self.observed_model] if self.observed_model else []
         self._observed_source = observed_source
+        self._model_hint = model_hint.strip() if model_hint else None
+        self._model_hint_source = model_hint_source
         self.repetitions = repetitions
         self.task_count = task_count
         self.total_attempts = task_count * repetitions
@@ -98,7 +104,10 @@ class SuiteProgress:
             terminal_is_interactive or requested_mode == "plain"
         )
         self.interactive = self.enabled and terminal_is_interactive and requested_mode != "plain"
-        self._colour_enabled = self.interactive and os.environ.get("NO_COLOR") is None
+        colour_mode = os.environ.get("AGENT_BENCH_COLOR", "auto").lower()
+        self._colour_enabled = self.interactive and (
+            colour_mode == "always" or (colour_mode != "never" and os.environ.get("NO_COLOR") is None)
+        )
         dimensions = shutil.get_terminal_size(fallback=(100, 24))
         self._full_screen = (
             self.interactive
@@ -122,6 +131,11 @@ class SuiteProgress:
         self._last_line_was_live = False
         self._recent_attempts: list[dict[str, object]] = []
         self._activity: list[dict[str, str]] = []
+        self._workspace_path: Path | None = None
+        self._workspace_snapshot: dict[str, int] = {}
+        self._workspace_change_count = 0
+        self._last_workspace_scan = 0.0
+        self._last_frame: list[str] = []
 
     def start(self) -> None:
         with self._lock:
@@ -142,6 +156,11 @@ class SuiteProgress:
                         if self.observed_model
                         else ""
                     )
+                    hint_line = (
+                        f"  Configured {self._model_hint} (unverified configured default)\n"
+                        if self._model_hint and not self.observed_model
+                        else ""
+                    )
                     self.stream.write(
                         "\n"
                         + _colour("Agent Benchmark Lab", "1;36", self._colour_enabled)
@@ -150,6 +169,7 @@ class SuiteProgress:
                         + f"  Harness    {self.adapter}\n"
                         + f"  Model      {requested_model}\n"
                         + observed_line
+                        + hint_line
                         + f"  Selection  {selection_detail}\n"
                         + f"  Work       {self.task_count} tasks x {self.repetitions} repeats = {self.total_attempts} attempts\n"
                         + f"  Live state {self.status_path}\n\n"
@@ -170,6 +190,21 @@ class SuiteProgress:
         )
 
     def event(self, task_id: str, task_index: int, event_name: str, payload: dict[str, object]) -> None:
+        if event_name == "workspace.ready":
+            raw_workspace = payload.get("workspace")
+            workspace = Path(raw_workspace) if isinstance(raw_workspace, str) else None
+            with self._lock:
+                self._workspace_path = workspace
+                self._workspace_snapshot = self._workspace_state_locked()
+                self._workspace_change_count = 0
+            self._update(
+                phase="workspace ready",
+                activity=("workspace", "Isolated task workspace is ready"),
+            )
+            return
+        if event_name == "environment.preparing":
+            self._update(phase="preparing evaluator", activity=("workspace", "Preparing task environment"))
+            return
         if event_name == "repetition.started":
             self._update(
                 task_id=task_id,
@@ -180,7 +215,7 @@ class SuiteProgress:
             )
             return
         if event_name == "adapter.started":
-            self._update(phase="harness working", activity=("work", f"{self.adapter} started"))
+            self._update(phase="agent session active", activity=("work", f"{self.adapter} agent session started"))
             return
         if event_name == "adapter.finished":
             self._update(phase="scoring and verification", activity=("verify", "Harness finished; scoring evidence"))
@@ -275,8 +310,48 @@ class SuiteProgress:
     def _heartbeat_loop(self) -> None:
         while not self._stop_event.wait(0.5):
             with self._lock:
+                self._refresh_workspace_activity_locked()
                 self._persist_locked()
             self._render_live()
+
+    def _workspace_state_locked(self) -> dict[str, int]:
+        if self._workspace_path is None or not self._workspace_path.is_dir():
+            return {}
+        state: dict[str, int] = {}
+        ignored_directories = {".git", "node_modules", ".venv", "venv", "__pycache__"}
+        try:
+            for path in self._workspace_path.rglob("*"):
+                if not path.is_file() or any(part in ignored_directories for part in path.parts):
+                    continue
+                try:
+                    relative = str(path.relative_to(self._workspace_path))
+                    state[relative] = path.stat().st_mtime_ns
+                except OSError:
+                    continue
+        except OSError:
+            return state
+        return state
+
+    def _refresh_workspace_activity_locked(self) -> None:
+        """Surface actual workspace mutations while the harness is running."""
+        now = time.monotonic()
+        if now - self._last_workspace_scan < 1.0:
+            return
+        self._last_workspace_scan = now
+        current = self._workspace_state_locked()
+        if not current and not self._workspace_snapshot:
+            return
+        changed = [path for path, mtime in current.items() if self._workspace_snapshot.get(path) != mtime]
+        removed = [path for path in self._workspace_snapshot if path not in current]
+        self._workspace_snapshot = current
+        mutations = changed + removed
+        if not mutations:
+            return
+        self._workspace_change_count += len(mutations)
+        preview = ", ".join(_trim(path, 34) for path in mutations[:2])
+        suffix = "" if len(mutations) <= 2 else f" +{len(mutations) - 2} more"
+        self._current["phase"] = "agent editing workspace"
+        self._add_activity_locked("edit", f"Workspace changed: {preview}{suffix}")
 
     def _elapsed_seconds(self) -> float:
         return time.monotonic() - self._started_monotonic
@@ -302,6 +377,8 @@ class SuiteProgress:
                 "observed": self.observed_model,
                 "observed_models": list(self._observed_models),
                 "observed_source": self._observed_source,
+                "configured_hint": self._model_hint,
+                "configured_hint_source": self._model_hint_source,
                 "identity_status": (
                     "observed_multiple" if len(self._observed_models) > 1
                     else "observed" if self.observed_model
@@ -343,9 +420,10 @@ class SuiteProgress:
             bar = "#" * filled + "-" * (24 - filled)
             position = f"task {task_index}/{self.task_count}" if task_index is not None else "task 0/" + str(self.task_count)
             repeat = f"repeat {repetition}/{self.repetitions}" if repetition is not None else "repeat -/" + str(self.repetitions)
+            display_model = self.observed_model or self._model_hint or "identity pending"
             line = (
                 f"[{bar}] {self._completed_attempts}/{self.total_attempts} | {position} {task} | "
-                f"{repeat} | {phase} | model {self.observed_model or 'identifying'} | "
+                f"{repeat} | {phase} | model {display_model} | "
                 f"elapsed {_format_duration(self._elapsed_seconds())} | ETA {_format_duration(eta)}"
             )
             if self.interactive:
@@ -357,7 +435,7 @@ class SuiteProgress:
                 self.stream.flush()
 
     def _render_full_screen_locked(self) -> None:
-        """Render a centered run conversation instead of a terminal dashboard."""
+        """Render a stable, centered agent session without full-screen flicker."""
         dimensions = shutil.get_terminal_size(fallback=(100, 24))
         width = max(72, dimensions.columns)
         height = max(18, dimensions.lines)
@@ -373,16 +451,18 @@ class SuiteProgress:
         spinner = "◐◓◑◒"[int(elapsed * 4) % 4]
         status = f"RUNNING {spinner}" if self._status == "in_progress" else self._status.upper()
         requested_model, selection_detail = self._model_context()
-        if not self._observed_models:
-            observed_model = "Detecting model identity..."
+        if not self._observed_models and self._model_hint:
+            observed_model = self._model_hint
+        elif not self._observed_models:
+            observed_model = "Model identity pending"
         elif len(self._observed_models) == 1:
             observed_model = self._observed_models[0]
         else:
             observed_model = f"multiple observed: {', '.join(self._observed_models)}"
-        canvas_width = min(86, width - 4)
+        canvas_width = min(92, width - 4)
         left_padding = " " * max(0, (width - canvas_width) // 2)
         rule = "─" * canvas_width
-        activity_limit = max(3, height - 17)
+        activity_limit = max(3, height - 18)
         recent = self._activity[-activity_limit:]
 
         def line(text: str = "", *, colour: str | None = None, centered: bool = False) -> str:
@@ -392,24 +472,48 @@ class SuiteProgress:
             rendered = _colour(content, colour, self._colour_enabled) if colour else content
             return left_padding + rendered
 
-        source = "observed by startup probe" if self._observed_source == "startup_probe" else (
-            "observed from harness output" if self._observed_source == "harness_output" else selection_detail
+        source = (
+            "VERIFIED AT STARTUP"
+            if self._observed_source == "startup_probe"
+            else "VERIFIED FROM HARNESS OUTPUT"
+            if self._observed_source == "harness_output"
+            else "CONFIGURED DEFAULT (UNVERIFIED)"
+            if self._model_hint
+            else "IDENTITY PENDING"
+        )
+        source_detail = (
+            "This suite's configured default was observed before task 1."
+            if self._observed_source == "startup_probe"
+            else "This identity came from a completed harness attempt."
+            if self._observed_source == "harness_output"
+            else self._model_hint_source or "This configured default will be checked against harness output."
+            if self._model_hint
+            else selection_detail
+        )
+        progress_text = f"{self._completed_attempts:>2}/{self.total_attempts:<2} attempts   {percent:5.1f}%"
+        elapsed_text = f"elapsed {_format_duration(elapsed)}   ETA {_format_duration(eta)}"
+        workspace_text = (
+            f"{self._workspace_change_count} workspace mutation(s) observed"
+            if self._workspace_path is not None
+            else "workspace details pending"
         )
         lines = [
             "",
-            line("Agent Benchmark Lab", colour="1;36", centered=True),
-            line(f"{status}  ·  {self.adapter}  ·  {self.budget_profile}", colour="2", centered=True),
+            line("◆  AGENT BENCHMARK", colour="1;38;5;45", centered=True),
+            line(f"{self.adapter}   ·   {self.budget_profile}   ·   {status}", colour="38;5;250", centered=True),
             "",
-            line(observed_model, colour="1;37", centered=True),
-            line(source, colour="2", centered=True),
+            line(observed_model, colour="1;38;5;231", centered=True),
+            line(source, colour="1;38;5;114" if self._observed_models else "1;38;5;220", centered=True),
+            line(source_detail, colour="38;5;246", centered=True),
             line(rule),
-            line(f"{spinner}  {_trim(task, max(12, canvas_width - 4))}", colour="1;36"),
-            line(f"task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}  ·  {phase}", colour="2"),
+            line("NOW", colour="1;38;5;45"),
+            line(f"{spinner}  {_trim(task, max(12, canvas_width - 4))}", colour="1;38;5;231"),
+            line(f"task {task_index or 0}/{self.task_count}   ·   repeat {repetition or '-'}/{self.repetitions}   ·   {phase}", colour="38;5;250"),
             "",
-            line(f"[{bar}]  {self._completed_attempts}/{self.total_attempts} attempts  {percent:5.1f}%", colour="1;36"),
-            line(f"elapsed {_format_duration(elapsed)}     ETA {_format_duration(eta)}", colour="2"),
+            line(f"{_colour('▰' * filled + '▱' * (30 - filled), '1;38;5;45', self._colour_enabled)}  {progress_text}", colour="1;38;5;231"),
+            line(f"{elapsed_text}   ·   {workspace_text}", colour="38;5;246"),
             line(rule),
-            line("Activity", colour="1;37"),
+            line("LIVE ACTIVITY", colour="1;38;5;45"),
         ]
         for item in reversed(recent):
             marker, colour = _activity_style(item["kind"])
@@ -418,10 +522,23 @@ class SuiteProgress:
             [
                 line(rule),
                 line(_trim(f"State: {self.status_path}", canvas_width), colour="2"),
-                line(f"Requested: {requested_model}  ·  Ctrl-C preserves checkpoints and evidence.", colour="2"),
+                line(f"Requested: {requested_model}   ·   Ctrl-C preserves checkpoints and evidence.", colour="2"),
             ]
         )
-        self.stream.write("\033[H\033[2J" + "\n".join(lines) + "\n")
+        self._render_frame_locked(lines)
+
+    def _render_frame_locked(self, lines: list[str]) -> None:
+        """Update only changed terminal rows after the initial alternate-screen draw."""
+        if not self._last_frame:
+            self.stream.write("\033[H\033[2J")
+        previous = self._last_frame
+        for index, content in enumerate(lines, start=1):
+            if index > len(previous) or previous[index - 1] != content:
+                self.stream.write(f"\033[{index};1H\033[2K{content}")
+        for index in range(len(lines) + 1, len(previous) + 1):
+            self.stream.write(f"\033[{index};1H\033[2K")
+        self.stream.write(f"\033[{len(lines) + 1};1H")
+        self._last_frame = list(lines)
         self.stream.flush()
         self._last_line_was_live = True
 

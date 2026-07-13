@@ -120,6 +120,8 @@ LABEL="${AGENT_BENCH_LABEL:-${ADAPTER}-${MODEL}}"
 
 if [[ "$ADAPTER" == "opencode" ]]; then
   MODEL_MODE="harness configured default (override is not supported by this adapter)"
+elif [[ "$ADAPTER" == "claude-code" && "$MODEL" == "unspecified" ]]; then
+  MODEL_MODE="current CLI default (verified before task 1)"
 elif [[ "$MODEL" == "unspecified" ]]; then
   MODEL_MODE="current CLI default (will identify from harness output)"
 else
@@ -140,6 +142,13 @@ else
   CYAN=""
   DIM=""
   RESET=""
+fi
+
+# The primary launcher is an interactive product surface. Users can still set
+# AGENT_BENCH_COLOR=never, but a normal benchmark run should not inherit a
+# colourless dashboard merely because another tool exported NO_COLOR.
+if [[ -t 1 && -z "${AGENT_BENCH_COLOR:-}" ]]; then
+  export AGENT_BENCH_COLOR=always
 fi
 
 printf '\n%s%sAgent Benchmark Lab%s\n' "$BOLD" "$CYAN" "$RESET"

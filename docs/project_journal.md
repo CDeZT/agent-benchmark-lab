@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-13 (iteration 57)
+
+- Rebuilt the benchmark TUI around a coloured centered agent-session layout. The model identity is a dedicated first-screen element, with verified startup/harness identities clearly separated from configured-but-unverified hints and pending states.
+- Removed the visual flicker cause: the alternate screen clears only on its first frame and later heartbeat/event updates redraw only rows whose rendered content changed.
+- Added real run detail without fake telemetry: runner now announces workspace/environment lifecycle, and the TUI observes file mutations in the isolated task workspace while an agent is active.
+- Added Codex configured-default hint handling and regression tests for differential redraw, workspace mutations, and configured-vs-observed model semantics. The suite now contains 168 unit tests.
+
 ## 2026-07-13 (iteration 56)
 
 - Confirmed the current Claude Code default with an isolated real JSON probe: `LongCat-2.0`, observed from `modelUsage`; the probe used no tools, a temporary workspace, one turn, and cost `$0.01381`. Fixed the parser's raw ANSI suffix issue that had displayed this as `LongCat-2.0[1m]`.

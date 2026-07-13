@@ -788,6 +788,8 @@ class FrameworkTests(unittest.TestCase):
                 adapter="dummy",
                 repetitions=1,
                 task_count=1,
+                model_hint="configured-model-v1",
+                model_hint_source="local config",
                 stream=stream,
             )
             reporter.start()
@@ -796,6 +798,7 @@ class FrameworkTests(unittest.TestCase):
 
         self.assertIn("Agent Benchmark Lab", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
+        self.assertIn("configured-model-v1", stream.getvalue())
 
     def test_full_tui_uses_alternate_screen_and_restores_terminal(self) -> None:
         class TtyBuffer(StringIO):
@@ -839,10 +842,11 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("\033[?1049h", stream.getvalue())
         self.assertIn("\033[?1049l", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
-        self.assertIn("Activity", stream.getvalue())
+        self.assertIn("LIVE ACTIVITY", stream.getvalue())
         self.assertIn("Benchmark session started", stream.getvalue())
         self.assertIn("requested-model", stream.getvalue())
-        self.assertIn("observed from harness output", stream.getvalue())
+        self.assertIn("VERIFIED FROM HARNESS OUTPUT", stream.getvalue())
+        self.assertEqual(stream.getvalue().count("\033[2J"), 1)
         self.assertEqual(state["display"]["mode"], "full")
         self.assertEqual(state["recent_attempts"][0]["task_id"], "python-bugfix")
         self.assertEqual(state["model"]["observed"], "example-model-v1")
@@ -887,6 +891,33 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(state["model"]["observed_models"], ["model-a", "model-b"])
         self.assertIn("Requested label: requested-but-not-selectable", stream.getvalue())
         self.assertIn("multiple observed", stream.getvalue())
+
+    def test_tui_records_real_workspace_mutations_as_activity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workspace = root / "workspace"
+            workspace.mkdir()
+            (workspace / "module.py").write_text("before\n", encoding="utf-8")
+            reporter = SuiteProgress(
+                root,
+                suite_id="workspace-watch-test",
+                adapter="dummy",
+                repetitions=1,
+                task_count=1,
+                enabled=False,
+            )
+            reporter.start()
+            reporter.event("python-bugfix", 1, "workspace.ready", {"workspace": str(workspace)})
+            (workspace / "module.py").write_text("after\n", encoding="utf-8")
+            with reporter._lock:
+                reporter._last_workspace_scan = 0.0
+                reporter._refresh_workspace_activity_locked()
+                reporter._persist_locked()
+            status = json.loads((root / "live_status.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(status["current"]["phase"], "agent editing workspace")
+        self.assertEqual(status["activity"][-1]["kind"], "edit")
+        self.assertIn("module.py", status["activity"][-1]["message"])
 
     def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
         suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])
@@ -2358,6 +2389,14 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("--tools", command)
         self.assertEqual(command[command.index("--tools") + 1], "")
         self.assertEqual(command[command.index("--max-budget-usd") + 1], "0.05")
+
+    def test_codex_default_model_hint_is_declared_but_not_observed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"CODEX_HOME": tmp}, clear=False):
+            (Path(tmp) / "config.toml").write_text('model = "gpt-5.6-terra"\n', encoding="utf-8")
+            probe = probe_default_model(adapter="codex", requested_model="unspecified")
+
+        self.assertEqual(probe.status, "configured")
+        self.assertEqual(probe.model, "gpt-5.6-terra")
 
     def test_unknown_adapter_parser_returns_empty(self) -> None:
         """Prove parser returns empty evidence for unknown adapters."""
