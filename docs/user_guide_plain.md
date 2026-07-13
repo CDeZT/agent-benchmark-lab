@@ -2,7 +2,7 @@
 
 ## 目标
 
-用真实 coding agent（Claude Code / opencode / Grok）做题、在 **Docker 里题答分离打分**，得到可证据追溯的分数和雷达图。  
+用真实 coding agent（Claude Code / opencode / Grok / MimoCode）做题、在 **Docker 里题答分离打分**，得到可证据追溯的分数和雷达图。
 **不是**做完的权威排行榜；权威 SWE 题另走 bridge，且禁止无 patch 空转重试。
 
 ## 题 / 答分离
@@ -37,7 +37,7 @@ PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
 # 3) 真实 agent 测一题
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run \
   --task optics-thin-lens --adapter grok --repetitions 1
-# 或 --adapter claude-code / opencode
+# 或 --adapter claude-code / opencode / mimo
 
 # 4) 小套件
 PYTHONPATH=src python3 -m agent_benchmark.cli.main run-suite \

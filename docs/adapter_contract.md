@@ -1,6 +1,6 @@
 # Adapter Contract
 
-Adapters connect Agent Benchmark Lab to real harnesses such as Codex, Aider, Claude Code, and opencode.
+Adapters connect Agent Benchmark Lab to real harnesses such as Codex, Aider, Claude Code, opencode, Grok, and MimoCode.
 
 ## Required Behavior
 
@@ -59,9 +59,24 @@ When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `--model "$AGEN
 
 Implemented. Built-in default uses Grok Build headless mode:
 
-`grok --always-approve --output-format json --prompt-file {instruction_file}`
+`grok --always-approve --output-format streaming-json --prompt-file {instruction_file}`
 
-When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `-m "$AGENT_BENCH_MODEL"`. Override with `AGENT_BENCH_GROK_COMMAND`.
+When `AGENT_BENCH_MODEL` is not `unspecified`, the template adds `-m "$AGENT_BENCH_MODEL"`. The parser reads only explicit JSON/JSONL model, usage, cost, and tool fields. Override with `AGENT_BENCH_GROK_COMMAND`.
+
+### mimo
+
+Implemented. This adapter targets MimoCode's actual local command, `mimo`:
+
+`mimo run --format json --dangerously-skip-permissions`
+
+It first uses `mimo` from PATH, then falls back to the normal macOS installer
+location `~/.mimocode/bin/mimo`. The runner's isolated workspace is the
+process working directory. When `AGENT_BENCH_MODEL` is not `unspecified`, the
+template adds `-m "$AGENT_BENCH_MODEL"`. Its JSONL parser records explicit
+input/output token counts, cost, and tool events. MimoCode's observed default
+JSONL output does not necessarily contain a model identifier, so the adapter
+must leave model identity pending rather than treating the request as evidence.
+Override with `AGENT_BENCH_MIMO_COMMAND`.
 
 ### generic-command
 

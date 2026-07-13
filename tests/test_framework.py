@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
@@ -23,7 +24,7 @@ from agent_benchmark.corpus_audit import audit_corpus
 from agent_benchmark.cli.main import _emit_dashboard_refresh, _official_track_summary, _run_matrix_with_specs, _run_suite_with_config, main
 from agent_benchmark.dashboard import build_dashboard, write_dashboard
 from agent_benchmark.decision_index import build_decision_index
-from agent_benchmark.doctor import format_doctor, run_doctor
+from agent_benchmark.doctor import _command_check_path, format_doctor, run_doctor
 from agent_benchmark.harness_registry import load_harness_registry
 from agent_benchmark.parsers.harness_output import parse_harness_output
 from agent_benchmark.difficulty import analyze_difficulty
@@ -843,7 +844,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("\033[?1049h", stream.getvalue())
         self.assertIn("\033[?1049l", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
-        self.assertIn("LIVE ACTIVITY", stream.getvalue())
+        self.assertIn("activity", stream.getvalue())
         self.assertIn("Benchmark session started", stream.getvalue())
         self.assertIn("requested-model", stream.getvalue())
         self.assertIn("VERIFIED FROM HARNESS OUTPUT", stream.getvalue())
@@ -1750,12 +1751,24 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("codex", rendered)
         self.assertIn("aider", rendered)
         self.assertIn("grok", rendered)
+        self.assertIn("mimo", rendered)
+
+    def test_doctor_version_timeout_is_a_warning_not_a_crash(self) -> None:
+        with patch(
+            "agent_benchmark.doctor.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(["slow-cli", "--version"], 10),
+        ):
+            check = _command_check_path("slow-cli", "/tmp/slow-cli", ["slow-cli", "--version"])
+
+        self.assertEqual(check.status, "warning")
+        self.assertIn("timed out", check.details["reason"])
 
     def test_real_harness_adapters_have_default_templates(self) -> None:
         from agent_benchmark.adapters.aider import AiderAdapter
         from agent_benchmark.adapters.claude_code import ClaudeCodeAdapter
         from agent_benchmark.adapters.codex import CodexAdapter
         from agent_benchmark.adapters.grok import GrokAdapter
+        from agent_benchmark.adapters.mimo import MimoAdapter
         from agent_benchmark.adapters.opencode import OpencodeAdapter
 
         self.assertIn("opencode run", OpencodeAdapter().command_template() or "")
@@ -1763,6 +1776,8 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("--output-format json", ClaudeCodeAdapter().command_template() or "")
         self.assertIn("grok --always-approve", GrokAdapter().command_template() or "")
         self.assertIn("--prompt-file", GrokAdapter().command_template() or "")
+        self.assertIn("run --format json", MimoAdapter().command_template() or "")
+        self.assertIn(".mimocode/bin/mimo", MimoAdapter().command_template() or "")
         self.assertIn("codex exec --json", CodexAdapter().command_template() or "")
         self.assertIn("--skip-git-repo-check", CodexAdapter().command_template() or "")
         self.assertIn("aider --yes-always", AiderAdapter().command_template() or "")
@@ -1770,6 +1785,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("codex", available_adapters())
         self.assertIn("aider", available_adapters())
         self.assertIn("grok", available_adapters())
+        self.assertIn("mimo", available_adapters())
 
     def test_harness_registry_example_loads_and_exposes_configured_adapters(self) -> None:
         registry = load_harness_registry(ROOT / "config" / "harnesses.example.json")
@@ -1780,6 +1796,7 @@ class FrameworkTests(unittest.TestCase):
                 self.assertEqual(load_harness_registry(), {})
         # Built-in names still resolve to code adapters; configured-only names use JSON.
         self.assertEqual(adapter_by_name("grok").name, "grok")
+        self.assertEqual(adapter_by_name("mimo").name, "mimo")
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "harnesses.json"
             path.write_text(
@@ -1845,6 +1862,51 @@ class FrameworkTests(unittest.TestCase):
         empty = parse_harness_output("grok", '{"text":"hi","sessionId":"abc"}', "")
         self.assertIsNone(empty.model)
         self.assertIsNone(empty.cost_usd)
+
+    def test_grok_parser_reads_streaming_json_telemetry(self) -> None:
+        evidence = parse_harness_output(
+            "grok",
+            "\n".join(
+                [
+                    json.dumps({"type": "start", "model": "grok-code-fast"}),
+                    json.dumps({"type": "tool_call", "name": "edit_file"}),
+                    json.dumps({"type": "end", "usage": {"inputTokens": 12, "outputTokens": 8, "cost": 0.02}}),
+                ]
+            ),
+            "",
+        )
+
+        self.assertEqual(evidence.model, "grok-code-fast")
+        self.assertEqual(evidence.input_tokens, 12)
+        self.assertEqual(evidence.output_tokens, 8)
+        self.assertEqual(evidence.cost_usd, 0.02)
+        self.assertEqual(evidence.tool_calls[0]["type"], "edit_file")
+
+    def test_mimo_parser_reads_real_jsonl_usage_without_inventing_a_model(self) -> None:
+        evidence = parse_harness_output(
+            "mimo",
+            "\n".join(
+                [
+                    json.dumps({"type": "step_start", "part": {"type": "step-start"}}),
+                    json.dumps(
+                        {
+                            "type": "step_finish",
+                            "part": {
+                                "type": "step-finish",
+                                "tokens": {"total": 32861, "input": 32835, "output": 4, "reasoning": 22},
+                                "cost": 0.014305845,
+                            },
+                        }
+                    ),
+                ]
+            ),
+            "",
+        )
+
+        self.assertIsNone(evidence.model)
+        self.assertEqual(evidence.input_tokens, 32835)
+        self.assertEqual(evidence.output_tokens, 4)
+        self.assertEqual(evidence.cost_usd, 0.014305845)
 
     def test_codex_parser_reads_jsonl_tools_and_usage(self) -> None:
         stdout = "\n".join(

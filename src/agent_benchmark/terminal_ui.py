@@ -46,10 +46,10 @@ def _trim(text: str, width: int) -> str:
 
 
 def _activity_style(kind: str) -> tuple[str, str]:
-    """Map real lifecycle events to a small, stable visual vocabulary."""
+    """Map real lifecycle events to a small, calm visual vocabulary."""
     return {
         "system": ("·", "2"),
-        "task": ("◆", "1;38;5;45"),
+        "task": ("•", "1;38;5;45"),
         "work": ("◌", "1;38;5;220"),
         "workspace": ("↳", "38;5;111"),
         "edit": ("✦", "1;38;5;81"),
@@ -443,7 +443,7 @@ class SuiteProgress:
                 self.stream.flush()
 
     def _render_full_screen_locked(self) -> None:
-        """Render a stable, centered agent session without full-screen flicker."""
+        """Render a stable, transcript-style agent session without flicker."""
         dimensions = shutil.get_terminal_size(fallback=(100, 24))
         width = max(72, dimensions.columns)
         height = max(18, dimensions.lines)
@@ -458,7 +458,7 @@ class SuiteProgress:
         filled = round(30 * self._completed_attempts / self.total_attempts) if self.total_attempts else 30
         bar = "█" * filled + "░" * (30 - filled)
         spinner = "◐◓◑◒"[int(elapsed * 4) % 4]
-        status = f"RUNNING {spinner}" if self._status == "in_progress" else self._status.upper()
+        status = "RUNNING" if self._status == "in_progress" else self._status.upper()
         requested_model, selection_detail = self._model_context()
         if not self._observed_models and self._model_hint:
             observed_model = self._model_hint
@@ -470,11 +470,10 @@ class SuiteProgress:
             observed_model = f"multiple observed: {', '.join(self._observed_models)}"
         canvas_width = min(78, width - 6)
         left_padding = " " * max(0, (width - canvas_width) // 2)
-        rule = "─" * canvas_width
-        # The footer needs one spare row for the cursor.  Keeping the entire
+        # The footer needs one spare row for the cursor. Keeping the entire
         # frame inside the actual terminal prevents alternate-screen scrolls
         # that can hide the model header on a standard 80x24 terminal.
-        activity_limit = max(1, height - 21)
+        activity_limit = max(1, height - 15)
         recent = self._activity[-activity_limit:]
 
         def line(text: str = "", *, colour: str | None = None, centered: bool = False) -> str:
@@ -485,52 +484,54 @@ class SuiteProgress:
             return left_padding + rendered
 
         source = (
-            "VERIFIED AT STARTUP"
+            "verified at startup"
             if self._observed_source == "startup_probe"
-            else "VERIFIED FROM HARNESS OUTPUT"
+            else "verified by harness"
             if self._observed_source == "harness_output"
-            else "CONFIGURED DEFAULT (UNVERIFIED)"
+            else "configured, unverified"
             if self._model_hint
-            else "IDENTITY PENDING"
+            else "identity pending"
         )
-        source_detail = (
-            "This suite's configured default was observed before task 1."
-            if self._observed_source == "startup_probe"
-            else "This identity came from a completed harness attempt."
-            if self._observed_source == "harness_output"
-            else self._model_hint_source or "This configured default will be checked against harness output."
-            if self._model_hint
-            else selection_detail
-        )
-        progress_text = f"{self._completed_attempts:>2}/{self.total_attempts:<2} attempts   {percent:5.1f}%"
-        elapsed_text = f"elapsed {_format_duration(elapsed)}   ETA {_format_duration(eta)}"
+        progress_text = f"{self._completed_attempts}/{self.total_attempts} attempts  ·  {percent:4.1f}%"
+        elapsed_text = f"elapsed {_format_duration(elapsed)}  ·  ETA {_format_duration(eta)}"
         workspace_text = (
-            f"{self._workspace_change_count} workspace mutation(s) observed"
+            f"{self._workspace_change_count} file change(s) observed"
             if self._workspace_path is not None
-            else "workspace details pending"
+            else "waiting for workspace"
         )
+        identity = f"{self.adapter}  ·  {observed_model}"
+        status_text = f"{status.lower()}  {spinner}" if self._status == "in_progress" else status.lower()
+
+        def split_line(left: str, right: str) -> str:
+            """Put run state at the right edge without letting it wrap."""
+            available = max(1, canvas_width - len(right) - 2)
+            return f"{_trim(left, available)}  {right.rjust(canvas_width - available - 2)}"
+
         lines = [
-            line("◈  AGENT BENCHMARK", colour="1;38;5;45"),
-            line(f"{self.adapter}  /  {observed_model}", colour="1;38;5;231"),
-            line(f"{source}   ·   {status}", colour="1;38;5;114" if self._observed_models else "1;38;5;220"),
-            line(source_detail, colour="38;5;246"),
-            line(rule),
-            line("WORKING ON", colour="1;38;5;45"),
-            line(_trim(task_title, max(12, canvas_width - 2)), colour="1;38;5;231"),
-            line(f"{task}   ·   task {task_index or 0}/{self.task_count}   ·   repeat {repetition or '-'}/{self.repetitions}", colour="38;5;246"),
-            line(f"{spinner}  {phase}", colour="1;38;5;220"),
-            line(f"{_colour('█' * filled + '░' * (30 - filled), '1;38;5;45', self._colour_enabled)}  {progress_text}", colour="1;38;5;231"),
-            line(f"{elapsed_text}   ·   {workspace_text}", colour="38;5;246"),
-            line(rule),
-            line("LIVE ACTIVITY", colour="1;38;5;45"),
+            line("agent benchmark", colour="1;38;5;45"),
+            line(split_line(identity, status_text), colour="1;38;5;231"),
+            line(split_line(f"{source}  ·  {self.suite_id}", elapsed_text), colour="38;5;246"),
+            line(),
+            line(f"{spinner}  {_trim(task_title, max(12, canvas_width - 3))}", colour="1;38;5;231"),
+            line(
+                f"   {_trim(task, max(12, canvas_width - 35))}  ·  task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}",
+                colour="38;5;246",
+            ),
+            line(f"   {phase}  ·  {workspace_text}", colour="1;38;5;220"),
+            line(f"   {_colour(bar, '1;38;5;45', self._colour_enabled)}  {progress_text}", colour="1;38;5;231"),
+            line(),
+            line("activity", colour="1;38;5;45"),
         ]
         for item in reversed(recent):
             marker, colour = _activity_style(item["kind"])
             lines.append(line(f"{marker}  {item['at']}  {_trim(item['message'], max(12, canvas_width - 12))}", colour=colour))
         lines.extend(
             [
-                line(rule),
-                line(f"Ctrl-C preserves checkpoints and evidence   ·   {requested_model}", colour="2"),
+                line(),
+                line(
+                    f"Ctrl-C keeps checkpoints and evidence  ·  {selection_detail}",
+                    colour="2",
+                ),
             ]
         )
         self._render_frame_locked(lines)

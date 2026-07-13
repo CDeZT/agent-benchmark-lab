@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-13 (iteration 59)
+
+- Added a first-class MimoCode adapter under the actual local command name `mimo`. It discovers a normal PATH installation or `~/.mimocode/bin/mimo`, calls the documented non-interactive JSONL runner, and preserves explicit input/output token and cost telemetry without inventing a model identity.
+- Extended Grok's conservative parser to support streaming JSON telemetry. The real Mimo probe confirmed JSONL token/cost output but did not contain a model field; this is documented as pending identity rather than silently assumed.
+- Rebuilt the terminal UI again after visual review: the full view is now a quiet transcript with one harness/model/status header, current task, progress, and only real lifecycle/workspace events. A pseudo-terminal 80x24 frame confirmed no scroll, stable differential redraw, visible `LongCat-2.0`, and real file-change activity. The suite now contains 172 unit tests.
+- Ignored project-local `.mimocode/` runtime residue so a CLI launch cannot leave tool state staged for a future commit.
+
 ## 2026-07-13 (iteration 58)
 
 - Performed pseudo-terminal visual QA at 80x24 and found that the full TUI positioned its cursor past the viewport, which scrolled the model header out of view. The render is now height-budgeted and has an explicit no-scroll regression.

@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 venv/
 .agent-benchmark-evaluators/
+.mimocode/
 dist/
 build/
 *.egg-info/

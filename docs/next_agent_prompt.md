@@ -94,12 +94,14 @@ Copy this prompt into the next coding agent if this thread cannot continue.
 - static HTML visual checks。
 - process planning evidence checks。
 - 10 维度评分体系；所有非零分都必须有真实执行证据。
-- dummy/generic/opencode/claude-code/codex/aider/grok adapters。
+- dummy/generic/opencode/claude-code/codex/aider/grok/mimo adapters。
 - 真实 harness 输出解析（模型名、工具调用、token、cost），并把 token/cost 汇总进 summary。
 - doctor/status/audit 命令。
 - 已有历史 real opencode/Claude Code smoke 作为 adapter 调试证据；它们早于任务指纹机制，不能用于当前能力或胜负结论，需重跑。
 - 156 个 unittest 测试函数，应该全部通过。
 - `agent-benchmark dashboard` 已可从 `runs/` 生成历史 HTML/JSON 看板，并标注 fingerprint 与模型身份是否可用于当前结论。
+- `mimo` 是 MimoCode 的真实本机命令。内置 adapter 优先使用 PATH，其次 `~/.mimocode/bin/mimo`，默认调用 `mimo run --format json`；`AGENT_BENCH_MODEL=unspecified` 不传 `-m`，显式模型才传。Mimo JSONL 没有明确 `model` 字段时，只记录明确的 token/cost/tool 遥测，身份必须是 pending，绝不能把请求模型或本机旧配置显示成 observed。
+- Grok 内置命令是 `--output-format streaming-json`；只从明确 event 字段解析 model/usage/cost/tool telemetry。若真实 CLI 不输出这些字段，评分与 TUI 都保留 unavailable/pending。
 - `config/model_registry.json` 已去掉 longcat→mimo 伪同模型映射，只保留诚实的 mimo 候选映射。
 - `terminal-bench-bridge` 已实现：默认只出 plan，`--execute` 才调用官方 `tb run`；结果在独立 terminal 轨道，不得并入 SWE-bench 分数。
 - `comprehensive-screening-v1` 是当前的一键完整筛选卷：11 个本地 expert->easy comparative task、9 个 SWE-bench hard ranking candidate、1 个 diagnostic tail。先用 `preflight-matrix`，再 `run-suite`。官方题通过独立 bridge repetition 运行；报告必须保留本地十维/领域分与官方 resolved/scorable/rate 两条轨道，不能把官方 30 分占位、官方任务或 diagnostic tail 混入本地雷达、平均或排行榜。

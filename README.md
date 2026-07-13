@@ -13,7 +13,7 @@ harness x model x fixed task cohort x environment x budget profile
 
 Agent Benchmark Lab helps answer two different practical questions:
 
-- **Current-configuration comparison:** Which of Claude Code, opencode, Codex, Aider, or another CLI works best with the model each tool is currently configured to use?
+- **Current-configuration comparison:** Which of Claude Code, opencode, Codex, Aider, MimoCode, Grok, or another CLI works best with the model each tool is currently configured to use?
 - **Strict same-model comparison:** Which harness is stronger only after every adapter can select, and its output verifies, the same model identity?
 
 It is not a generic model leaderboard. It does not disguise outcomes from different evaluators as one universal score.
@@ -100,7 +100,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. This command always uses the harness's current default model; it is the normal path. For Claude Code default runs, it first performs one tool-disabled, temporary-workspace JSON identity probe (hard cap: $0.05) so the full-screen TUI can show the observed model before the first benchmark task. The TUI uses a coloured, centered agent-session layout with stable differential refreshes rather than repeatedly clearing the terminal; its activity stream contains runner lifecycle and observed workspace changes only. Recoverable state is saved in `suite-*/live_status.json`. A smaller cohort remains `agent-benchmark opencode hard-discrimination`; explicit `--model`, `--suite`, and `--repetitions` options are documented in the user guide as advanced overrides.
+It runs doctor and preflight, uses the fixed full cohort with three repetitions, writes every artifact into the **current directory**, refreshes `./dashboard/index.html`, and opens the dashboard when finished. This command always uses the harness's current default model; it is the normal path. For Claude Code default runs, it first performs one tool-disabled, temporary-workspace JSON identity probe (hard cap: $0.05) so the full-screen TUI can show the observed model before the first benchmark task. The TUI uses a coloured, centered transcript-style agent session with stable differential refreshes rather than repeatedly clearing the terminal; its activity stream contains runner lifecycle and observed workspace changes only. Recoverable state is saved in `suite-*/live_status.json`. A smaller cohort remains `agent-benchmark opencode hard-discrimination`; explicit `--model`, `--suite`, and `--repetitions` options are documented in the user guide as advanced overrides.
 
 ## Run The Full Fixed Cohort
 
@@ -167,7 +167,7 @@ harness x model x 固定题目组 x 环境 x 预算档位
 
 项目区分两个实际问题：
 
-- **当前配置比较**：此刻的 Claude Code、opencode、Codex、Aider 等 CLI 各自使用当前默认模型时，哪个更适合实际工作流？
+- **当前配置比较**：此刻的 Claude Code、opencode、Codex、Aider、MimoCode、Grok 等 CLI 各自使用当前默认模型时，哪个更适合实际工作流？
 - **严格同模型比较**：只有每个 adapter 都能选择同一个模型，且运行输出验证模型身份后，才比较 harness 本身。
 
 它不是通用模型排行榜，也不会把不同 evaluator 的结果伪装成一个万能总分。
@@ -251,7 +251,7 @@ cd ~/Documents/claude-benchmark-2026-07
 agent-benchmark claude-code
 ```
 
-它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。这个默认命令始终使用 harness 当前配置的默认模型，才是正常使用路径。Claude Code 的默认模型实验会先进行一次禁用工具、临时目录、JSON 输出的身份探针（硬上限 `$0.05`），所以全屏 TUI 会在第一道题开始前显示已经观察到的模型，而不是只写“默认”。终端页采用彩色、居中的 agent-session 排版，使用差量刷新而非反复清屏；活动流只显示 runner 生命周期和实际观察到的工作区变动。可恢复状态保存在 `suite-*/live_status.json`；较小题组仍可用旧写法 `agent-benchmark opencode hard-discrimination`。显式 `--model`、`--suite`、`--repetitions` 仅是用户手册里的高级覆盖参数。
+它会自动执行 doctor 和 preflight，使用三重复的固定完整卷，把所有原始证据和结论写入**当前目录**，刷新 `./dashboard/index.html`，并在结束后自动打开看板。这个默认命令始终使用 harness 当前配置的默认模型，才是正常使用路径。Claude Code 的默认模型实验会先进行一次禁用工具、临时目录、JSON 输出的身份探针（硬上限 `$0.05`），所以全屏 TUI 会在第一道题开始前显示已经观察到的模型，而不是只写“默认”。终端页采用彩色、居中的会话流排版，使用差量刷新而非反复清屏；活动流只显示 runner 生命周期和实际观察到的工作区变动。可恢复状态保存在 `suite-*/live_status.json`；较小题组仍可用旧写法 `agent-benchmark opencode hard-discrimination`。显式 `--model`、`--suite`、`--repetitions` 仅是用户手册里的高级覆盖参数。
 
 ## 运行固定完整卷
 

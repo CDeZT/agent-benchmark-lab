@@ -28,6 +28,8 @@ def parse_harness_output(adapter: str, stdout: str, stderr: str) -> HarnessEvide
     """Parse harness output and return structured evidence."""
     if adapter == "opencode":
         return _parse_opencode(stdout, stderr)
+    if adapter == "mimo":
+        return _parse_mimo(stdout, stderr)
     if adapter == "claude-code":
         return _parse_claude_code(stdout, stderr)
     if adapter == "grok":
@@ -106,16 +108,7 @@ def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
 
 
 def _extract_token_cost(line: str, evidence: HarnessEvidence) -> None:
-    """Extract token counts and cost from a line of text.
-
-    Handles various formats:
-        Tokens: 1,234 in / 567 out
-        Input tokens: 1234
-        Output tokens: 567
-        Cost: $0.0123
-        Total cost: $0.05
-    """
-    # Format: "Tokens: 1,234 in / 567 out"
+    """Extract token counts and cost from a line of text."""
     tokens_match = re.search(r"tokens[:\s]*(\d[\d,]*)\s*in\s*/\s*(\d[\d,]*)\s*out", line, re.I)
     if tokens_match and evidence.input_tokens is None and evidence.output_tokens is None:
         try:
@@ -124,30 +117,56 @@ def _extract_token_cost(line: str, evidence: HarnessEvidence) -> None:
         except ValueError:
             pass
         return
-
-    # Input tokens (standalone)
     input_match = re.search(r"(?:input)[:\s]*(\d[\d,]*)", line, re.I)
     if input_match and evidence.input_tokens is None:
         try:
             evidence.input_tokens = int(input_match.group(1).replace(",", ""))
         except ValueError:
             pass
-
-    # Output tokens (standalone)
     output_match = re.search(r"(?:output)[:\s]*(\d[\d,]*)", line, re.I)
     if output_match and evidence.output_tokens is None:
         try:
             evidence.output_tokens = int(output_match.group(1).replace(",", ""))
         except ValueError:
             pass
-
-    # Cost in USD
     cost_match = re.search(r"cost[:\s]*\$?(\d+\.?\d*)", line, re.I)
     if cost_match and evidence.cost_usd is None:
         try:
             evidence.cost_usd = float(cost_match.group(1))
         except ValueError:
             pass
+
+
+def _parse_mimo(stdout: str, stderr: str) -> HarnessEvidence:
+    """Parse MimoCode ``run --format json`` JSONL without guessing identity."""
+    evidence = HarnessEvidence()
+    for line in (stdout or "").splitlines():
+        event = _load_json_object(line)
+        if not isinstance(event, dict):
+            continue
+        part = event.get("part") if isinstance(event.get("part"), dict) else {}
+        model = event.get("model") or part.get("model") or part.get("modelID")
+        if isinstance(model, str) and model.strip() and evidence.model is None:
+            evidence.model = normalize_model_name(model)
+        tokens = part.get("tokens") if isinstance(part.get("tokens"), dict) else {}
+        if evidence.input_tokens is None and isinstance(tokens.get("input"), (int, float)):
+            evidence.input_tokens = int(tokens["input"])
+        if evidence.output_tokens is None and isinstance(tokens.get("output"), (int, float)):
+            evidence.output_tokens = int(tokens["output"])
+        cost = part.get("cost") if "cost" in part else event.get("cost")
+        if evidence.cost_usd is None and isinstance(cost, (int, float)):
+            evidence.cost_usd = float(cost)
+        part_type = str(part.get("type") or event.get("type") or "")
+        if part_type in {"tool", "tool-call", "tool_call", "function_call"}:
+            tool_name = part.get("tool") or part.get("name") or part.get("toolName") or "tool"
+            evidence.tool_calls.append({"type": str(tool_name), "detail": str(part)[:200]})
+    fallback = _parse_opencode("", stderr)
+    evidence.model = evidence.model or fallback.model
+    evidence.tool_calls.extend(fallback.tool_calls)
+    evidence.input_tokens = evidence.input_tokens or fallback.input_tokens
+    evidence.output_tokens = evidence.output_tokens or fallback.output_tokens
+    evidence.cost_usd = evidence.cost_usd if evidence.cost_usd is not None else fallback.cost_usd
+    return evidence
 
 
 def _parse_grok(stdout: str, stderr: str) -> HarnessEvidence:
@@ -197,16 +216,31 @@ def _parse_grok(stdout: str, stderr: str) -> HarnessEvidence:
                     evidence.tool_calls.append({"type": "tool", "detail": item.strip()[:200]})
         if evidence.model or evidence.tool_calls or evidence.input_tokens is not None:
             return evidence
-    # Streaming-json: collect tool-ish event types without inventing scores.
+    # Streaming-json: collect the same optional telemetry event by event.
     for line in (stdout or "").splitlines():
         event = _load_json_object(line)
         if not isinstance(event, dict):
             continue
+        model = event.get("model") or event.get("modelId") or event.get("model_id")
+        if isinstance(model, str) and model.strip() and evidence.model is None:
+            evidence.model = normalize_model_name(model)
+        usage = event.get("usage") if isinstance(event.get("usage"), dict) else {}
+        if evidence.input_tokens is None:
+            value = usage.get("input_tokens", usage.get("inputTokens", event.get("input_tokens")))
+            if isinstance(value, (int, float)):
+                evidence.input_tokens = int(value)
+        if evidence.output_tokens is None:
+            value = usage.get("output_tokens", usage.get("outputTokens", event.get("output_tokens")))
+            if isinstance(value, (int, float)):
+                evidence.output_tokens = int(value)
+        if evidence.cost_usd is None:
+            value = usage.get("cost_usd", usage.get("cost", event.get("cost_usd", event.get("cost"))))
+            if isinstance(value, (int, float)):
+                evidence.cost_usd = float(value)
         event_type = str(event.get("type") or "")
         if event_type in {"tool", "tool_call", "toolCall", "function_call"}:
-            evidence.tool_calls.append({"type": event_type, "detail": str(event)[:200]})
-        if event_type == "end" and isinstance(event.get("model"), str):
-            evidence.model = event["model"]
+            tool_name = event.get("name") or event.get("tool") or event_type
+            evidence.tool_calls.append({"type": str(tool_name), "detail": str(event)[:200]})
     return evidence
 
 

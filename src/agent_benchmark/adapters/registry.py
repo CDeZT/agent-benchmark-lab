@@ -10,6 +10,7 @@ from agent_benchmark.adapters.configured import ConfiguredHarnessAdapter
 from agent_benchmark.adapters.dummy import DummyAdapter
 from agent_benchmark.adapters.generic_command import GenericCommandAdapter
 from agent_benchmark.adapters.grok import GrokAdapter
+from agent_benchmark.adapters.mimo import MimoAdapter
 from agent_benchmark.adapters.opencode import OpencodeAdapter
 from agent_benchmark.harness_registry import load_harness_registry
 
@@ -24,6 +25,7 @@ _REGISTRY: dict[str, AdapterFactory] = {
     "dummy": DummyAdapter,
     "generic-command": GenericCommandAdapter,
     "grok": GrokAdapter,
+    "mimo": MimoAdapter,
     "opencode": OpencodeAdapter,
 }
 

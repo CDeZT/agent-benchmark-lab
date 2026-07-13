@@ -21,7 +21,8 @@ RECOMMENDED_COMMANDS = {
     "opencode": "built-in default uses opencode run --auto (--model intentionally omitted: opencode 1.17.15 crashes with any --model value)",
     "claude-code": "built-in default uses claude -p --dangerously-skip-permissions --no-session-persistence, adding --model only when AGENT_BENCH_MODEL is not unspecified",
     "codex": "built-in default uses codex exec --json --ephemeral --sandbox workspace-write --skip-git-repo-check -C {workspace}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
-    "grok": "built-in default uses grok --always-approve --output-format json --prompt-file {instruction_file}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
+    "grok": "built-in default uses grok --always-approve --output-format streaming-json --prompt-file {instruction_file}, adding -m only when AGENT_BENCH_MODEL is not unspecified",
+    "mimo": "built-in default uses mimo run --format json --dangerously-skip-permissions, adding -m only when AGENT_BENCH_MODEL is not unspecified",
 }
 
 
@@ -35,6 +36,7 @@ def run_doctor() -> dict[str, Any]:
         _command_check("codex", ["codex", "--version"]),
         _command_check("aider", ["aider", "--version"]),
         _command_check("grok", ["grok", "--version"]),
+        _mimo_check(),
         _docker_check(),
         _playwright_check(),
         _env_check("AGENT_BENCH_COMMAND"),
@@ -43,6 +45,7 @@ def run_doctor() -> dict[str, Any]:
         _env_check("AGENT_BENCH_CODEX_COMMAND", recommended=RECOMMENDED_COMMANDS["codex"]),
         _env_check("AGENT_BENCH_AIDER_COMMAND", recommended=RECOMMENDED_COMMANDS["aider"]),
         _env_check("AGENT_BENCH_GROK_COMMAND", recommended=RECOMMENDED_COMMANDS["grok"]),
+        _env_check("AGENT_BENCH_MIMO_COMMAND", recommended=RECOMMENDED_COMMANDS["mimo"]),
     ]
     return {
         "ok": all(check.status != "error" for check in checks),
@@ -75,14 +78,38 @@ def _command_check(binary: str, version_command: list[str]) -> DoctorCheck:
     path = shutil.which(binary)
     if not path:
         return DoctorCheck(name=f"command:{binary}", status="error", details={"reason": "not found"})
-    completed = subprocess.run(
-        version_command,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=10,
-    )
+    return _command_check_path(binary, path, version_command)
+
+
+def _mimo_check() -> DoctorCheck:
+    path = shutil.which("mimo") or str(Path.home() / ".mimocode" / "bin" / "mimo")
+    if not Path(path).is_file():
+        return DoctorCheck(name="command:mimo", status="error", details={"reason": "not found on PATH or at ~/.mimocode/bin/mimo"})
+    return _command_check_path("mimo", path, [path, "--version"])
+
+
+def _command_check_path(binary: str, path: str, version_command: list[str]) -> DoctorCheck:
+    try:
+        completed = subprocess.run(
+            version_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired:
+        return DoctorCheck(
+            name=f"command:{binary}",
+            status="warning",
+            details={"path": path, "reason": "version check timed out after 10 seconds"},
+        )
+    except OSError as exc:
+        return DoctorCheck(
+            name=f"command:{binary}",
+            status="warning",
+            details={"path": path, "reason": f"version check failed: {exc}"},
+        )
     output = (completed.stdout or completed.stderr).strip().splitlines()
     return DoctorCheck(
         name=f"command:{binary}",
