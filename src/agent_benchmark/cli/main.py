@@ -20,6 +20,7 @@ from agent_benchmark.doctor import format_doctor, run_doctor
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
 from agent_benchmark.model_identity import summarize_model_identity
+from agent_benchmark.model_probe import load_or_probe_default_model
 from agent_benchmark.next_agent import DEFAULT_PROMPT_PATH, load_next_agent_prompt
 from agent_benchmark.reports.matrix import build_matrix_leaderboard, write_matrix_summary
 from agent_benchmark.reports.suite import write_suite_summary
@@ -989,6 +990,11 @@ def _run_suite_with_config(
     summaries = []
     summaries_dir = suite_run_dir / "task_summaries"
     summaries_dir.mkdir(parents=True, exist_ok=True)
+    model_probe = load_or_probe_default_model(
+        suite_run_dir,
+        adapter=config.adapter,
+        requested_model=config.model,
+    )
     pilots_file = Path(getattr(config, "pilots_file", None) or DEFAULT_AUTHORITATIVE_PILOTS_PATH)
     registry_path = Path(getattr(config, "registry_path", None) or DEFAULT_AUTHORITATIVE_CORPORA_PATH)
     reporter = SuiteProgress(
@@ -998,6 +1004,8 @@ def _run_suite_with_config(
         model=config.model,
         adapter_model=config.invocation_model,
         model_selection=str(getattr(adapter_by_name(config.adapter), "model_selection", "environment_only")),
+        observed_model=model_probe.model,
+        observed_source="startup_probe" if model_probe.status == "observed" else None,
         budget_profile=config.budget_profile,
         repetitions=config.repetitions,
         task_count=len(suite.tasks),
@@ -1082,6 +1090,7 @@ def _run_suite_with_config(
         ),
         "tasks": summaries,
         "scoring_policy": "Local strict scores are aggregated only across local tasks. Official evaluator outcomes are reported as a separate resolution track; unscorable evaluator errors are excluded from that track.",
+        "model_probe": model_probe.to_dict(),
     }
     suite_summary["official_tracks"] = _official_track_summary(official_tasks)
     detected_models = sorted(
@@ -1092,7 +1101,21 @@ def _run_suite_with_config(
             if str(model).strip()
         }
     )
+    if model_probe.status == "observed" and model_probe.model and model_probe.model not in detected_models:
+        detected_models.append(model_probe.model)
+        detected_models.sort()
     suite_summary["detected_models"] = detected_models
+    suite_summary["model_identity_sources"] = {
+        "startup_probe": [model_probe.model] if model_probe.status == "observed" and model_probe.model else [],
+        "task_harness_output": sorted(
+            {
+                str(model).strip()
+                for task_summary in summaries
+                for model in _summary_detected_models(task_summary)
+                if str(model).strip()
+            }
+        ),
+    }
     suite_summary["model_identity"] = summarize_model_identity(config.model, detected_models)
     suite_summary["decision_index"] = build_decision_index(suite_summary)
     suite_summary["evaluation_axis_scorecard"] = build_scorecard(scored)
@@ -1123,6 +1146,9 @@ def _print_suite_result(summary: dict[str, object], *, compact: bool) -> None:
     detected_models = identity.get("detected_models") if isinstance(identity.get("detected_models"), list) else []
     observed = ", ".join(str(item) for item in detected_models) if detected_models else "not exposed by harness output"
     print(f"  Model: requested={requested_model} | observed={observed} | identity={identity.get('status', 'unknown')}")
+    probe = summary.get("model_probe") if isinstance(summary.get("model_probe"), dict) else {}
+    if probe.get("status") == "observed":
+        print(f"  Startup probe: {probe.get('model')} | cost=${probe.get('cost_usd')}")
     print(
         "  Local: "
         f"strict={summary.get('mean_score')} | verified={summary.get('mean_verified_normalized_score')} | "

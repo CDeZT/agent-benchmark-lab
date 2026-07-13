@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+_RAW_ANSI_SUFFIX = re.compile(r"\[\d+(?:;\d+)*m\]?")
 
 
 @dataclass
@@ -42,6 +43,11 @@ def _strip_ansi(text: str) -> str:
     return _ANSI_ESCAPE.sub("", text)
 
 
+def normalize_model_name(value: str) -> str:
+    """Normalize display artifacts without changing a provider's model identity."""
+    return _RAW_ANSI_SUFFIX.sub("", _strip_ansi(value)).strip()
+
+
 def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
     """Parse opencode output.
 
@@ -67,7 +73,7 @@ def _parse_opencode(stdout: str, stderr: str) -> HarnessEvidence:
         # Model name: "> build · LongCat-2.0" or "> model-name"
         model_match = re.match(r"^>\s*(?:build\s*·\s*)?(.+)$", stripped)
         if model_match and not evidence.model:
-            candidate = model_match.group(1).strip()
+            candidate = normalize_model_name(model_match.group(1))
             if candidate and not candidate.startswith("$"):
                 evidence.model = candidate
 
@@ -334,11 +340,16 @@ def _parse_claude_json(stdout: str) -> HarnessEvidence | None:
 
     model_usage = payload.get("modelUsage")
     if isinstance(model_usage, dict) and model_usage:
-        model_names = [str(name).strip() for name in model_usage if str(name).strip()]
+        model_name_pairs = [
+            (str(name), normalize_model_name(str(name)))
+            for name in model_usage
+            if normalize_model_name(str(name))
+        ]
+        model_names = [normalized for _, normalized in model_name_pairs]
         if evidence.model is None and len(model_names) == 1:
             evidence.model = model_names[0]
         if evidence.cost_usd is None and len(model_names) == 1:
-            usage_details = model_usage.get(model_names[0])
+            usage_details = model_usage.get(model_name_pairs[0][0])
             if isinstance(usage_details, dict):
                 evidence.cost_usd = _first_float(usage_details, ("costUSD", "cost_usd"))
 
@@ -368,7 +379,7 @@ def _first_string(payload: dict[str, object], keys: tuple[str, ...]) -> str | No
     for key in keys:
         value = payload.get(key)
         if isinstance(value, str) and value.strip():
-            return value.strip()
+            return normalize_model_name(value)
     return None
 
 

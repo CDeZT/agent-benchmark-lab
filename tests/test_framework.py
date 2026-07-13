@@ -28,6 +28,7 @@ from agent_benchmark.parsers.harness_output import parse_harness_output
 from agent_benchmark.difficulty import analyze_difficulty
 from agent_benchmark.next_agent import load_next_agent_prompt
 from agent_benchmark.model_identity import summarize_model_identity
+from agent_benchmark.model_probe import ModelProbe, probe_default_model
 from agent_benchmark.metrics import confidence_interval_95
 from agent_benchmark.model_registry import adapter_model_for, load_model_registry
 from agent_benchmark.runner import ExperimentConfig, RunResult, ensure_task_environment_supported, run_task
@@ -838,10 +839,10 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn("\033[?1049h", stream.getvalue())
         self.assertIn("\033[?1049l", stream.getvalue())
         self.assertIn("python-bugfix", stream.getvalue())
-        self.assertIn("ACTIVITY", stream.getvalue())
+        self.assertIn("Activity", stream.getvalue())
         self.assertIn("Benchmark session started", stream.getvalue())
         self.assertIn("requested-model", stream.getvalue())
-        self.assertIn("Adapter invocation", stream.getvalue())
+        self.assertIn("observed from harness output", stream.getvalue())
         self.assertEqual(state["display"]["mode"], "full")
         self.assertEqual(state["recent_attempts"][0]["task_id"], "python-bugfix")
         self.assertEqual(state["model"]["observed"], "example-model-v1")
@@ -885,7 +886,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(state["model"]["identity_status"], "observed_multiple")
         self.assertEqual(state["model"]["observed_models"], ["model-a", "model-b"])
         self.assertIn("Requested label: requested-but-not-selectable", stream.getvalue())
-        self.assertIn("observed: multiple observed", stream.getvalue())
+        self.assertIn("multiple observed", stream.getvalue())
 
     def test_suite_progress_is_written_by_real_suite_execution(self) -> None:
         suite = SimpleNamespace(suite_id="live-status-test", tasks=["python-bugfix"])
@@ -902,6 +903,23 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(state["status"], "complete")
         self.assertEqual(state["current"]["task_id"], "python-bugfix")
         self.assertEqual(state["progress"]["completed_attempts"], 1)
+
+    def test_suite_summary_keeps_startup_probe_identity_separate_from_task_evidence(self) -> None:
+        suite = SimpleNamespace(suite_id="probe-summary-test", tasks=["python-bugfix"])
+        probe = ModelProbe("claude-code", "observed", "LongCat-2.0", 0.014, "test probe")
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "agent_benchmark.cli.main.load_or_probe_default_model", return_value=probe
+        ):
+            summary = _run_suite_with_config(
+                suite,
+                ExperimentConfig(adapter="dummy", repetitions=1, runs_dir=Path(tmp)),
+                ROOT / "benchmarks" / "tasks",
+                progress=False,
+            )
+
+        self.assertEqual(summary["model_identity"]["status"], "default_detected")
+        self.assertEqual(summary["model_identity_sources"]["startup_probe"], ["LongCat-2.0"])
+        self.assertEqual(summary["model_identity_sources"]["task_harness_output"], [])
 
     def test_compact_suite_output_avoids_dumping_full_result_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -2316,6 +2334,30 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(evidence.output_tokens, 300)
         self.assertEqual(evidence.cost_usd, 0.0125)
         self.assertEqual(len([call for call in evidence.tool_calls if call["type"] == "server_web_search_requests"]), 2)
+
+    def test_claude_parser_normalizes_raw_ansi_artifact_in_model_usage(self) -> None:
+        stdout = json.dumps({"modelUsage": {"LongCat-2.0[1m]": {"costUSD": 0.01381}}})
+
+        evidence = parse_harness_output("claude-code", stdout, "")
+
+        self.assertEqual(evidence.model, "LongCat-2.0")
+        self.assertEqual(evidence.cost_usd, 0.01381)
+
+    def test_claude_default_model_probe_uses_a_tool_disabled_low_budget_json_call(self) -> None:
+        stdout = json.dumps({"modelUsage": {"LongCat-2.0[1m]": {"costUSD": 0.01381}}})
+        completed = SimpleNamespace(returncode=0, stdout=stdout, stderr="")
+        with patch("agent_benchmark.model_probe.shutil.which", return_value="/usr/local/bin/claude"), patch(
+            "agent_benchmark.model_probe.subprocess.run", return_value=completed
+        ) as run:
+            probe = probe_default_model(adapter="claude-code", requested_model="unspecified")
+
+        command = run.call_args.args[0]
+        self.assertEqual(probe.status, "observed")
+        self.assertEqual(probe.model, "LongCat-2.0")
+        self.assertEqual(probe.cost_usd, 0.01381)
+        self.assertIn("--tools", command)
+        self.assertEqual(command[command.index("--tools") + 1], "")
+        self.assertEqual(command[command.index("--max-budget-usd") + 1], "0.05")
 
     def test_unknown_adapter_parser_returns_empty(self) -> None:
         """Prove parser returns empty evidence for unknown adapters."""

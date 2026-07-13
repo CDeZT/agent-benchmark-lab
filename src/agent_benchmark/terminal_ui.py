@@ -70,6 +70,8 @@ class SuiteProgress:
         model: str = "unspecified",
         adapter_model: str | None = None,
         model_selection: str = "environment_only",
+        observed_model: str | None = None,
+        observed_source: str | None = None,
         budget_profile: str = "open_ended",
         enabled: bool | None = None,
         stream: TextIO | None = None,
@@ -82,8 +84,9 @@ class SuiteProgress:
         self.adapter_model = adapter_model or model
         self.model_selection = model_selection
         self.budget_profile = budget_profile
-        self.observed_model: str | None = None
-        self._observed_models: list[str] = []
+        self.observed_model = observed_model.strip() if observed_model else None
+        self._observed_models = [self.observed_model] if self.observed_model else []
+        self._observed_source = observed_source
         self.repetitions = repetitions
         self.task_count = task_count
         self.total_attempts = task_count * repetitions
@@ -123,6 +126,8 @@ class SuiteProgress:
     def start(self) -> None:
         with self._lock:
             self._add_activity_locked("system", "Benchmark session started")
+            if self.observed_model:
+                self._add_activity_locked("system", f"Model observed by startup probe: {self.observed_model}")
             self._persist_locked()
             if self.enabled:
                 if self._full_screen:
@@ -132,6 +137,11 @@ class SuiteProgress:
                     self._alternate_screen_active = True
                 else:
                     requested_model, selection_detail = self._model_context()
+                    observed_line = (
+                        f"  Observed   {self.observed_model} ({self._observed_source or 'harness evidence'})\n"
+                        if self.observed_model
+                        else ""
+                    )
                     self.stream.write(
                         "\n"
                         + _colour("Agent Benchmark Lab", "1;36", self._colour_enabled)
@@ -139,6 +149,7 @@ class SuiteProgress:
                         + f"  Suite      {self.suite_id}\n"
                         + f"  Harness    {self.adapter}\n"
                         + f"  Model      {requested_model}\n"
+                        + observed_line
                         + f"  Selection  {selection_detail}\n"
                         + f"  Work       {self.task_count} tasks x {self.repetitions} repeats = {self.total_attempts} attempts\n"
                         + f"  Live state {self.status_path}\n\n"
@@ -180,6 +191,7 @@ class SuiteProgress:
             if isinstance(detected_model, str) and detected_model.strip():
                 with self._lock:
                     self.observed_model = detected_model.strip()
+                    self._observed_source = "harness_output"
                     if self.observed_model not in self._observed_models:
                         self._observed_models.append(self.observed_model)
             self._complete_attempt(
@@ -289,6 +301,7 @@ class SuiteProgress:
                 "selection": self.model_selection,
                 "observed": self.observed_model,
                 "observed_models": list(self._observed_models),
+                "observed_source": self._observed_source,
                 "identity_status": (
                     "observed_multiple" if len(self._observed_models) > 1
                     else "observed" if self.observed_model
@@ -344,7 +357,7 @@ class SuiteProgress:
                 self.stream.flush()
 
     def _render_full_screen_locked(self) -> None:
-        """Render a metadata rail plus a runner-derived activity stream."""
+        """Render a centered run conversation instead of a terminal dashboard."""
         dimensions = shutil.get_terminal_size(fallback=(100, 24))
         width = max(72, dimensions.columns)
         height = max(18, dimensions.lines)
@@ -361,79 +374,51 @@ class SuiteProgress:
         status = f"RUNNING {spinner}" if self._status == "in_progress" else self._status.upper()
         requested_model, selection_detail = self._model_context()
         if not self._observed_models:
-            observed_model = "identifying from harness output"
+            observed_model = "Detecting model identity..."
         elif len(self._observed_models) == 1:
             observed_model = self._observed_models[0]
         else:
             observed_model = f"multiple observed: {', '.join(self._observed_models)}"
-        rule = "─" * width
+        canvas_width = min(86, width - 4)
+        left_padding = " " * max(0, (width - canvas_width) // 2)
+        rule = "─" * canvas_width
+        activity_limit = max(3, height - 17)
+        recent = self._activity[-activity_limit:]
 
-        rail_width = min(31, max(25, width // 3))
-        body_width = width - rail_width - 3
-        panel_height = max(12, height - 6)
-        observed_label = observed_model if self._observed_models else "waiting for harness output"
-        progress_label = f"{self._completed_attempts}/{self.total_attempts}  {percent:5.1f}%"
-        rail_bar_width = max(1, rail_width - 2)
-        rail_filled = round(rail_bar_width * self._completed_attempts / self.total_attempts) if self.total_attempts else rail_bar_width
-        rail_bar = "█" * rail_filled + "░" * (rail_bar_width - rail_filled)
-        rail: list[tuple[str, str | None]] = [
-            ("RUN", "1;36"),
-            (self.adapter, "1;37"),
-            ("", None),
-            ("MODEL", "1;36"),
-            (_trim(requested_model, rail_width), "1;37"),
-            (_trim("observed: " + observed_label, rail_width), "2"),
-            ("", None),
-            ("PROGRESS", "1;36"),
-            (progress_label, "1;37"),
-            ("[" + rail_bar + "]", "1;36"),
-            (f"elapsed {_format_duration(elapsed)}", "2"),
-            (f"ETA {_format_duration(eta)}", "2"),
-            ("", None),
-            ("PROFILE", "1;36"),
-            (_trim(self.budget_profile, rail_width), "1;37"),
-            (_trim(self.suite_id, rail_width), "2"),
-        ]
-        recent = self._activity[-max(3, panel_height - 7):]
-        body: list[tuple[str, str | None]] = [
-            (f"{spinner}  {_trim(task, max(12, body_width - 4))}", "1;37"),
-            (f"task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}  ·  {phase}", "2"),
-            ("", None),
-            ("ACTIVITY", "1;36"),
+        def line(text: str = "", *, colour: str | None = None, centered: bool = False) -> str:
+            content = _trim(text, canvas_width)
+            if centered:
+                content = content.center(canvas_width)
+            rendered = _colour(content, colour, self._colour_enabled) if colour else content
+            return left_padding + rendered
+
+        source = "observed by startup probe" if self._observed_source == "startup_probe" else (
+            "observed from harness output" if self._observed_source == "harness_output" else selection_detail
+        )
+        lines = [
+            "",
+            line("Agent Benchmark Lab", colour="1;36", centered=True),
+            line(f"{status}  ·  {self.adapter}  ·  {self.budget_profile}", colour="2", centered=True),
+            "",
+            line(observed_model, colour="1;37", centered=True),
+            line(source, colour="2", centered=True),
+            line(rule),
+            line(f"{spinner}  {_trim(task, max(12, canvas_width - 4))}", colour="1;36"),
+            line(f"task {task_index or 0}/{self.task_count}  ·  repeat {repetition or '-'}/{self.repetitions}  ·  {phase}", colour="2"),
+            "",
+            line(f"[{bar}]  {self._completed_attempts}/{self.total_attempts} attempts  {percent:5.1f}%", colour="1;36"),
+            line(f"elapsed {_format_duration(elapsed)}     ETA {_format_duration(eta)}", colour="2"),
+            line(rule),
+            line("Activity", colour="1;37"),
         ]
         for item in reversed(recent):
             marker, colour = _activity_style(item["kind"])
-            message = _trim(item["message"], max(12, body_width - 12))
-            body.append((f"{marker}  {item['at']}  {message}", colour))
-        body.extend(
-            [
-                ("", None),
-                ("MODEL RULE", "1;36"),
-                (_trim(selection_detail, body_width), "2"),
-            ]
-        )
-
-        def pane_line(item: tuple[str, str | None], pane_width: int) -> str:
-            text, colour = item
-            padded = _trim(text, pane_width).ljust(pane_width)
-            return _colour(padded, colour, self._colour_enabled) if colour else padded
-
-        lines = [
-            _colour("Agent Benchmark Lab", "1;36", self._colour_enabled)
-            + " " * max(1, width - len("Agent Benchmark Lab") - len(status))
-            + _colour(status, "1;33", self._colour_enabled),
-            _colour(_trim(f"{self.adapter}  ·  {self.suite_id}", width), "2", self._colour_enabled),
-            rule,
-        ]
-        for index in range(panel_height):
-            left = rail[index] if index < len(rail) else ("", None)
-            right = body[index] if index < len(body) else ("", None)
-            lines.append(pane_line(left, rail_width) + " │ " + pane_line(right, body_width))
+            lines.append(line(f"{marker}  {item['at']}  {_trim(item['message'], max(12, canvas_width - 12))}", colour=colour))
         lines.extend(
             [
-                rule,
-                _colour(_trim(f"State: {self.status_path}", width), "2", self._colour_enabled),
-                _colour("Ctrl-C preserves checkpoints and evidence.", "2", self._colour_enabled),
+                line(rule),
+                line(_trim(f"State: {self.status_path}", canvas_width), colour="2"),
+                line(f"Requested: {requested_model}  ·  Ctrl-C preserves checkpoints and evidence.", colour="2"),
             ]
         )
         self.stream.write("\033[H\033[2J" + "\n".join(lines) + "\n")

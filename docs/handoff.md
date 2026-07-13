@@ -4,7 +4,7 @@ This document must be updated after every meaningful phase or whenever unfinishe
 
 ## Current Phase
 
-Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 163 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
+Phase 1 framework foundation is usable, but the benchmark is not finished. The project currently has 31 catalog records (26 local runnable tasks plus 5 `external_frozen` SWE-bench records), 13 suites, 166 unittest test functions, built-in Codex/Aider/Claude Code/opencode/Grok adapters, dynamic CLI-default and explicit same-model comparison modes, Docker evaluator v1 with a ready Colima daemon, task-contract fingerprints, recoverable task/suite/matrix runs, Playwright visual evidence, task-level confidence intervals, authoritative-corpus preflight, frozen external pilots, a local historical dashboard, and evidence-backed scoring rules that keep dimensions at 0 when evidence is absent.
 
 Important boundary: the local corpus is custom/domain seed and inspired work; the five legacy SWE-bench records preserve metadata only and the generic runner rejects them. Individual official bridge outcomes remain separate evidence tracks, not proof that an externally representative corpus or global leaderboard is complete. See `docs/task_provenance.md` and `docs/benchmark_readiness_audit.md`.
 
@@ -31,6 +31,7 @@ The first real `swebench-bridge --execute` run is preserved at `runs/swebench-br
 - Preflight now separates execution readiness from ranking readiness: a smoke-only or diagnostic suite is executable for adapter verification, but reports the `no_comparative_tasks` warning and can never unlock comparative ranking.
 - The normal user command is unchanged and must remain visually primary: `agent-benchmark claude-code` uses the harness's current default model. Explicit `--model`, `--suite`, and `--repetitions` are advanced overrides, not a required replacement workflow.
 - The full TUI now uses a coding-agent workbench layout rather than a field list: a fixed left rail exposes harness/default-or-observed model/progress/ETA, while a right activity stream shows only real runner lifecycle events. It has no invented tool activity. Keep the alternate-screen and persisted `activity` trace tested.
+- The subsequent centered TUI replaces that rail with a calmer run conversation. For `claude-code` plus `unspecified`, `model_probe.json` is created once per suite before the first task: a temporary-directory, `--tools ''`, JSON-mode Claude call with `--max-budget-usd 0.05`. It identifies the actual default model from `modelUsage`, is reused on resume, and must remain separate from benchmark task evidence. The current verified probe returned `LongCat-2.0` after normalization of a raw `[1m]` display artifact.
 
 ## User Intent Summary
 
@@ -266,7 +267,7 @@ Protected paths are now checked with SHA-256 hashes against the baseline workspa
 The following commands should pass before handoff:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v       # 163 tests
+PYTHONPATH=src python3 -m unittest discover -s tests -v       # 165 tests
 PYTHONPATH=src python3 -m agent_benchmark.cli.main list-tasks
 PYTHONPATH=src python3 -m agent_benchmark.cli.main catalog
 PYTHONPATH=src python3 -m agent_benchmark.cli.main calibrate-difficulty

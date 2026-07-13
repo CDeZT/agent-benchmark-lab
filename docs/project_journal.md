@@ -1,5 +1,12 @@
 # Project Journal
 
+## 2026-07-13 (iteration 56)
+
+- Confirmed the current Claude Code default with an isolated real JSON probe: `LongCat-2.0`, observed from `modelUsage`; the probe used no tools, a temporary workspace, one turn, and cost `$0.01381`. Fixed the parser's raw ANSI suffix issue that had displayed this as `LongCat-2.0[1m]`.
+- Added a saved, resumable Claude default-model startup probe. It runs once before a default-model suite with a hard `$0.05` cap and gives the TUI actual model evidence before the first benchmark task. Custom Claude command templates and unsupported adapters are explicitly not probed rather than guessed.
+- Replaced the sidebar/BIOs-like run surface with a centered session-style TUI: model identity is prominent, current work and progress are focused, and runner-derived lifecycle events read as a concise activity transcript.
+- Added parser-normalization and low-budget/prohibited-tools probe regression tests. The suite now contains 166 unit tests.
+
 ## 2026-07-13 (iteration 55)
 
 - Restored the product message after user feedback: `agent-benchmark claude-code` remains the normal, primary command and always uses the CLI's current configured default model. Explicit model/suite/repetition flags are retained only as advanced overrides.
